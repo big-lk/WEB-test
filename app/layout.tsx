@@ -1,11 +1,11 @@
-import '../styles/globals.css'
+kongweiimport '../styles/globals.css'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Zhou Zizhe – Industrial Design / HCI',
-  description: 'Inclusive Design ・ Kansei ・ UI/UX Portfolio',
+  title: '孔维鹏 KONG WEIPENG – 工业设计/人机交互/ HCI',
+  description: '感性·UI/UX',
   openGraph: {
-    title: 'Zhou Zizhe – Portfolio',
+    title: 'KONG WEIPENG-Portfolio',
     description: 'Selected works and research.',
     images: ['/og.png'],
     type: 'website',
