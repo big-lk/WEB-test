@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light dark;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  @apply bg-white text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100;
+}
+
+a {
+  @apply underline underline-offset-4 decoration-neutral-300 hover:decoration-neutral-500;
+}
