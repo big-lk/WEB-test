@@ -20,7 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen antialiased">
         <nav className="sticky top-0 z-50 backdrop-blur supports-[backdrop-filter]:bg-white/70 dark:supports-[backdrop-filter]:bg-neutral-950/70 border-b border-neutral-200 dark:border-neutral-800">
           <div className="mx-auto max-w-5xl px-6 py-3 flex items-center justify-between">
-            <a href="/" className="no-underline font-semibold">ZZZ · Portfolio</a>
+            <a href="/" className="no-underline font-semibold">LKD · Portfolio</a>
             <div className="space-x-6 text-sm">
               <a href="/works" className="no-underline">Works</a>
               <a href="/research" className="no-underline">Research</a>
@@ -31,7 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {children}
         <footer className="mt-24 border-t border-neutral-200 dark:border-neutral-800">
           <div className="mx-auto max-w-5xl px-6 py-8 text-sm text-neutral-500">
-            © {new Date().getFullYear()} Zhou Zizhe · Built with Next.js & Vercel
+            © {new Date().getFullYear()} KONG WEIPENG · Built with Next.js & Vercel
           </div>
         </footer>
       </body>
