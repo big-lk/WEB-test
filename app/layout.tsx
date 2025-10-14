@@ -2,7 +2,7 @@ kongweiimport '../styles/globals.css'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: '孔维鹏 KONG WEIPENG – 工业设计/人机交互/ HCI',
+  title: '孔维鹏 KONG WEIPENG – 工业设计/人机交互/HCI',
   description: '感性·UI/UX',
   openGraph: {
     title: 'KONG WEIPENG-Portfolio',
