@@ -1,25 +1,94 @@
 export default function Home() {
   return (
-    <main className="mx-auto max-w-5xl px-6 py-12">
-      <header className="mb-12">
-        <h1 className="text-3xl font-bold">孔维鹏 KONG WEIPENG – 工业设计 Industrial Design / HCI</h1>
-        <p className="text-neutral-500 mt-2"> 感性工学 Sensory Engineering　・　製品設計　Product design ・ UI/UX</p>
+    <main className="mx-auto max-w-5xl px-6 py-12 md:py-16">
+      {/* 顶部信息：名字 + 方向标签 */}
+      <header className="mb-12 md:mb-16">
+        <p className="text-xs tracking-[0.25em] uppercase text-neutral-400">
+          Industrial Design / HCI
+        </p>
+
+        <h1 className="mt-3 text-3xl md:text-4xl font-semibold tracking-tight">
+          KONG WEIPENG 孔维鹏
+        </h1>
+
+        <p className="mt-4 text-sm md:text-base text-neutral-600 leading-relaxed">
+          工业设计 / 感性工学 / UI・UX。  
+          关注日常生活中的「违和感」，通过产品与界面设计探索人与技术之间更细腻的体验关系。
+        </p>
+
+        <div className="mt-5 flex flex-wrap gap-2 text-xs md:text-[13px]">
+          <span className="rounded-full border px-3 py-1 text-neutral-600">
+            感性工学 Sensory Engineering
+          </span>
+          <span className="rounded-full border px-3 py-1 text-neutral-600">
+            Product Design
+          </span>
+          <span className="rounded-full border px-3 py-1 text-neutral-600">
+            UI / UX ・ HCI
+          </span>
+        </div>
       </header>
 
+      {/* 主要导航卡片：作品 / 研究 */}
       <section className="grid gap-6 sm:grid-cols-2">
-        <a href="/works" className="block rounded-2xl border p-6 hover:shadow transition">
-          <h2 className="font-semibold mb-2">工作集 Selected Works →</h2>
-          <p className="text-neutral-500 text-sm">代表性项目和设计工件.</p>
+        <a
+          href="/works"
+          className="group block rounded-2xl border border-neutral-200 bg-white/60 p-6 shadow-sm shadow-black/[0.03] transition hover:-translate-y-1 hover:border-neutral-900 hover:shadow-md"
+        >
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="font-semibold">
+              工作集 Selected Works
+            </h2>
+            <span className="text-sm text-neutral-400 group-hover:text-neutral-800">
+              →
+            </span>
+          </div>
+          <p className="text-sm text-neutral-500 leading-relaxed">
+            代表性产品设计、UI/UX 原型与研究型项目。  
+            从问题发现到原型制作与验证的完整过程。
+          </p>
         </a>
-        <a href="/research" className="block rounded-2xl border p-6 hover:shadow transition">
-          <h2 className="font-semibold mb-2">研究 →</h2>
-          <p className="text-neutral-500 text-sm">论文、发表及研究成果.</p>
+
+        <a
+          href="/research"
+          className="group block rounded-2xl border border-neutral-200 bg-white/60 p-6 shadow-sm shadow-black/[0.03] transition hover:-translate-y-1 hover:border-neutral-900 hover:shadow-md"
+        >
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="font-semibold">
+              研究 Research
+            </h2>
+            <span className="text-sm text-neutral-400 group-hover:text-neutral-800">
+              →
+            </span>
+          </div>
+          <p className="text-sm text-neutral-500 leading-relaxed">
+            感性評価・インクルーシブデザイン・HCI に関する論文、
+            学会发表与进行中的研究项目记录。
+          </p>
         </a>
       </section>
 
-      <section id="contact" className="mt-16 space-y-3">
-        <h2 className="text-xl font-semibold">联系方式Contact</h2>
-        <p className="text-neutral-500">littlekeen@outlook.com ・ 札幌市立大学Sapporo City University</p>
+      {/* About / 简短自我介绍 */}
+      <section className="mt-16 border-t pt-10">
+        <h2 className="text-lg md:text-xl font-semibold mb-3">
+          About
+        </h2>
+        <p className="text-sm md:text-base text-neutral-600 leading-relaxed">
+          札幌市立大学・工业设计 / 感性工学方向。  
+          在产品设计与交互设计之间游走，关注视障者支援、料理体验、
+          以及「自分らしさ」与技术介入之间的张力。  
+          通过问卷、用户访谈、共创工作坊等方法，把抽象的感受转化为
+          可被设计的结构与界面。
+        </p>
+      </section>
+
+      {/* 联系方式 */}
+      <section id="contact" className="mt-12 space-y-3">
+        <h2 className="text-lg md:text-xl font-semibold">联系方式 Contact</h2>
+        <p className="text-sm md:text-base text-neutral-600">
+          littlekeen@outlook.com  
+          札幌市立大学 Sapporo City University
+        </p>
       </section>
     </main>
   )
