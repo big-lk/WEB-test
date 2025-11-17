@@ -13,7 +13,7 @@ export default function Home() {
 
         <p className="mt-4 text-sm md:text-base text-neutral-600 leading-relaxed">
           工业设计 / 感性工学 / UI・UX。  
-          关注日常生活中的「违和感」，通过产品与界面设计探索人与技术之间更细腻的体验关系。
+          通过感性工学探究产品与界面设计/探索人与技术之间更细腻的体验关系。
         </p>
 
         <div className="mt-5 flex flex-wrap gap-2 text-xs md:text-[13px]">
@@ -24,7 +24,7 @@ export default function Home() {
             Product Design
           </span>
           <span className="rounded-full border px-3 py-1 text-neutral-600">
-            UI / UX ・ HCI
+            UI / UX ・ 产品设计
           </span>
         </div>
       </header>
@@ -37,15 +37,14 @@ export default function Home() {
         >
           <div className="mb-2 flex items-center justify-between">
             <h2 className="font-semibold">
-              工作集 Selected Works
+              作品集 Portfolio
             </h2>
             <span className="text-sm text-neutral-400 group-hover:text-neutral-800">
               →
             </span>
           </div>
           <p className="text-sm text-neutral-500 leading-relaxed">
-            代表性产品设计、UI/UX 原型与研究型项目。  
-            从问题发现到原型制作与验证的完整过程。
+            代表性产品设计、UI/UX 原型与研究型项目。 
           </p>
         </a>
 
@@ -62,8 +61,7 @@ export default function Home() {
             </span>
           </div>
           <p className="text-sm text-neutral-500 leading-relaxed">
-            感性評価・インクルーシブデザイン・HCI に関する論文、
-            学会发表与进行中的研究项目记录。
+            感性評価・UI/UX に関する論文、
           </p>
         </a>
       </section>
@@ -75,10 +73,7 @@ export default function Home() {
         </h2>
         <p className="text-sm md:text-base text-neutral-600 leading-relaxed">
           札幌市立大学・工业设计 / 感性工学方向。  
-          在产品设计与交互设计之间游走，关注视障者支援、料理体验、
-          以及「自分らしさ」与技术介入之间的张力。  
-          通过问卷、用户访谈、共创工作坊等方法，把抽象的感受转化为
-          可被设计的结构与界面。
+          通过可量化的研究方式去探究人们对于产品的感性需求,并以此引导人们创造美好生活
         </p>
       </section>
 
