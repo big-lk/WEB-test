@@ -8,7 +8,7 @@ export default function Home() {
         </p>
 
         <h1 className="mt-3 text-3xl md:text-4xl font-semibold tracking-tight">
-          KONG WEIPENG 孔维鹏
+          KONG WEIPENG 
         </h1>
 
         <p className="mt-4 text-sm md:text-base text-neutral-600 leading-relaxed">
