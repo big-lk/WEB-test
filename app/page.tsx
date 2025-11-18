@@ -1,15 +1,29 @@
 export default function Home() {
   return (
     <main className="mx-auto max-w-5xl px-6 py-12 md:py-16">
+      <div
+      className="pointer-events-none absolute inset-0 -z-10 opacity-[0.04] 
+      bg-[url('/logo-bg.svg')] bg-center bg-no-repeat bg-contain"
+      />
+
       {/* 顶部信息：名字 + 方向标签 */}
       <header className="mb-12 md:mb-16">
         <p className="text-xs tracking-[0.25em] uppercase text-neutral-400">
           Industrial Design / HCI
         </p>
 
-        <h1 className="mt-3 text-3xl md:text-4xl font-semibold tracking-tight">
-          KONG WEIPENG 
-        </h1>
+        <div className="mt-3 flex items-center gap-4">
+          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">
+              KONG WEIPENG 孔维鹏
+          </h1>
+      
+          {/* Logo 图片 */}
+          <img 
+            src="/logo.svg" 
+            alt="logo"
+            className="w-10 h-10 opacity-90"
+          />
+        </div>
 
         <p className="mt-4 text-sm md:text-base text-neutral-600 leading-relaxed">
           工业设计 / 感性工学 / UI・UX。  
