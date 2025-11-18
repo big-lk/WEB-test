@@ -3,7 +3,7 @@ export default function Home() {
     <main className="mx-auto max-w-5xl px-6 py-12 md:py-16">
       <div
       className="pointer-events-none absolute inset-0 -z-10 opacity-[0.04] 
-      bg-[url('/logo-bg.svg')] bg-center bg-no-repeat bg-contain"
+      bg-[url('/logo-bg.svg')] bg-no-repeat bg-[left_200px] bg-[length:400px]"
       />
 
       {/* 顶部信息：名字 + 方向标签 */}
@@ -21,7 +21,7 @@ export default function Home() {
           <img 
             src="/logo.PNG" 
             alt="logo"
-            className="w-10 h-10 opacity-90"
+            className="w-40 h-40 opacity-90"
           />
         </div>
 
