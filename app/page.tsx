@@ -3,7 +3,7 @@ export default function Home() {
     <main className="mx-auto max-w-5xl px-6 py-12 md:py-16">
       <div
       className="pointer-events-none absolute inset-0 -z-10 opacity-[0.04] 
-      bg-[url('/logo-bg.svg')] bg-no-repeat bg-[right_250px_bottom_150px] bg-[length:700px]"
+      bg-[url('/logo-bg.svg')] bg-no-repeat bg-[right_100px_bottom_50px] bg-[length:700px]"
       />
 
       {/* 顶部信息：名字 + 方向标签 */}
