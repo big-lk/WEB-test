@@ -19,7 +19,7 @@ export default function Home() {
       
           {/* Logo 图片 */}
           <img 
-            src="/logo.svg" 
+            src="/logo.PNG" 
             alt="logo"
             className="w-10 h-10 opacity-90"
           />
