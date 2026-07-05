@@ -3,7 +3,11 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
+  --brand-yellow: #f7b718;
+  --brand-yellow-soft: #fff4cf;
+  --brand-ink: #050505;
+  --brand-paper: #fffaf0;
 }
 
 html, body {
@@ -11,9 +15,9 @@ html, body {
 }
 
 body {
-  @apply bg-white text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100;
+  @apply bg-[#fffaf0] text-neutral-950 dark:bg-neutral-950 dark:text-neutral-100;
 }
 
 a {
-  @apply underline underline-offset-4 decoration-neutral-300 hover:decoration-neutral-500;
+  @apply underline underline-offset-4 decoration-[#f7b718]/45 hover:decoration-[#f7b718];
 }
