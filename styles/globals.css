@@ -21,3 +21,21 @@ body {
 a {
   @apply underline underline-offset-4 decoration-[#f7b718]/45 hover:decoration-[#f7b718];
 }
+
+@keyframes heroFade {
+  0% {
+    opacity: 0;
+    transform: scale(1.025);
+  }
+
+  12%,
+  88% {
+    opacity: 0.72;
+    transform: scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.01);
+  }
+}

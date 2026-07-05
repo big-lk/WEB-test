@@ -36,15 +36,6 @@ function documentLanguage(language: Language) {
   return 'en'
 }
 
-function resolveBrowserLanguage(): Language {
-  const languages = [...(navigator.languages ?? []), navigator.language].filter(Boolean)
-  const matched = languages.find((language) => /^(zh|ja|en)\b/i.test(language))
-
-  if (matched?.toLowerCase().startsWith('ja')) return 'ja'
-  if (matched?.toLowerCase().startsWith('en')) return 'en'
-  return 'zh'
-}
-
 function resolveTheme(theme: Theme) {
   if (theme === 'system') {
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
@@ -57,13 +48,15 @@ function applyTheme(theme: Theme) {
 }
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<Language>('zh')
+  const [language, setLanguageState] = useState<Language>('en')
   const [theme, setThemeState] = useState<Theme>('system')
 
   useEffect(() => {
-    const browserLanguage = resolveBrowserLanguage()
-    setLanguageState(browserLanguage)
-    document.documentElement.lang = documentLanguage(browserLanguage)
+    const saved = readStorage('lkd-language')
+    if (saved === 'en' || saved === 'ja' || saved === 'zh') {
+      setLanguageState(saved)
+      document.documentElement.lang = documentLanguage(saved)
+    }
 
     const savedTheme = readStorage('lkd-theme')
     const nextTheme = savedTheme === 'light' || savedTheme === 'dark' || savedTheme === 'system' ? savedTheme : 'system'
