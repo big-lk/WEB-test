@@ -6,6 +6,7 @@ import { LanguageProvider, useLanguage } from './language-context'
 const navCopy = {
   en: {
     brandAlt: 'LKD logo',
+    resume: 'Resume',
     works: 'Works',
     research: 'Research',
     contact: 'Contact',
@@ -17,6 +18,7 @@ const navCopy = {
   },
   ja: {
     brandAlt: 'LKD ロゴ',
+    resume: '履歴書',
     works: '作品',
     research: '研究',
     contact: '連絡',
@@ -28,6 +30,7 @@ const navCopy = {
   },
   zh: {
     brandAlt: 'LKD 标志',
+    resume: '简历',
     works: '作品',
     research: '研究',
     contact: '联系',
@@ -60,6 +63,7 @@ function SiteHeader() {
   const { language, setLanguage, theme, setTheme } = useLanguage()
   const copy = navCopy[language]
   const navLinks = [
+    { href: '/resume', label: copy.resume },
     { href: '/works', label: copy.works },
     { href: '/research', label: copy.research },
     { href: '/#contact', label: copy.contact },
@@ -146,7 +150,7 @@ function SiteHeader() {
         </div>
       </div>
       <div className="border-t border-[#f7b718]/20 px-4 py-2 sm:hidden">
-        <div className="mx-auto grid max-w-6xl grid-cols-3 gap-2 text-center text-sm font-medium">
+        <div className="mx-auto grid max-w-6xl grid-cols-4 gap-2 text-center text-sm font-medium">
           {navLinks.map((link) => (
             <Link
               key={link.href}

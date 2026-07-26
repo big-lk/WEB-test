@@ -11,6 +11,11 @@ const copy = {
     detailLabels: { role: 'Role', method: 'Methods', next: 'Next step' },
     processTitle: 'Process',
     valueTitle: 'Value',
+    researchTitle: 'Research evidence',
+    researchNote: 'Sample and data relationship',
+    decisionsTitle: 'How evidence changed the product',
+    limitsTitle: 'Research boundary',
+    deliveryTitle: 'What is real now',
   },
   ja: {
     eyebrow: 'ポートフォリオ',
@@ -19,6 +24,11 @@ const copy = {
     detailLabels: { role: '担当', method: '方法', next: '次のステップ' },
     processTitle: 'プロセス',
     valueTitle: '価値',
+    researchTitle: '調査エビデンス',
+    researchNote: 'サンプルとデータの関係',
+    decisionsTitle: '調査から変えた設計',
+    limitsTitle: '調査の限界',
+    deliveryTitle: '現在の実装範囲',
   },
   zh: {
     eyebrow: '作品集',
@@ -27,6 +37,11 @@ const copy = {
     detailLabels: { role: '负责内容', method: '方法', next: '下一步' },
     processTitle: '过程',
     valueTitle: '价值',
+    researchTitle: '调研证据',
+    researchNote: '样本与数据关系',
+    decisionsTitle: '数据如何改变产品',
+    limitsTitle: '研究边界',
+    deliveryTitle: '现在真正做到了什么',
   },
 }
 
@@ -77,6 +92,66 @@ export default function WorksPage() {
               <div className="border-t border-[#f7b718]/25 bg-[#fffaf0] p-4 dark:border-[#f7b718]/20 dark:bg-neutral-950">
                 <img src={work.detailImage} alt={`${work.title} presentation board`} className="w-full rounded-md border border-[#f7b718]/25 bg-white object-cover dark:border-[#f7b718]/20" />
               </div>
+            ) : null}
+
+            {work.research ? (
+              <section className="border-t border-[#f7b718]/25 bg-neutral-950 px-6 py-8 text-white md:px-8 md:py-10">
+                <div className="grid gap-5 md:grid-cols-[0.72fr_1.28fr] md:items-end">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#f7b718]">{t.researchTitle}</p>
+                    <h3 className="mt-3 text-2xl font-semibold">{t.researchNote}</h3>
+                  </div>
+                  <p className="max-w-3xl text-sm leading-7 text-neutral-300">{work.research.sample}</p>
+                </div>
+
+                <div className="mt-8 grid gap-px overflow-hidden rounded-lg border border-white/[0.12] bg-white/[0.12] sm:grid-cols-2 lg:grid-cols-4">
+                  {work.research.metrics.map(([value, label, detail]) => (
+                    <div key={label} className="bg-neutral-950 p-5">
+                      <p className="text-3xl font-semibold text-[#f7b718]">{value}</p>
+                      <p className="mt-3 text-sm font-semibold leading-6 text-white">{label}</p>
+                      <p className="mt-2 text-xs leading-5 text-neutral-400">{detail}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-10">
+                  <h3 className="text-xl font-semibold">{t.decisionsTitle}</h3>
+                  <div className="mt-5 grid gap-4 md:grid-cols-3">
+                    {work.research.decisions.map(([title, description], index) => (
+                      <div key={title} className="rounded-lg border border-[#f7b718]/30 bg-white/[0.04] p-5">
+                        <p className="text-xs font-semibold text-[#f7b718]">0{index + 1}</p>
+                        <h4 className="mt-3 font-semibold">{title}</h4>
+                        <p className="mt-3 text-sm leading-7 text-neutral-300">{description}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-6 grid gap-3 rounded-lg border border-white/[0.12] bg-white/[0.04] p-5 md:grid-cols-[9rem_1fr]">
+                  <p className="text-sm font-semibold text-[#f7b718]">{t.limitsTitle}</p>
+                  <p className="text-sm leading-7 text-neutral-300">{work.research.limitation}</p>
+                </div>
+              </section>
+            ) : null}
+
+            {work.delivery ? (
+              <section className="border-t border-[#f7b718]/25 bg-[#fffaf0] px-6 py-8 md:px-8 md:py-10 dark:bg-neutral-950">
+                <div className="grid gap-8 md:grid-cols-[0.36fr_1fr]">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#b57900] dark:text-[#f7b718]">MVP 0.2.0</p>
+                    <h3 className="mt-3 text-2xl font-semibold">{t.deliveryTitle}</h3>
+                  </div>
+                  <div className="grid gap-0">
+                    {work.delivery.map(([title, description], index) => (
+                      <div key={title} className="grid gap-3 border-t border-[#f7b718]/35 py-5 first:pt-4 md:grid-cols-[4rem_10rem_1fr]">
+                        <span className="text-sm font-semibold text-[#b57900] dark:text-[#f7b718]">0{index + 1}</span>
+                        <h4 className="font-semibold">{title}</h4>
+                        <p className="text-sm leading-7 text-neutral-600 dark:text-neutral-300">{description}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </section>
             ) : null}
 
             <div className="grid gap-8 border-t border-[#f7b718]/25 p-6 md:grid-cols-[1fr_1fr] md:p-8 dark:border-[#f7b718]/20">
