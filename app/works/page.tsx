@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useLanguage } from '../../components/language-context'
 import { portfolioWorks } from '../../lib/portfolio-data'
 
@@ -16,6 +17,7 @@ const copy = {
     decisionsTitle: 'How evidence changed the product',
     limitsTitle: 'Research boundary',
     deliveryTitle: 'What is real now',
+    viewCase: 'Open full case study',
   },
   ja: {
     eyebrow: 'ポートフォリオ',
@@ -29,6 +31,7 @@ const copy = {
     decisionsTitle: '調査から変えた設計',
     limitsTitle: '調査の限界',
     deliveryTitle: '現在の実装範囲',
+    viewCase: '詳しいケーススタディを見る',
   },
   zh: {
     eyebrow: '作品集',
@@ -42,6 +45,7 @@ const copy = {
     decisionsTitle: '数据如何改变产品',
     limitsTitle: '研究边界',
     deliveryTitle: '现在真正做到了什么',
+    viewCase: '进入完整案例',
   },
 }
 
@@ -85,16 +89,21 @@ export default function WorksPage() {
                   <div className="grid gap-1 border-t border-[#f7b718]/35 pt-4 dark:border-[#f7b718]/25"><dt className="font-semibold text-neutral-950 dark:text-white">{t.detailLabels.method}</dt><dd className="text-neutral-600 dark:text-neutral-400">{work.methods}</dd></div>
                   <div className="grid gap-1 border-t border-[#f7b718]/35 pt-4 dark:border-[#f7b718]/25"><dt className="font-semibold text-neutral-950 dark:text-white">{t.detailLabels.next}</dt><dd className="text-neutral-600 dark:text-neutral-400">{work.next}</dd></div>
                 </dl>
+                {work.href.startsWith('/works/') ? (
+                  <Link href={work.href} className="mt-8 inline-flex rounded-md bg-[#f7b718] px-5 py-3 text-sm font-semibold text-black no-underline transition hover:bg-[#e1a514]">
+                    {t.viewCase} <span aria-hidden="true" className="ml-2">→</span>
+                  </Link>
+                ) : null}
               </div>
             </div>
 
-            {work.detailImage ? (
+            {!work.href.startsWith('/works/') && work.detailImage ? (
               <div className="border-t border-[#f7b718]/25 bg-[#fffaf0] p-4 dark:border-[#f7b718]/20 dark:bg-neutral-950">
                 <img src={work.detailImage} alt={`${work.title} presentation board`} className="w-full rounded-md border border-[#f7b718]/25 bg-white object-cover dark:border-[#f7b718]/20" />
               </div>
             ) : null}
 
-            {work.research ? (
+            {!work.href.startsWith('/works/') && work.research ? (
               <section className="border-t border-[#f7b718]/25 bg-neutral-950 px-6 py-8 text-white md:px-8 md:py-10">
                 <div className="grid gap-5 md:grid-cols-[0.72fr_1.28fr] md:items-end">
                   <div>
@@ -134,7 +143,7 @@ export default function WorksPage() {
               </section>
             ) : null}
 
-            {work.delivery ? (
+            {!work.href.startsWith('/works/') && work.delivery ? (
               <section className="border-t border-[#f7b718]/25 bg-[#fffaf0] px-6 py-8 md:px-8 md:py-10 dark:bg-neutral-950">
                 <div className="grid gap-8 md:grid-cols-[0.36fr_1fr]">
                   <div>
@@ -154,6 +163,7 @@ export default function WorksPage() {
               </section>
             ) : null}
 
+            {!work.href.startsWith('/works/') ? (
             <div className="grid gap-8 border-t border-[#f7b718]/25 p-6 md:grid-cols-[1fr_1fr] md:p-8 dark:border-[#f7b718]/20">
               <div>
                 <h3 className="text-xl font-semibold">{t.processTitle}</h3>
@@ -175,6 +185,7 @@ export default function WorksPage() {
                 </ul>
               </div>
             </div>
+            ) : null}
           </article>
         ))}
       </div>
