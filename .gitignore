@@ -12,3 +12,6 @@ build/
 
 .pnpm-store/
 pnpm-workspace.yaml
+
+__pycache__/
+*.py[cod]

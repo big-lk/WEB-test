@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light" />
+    <meta name="robots" content="noindex,nofollow" />
+    <base href="/aitest/" />
+    <title>AI 対話実験</title>
+    <link rel="stylesheet" href="./styles.css?v=4.0.0-ja" />
+  </head>
+  <body>
+    <section class="setup-screen" id="setupScreen" aria-labelledby="setupTitle">
+      <form class="setup-card" id="setupForm">
+        <p class="eyebrow">視線計測実験</p>
+        <h1 id="setupTitle">実験セッションの準備</h1>
+        <p class="setup-copy">実験者が匿名の参加者番号と割り当て条件を設定してください。氏名などの個人情報は入力しません。</p>
+        <label class="field">
+          <span>参加者番号</span>
+          <input id="participantId" name="participantId" inputmode="text" autocomplete="off" placeholder="P001" pattern="[A-Za-z][A-Za-z0-9_-]{2,15}" required />
+          <small>例：P001（3〜16文字）</small>
+        </label>
+        <fieldset class="condition-picker">
+          <legend>実験条件</legend>
+          <label><input type="radio" name="condition" value="A" checked /><span><b>条件 A</b>推測内容を確認</span></label>
+          <label><input type="radio" name="condition" value="B" /><span><b>条件 B</b>判断方法を調整</span></label>
+        </fieldset>
+        <label class="fullscreen-check"><input type="checkbox" id="fullscreenToggle" checked />開始時に全画面表示を試みる</label>
+        <div class="ai-connection" id="aiConnection" role="status">
+          <span class="status-dot"></span>
+          <div><b>2つの AI を確認中</b><small>対話 AI / 分析 AI</small></div>
+        </div>
+        <div class="setup-actions">
+          <button type="button" class="ghost-button" id="resumeButton" hidden>前回の続きから再開</button>
+          <button type="submit" class="primary-button">説明画面へ</button>
+        </div>
+        <p class="keyboard-note">実験者メニュー：<kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>E</kbd></p>
+      </form>
+    </section>
+
+    <section class="prep-screen hidden" id="prepScreen" aria-labelledby="prepTitle">
+      <form class="prep-card" id="prepForm">
+        <div class="prep-heading"><div><p class="eyebrow">自己観察テスト</p><h1 id="prepTitle">テスト前の準備</h1></div><span>ステップ 1 / 3</span></div>
+        <p class="prep-lead">現在の状態を記録し、機器と環境を確認してください。回答は視線変化を解釈するために使用し、良し悪しを評価するものではありません。</p>
+        <div class="prep-columns">
+          <section class="prep-section">
+            <h2>現在の状態</h2>
+            <label class="scale-field"><span>眠気の程度 <b id="sleepinessValue">4</b></span><input type="range" name="sleepiness" min="1" max="7" value="4" /></label>
+            <label class="scale-field"><span>緊張の程度 <b id="tensionValue">4</b></span><input type="range" name="tension" min="1" max="7" value="4" /></label>
+            <label class="scale-field"><span>現在の判断への自信 <b id="confidenceValue">4</b></span><input type="range" name="confidence" min="1" max="7" value="4" /></label>
+            <label class="scale-field"><span>AI 利用への慣れ <b id="familiarityValue">4</b></span><input type="range" name="familiarity" min="1" max="7" value="4" /></label>
+          </section>
+          <section class="prep-section checklist-section">
+            <h2>機器と環境の確認</h2>
+            <label><input type="checkbox" name="checks" value="tracker" required /><span>Tobii が接続され、キャリブレーションが完了している</span></label>
+            <label><input type="checkbox" name="checks" value="distance" required /><span>自然な姿勢で、目と画面の距離が約 60 cm になっている</span></label>
+            <label><input type="checkbox" name="checks" value="display" required /><span>画面は 1920×1080、OS とブラウザの拡大率は 100% になっている</span></label>
+            <label><input type="checkbox" name="checks" value="quiet" required /><span>照明が安定し、通知がオフで、今後約 15 分間中断されない</span></label>
+          </section>
+        </div>
+        <button type="submit" class="primary-button prep-next">課題の説明へ</button>
+      </form>
+    </section>
+
+    <section class="instruction-screen hidden" id="instructionScreen" aria-labelledby="instructionTitle">
+      <div class="instruction-card">
+        <p class="eyebrow">対話型相談課題</p>
+        <h1 id="instructionTitle">あなたの課題</h1>
+        <div class="story-brief">
+          <p class="story-label">場面設定</p>
+          <h2>大切な人のために、特別な夕食を計画する</h2>
+          <p>料理を一品選ぶだけの課題ではありません。相手の好みや状態、どのような食事体験にしたいかを考えながら、献立の方向、味と食感、食べ進め方、注意したい条件を少しずつ説明してください。会話はこの夕食に関係する内容に保ち、氏名などの個人情報、買い物の時刻、予算、詳しい調理手順は入力しないでください。</p>
+        </div>
+        <div class="instruction-grid">
+          <article><span>01</span><h2>自然に対話を進める</h2><p>各回の課題に沿って AI と対話し、必要に応じて提案を受け入れたり、質問したり、修正したりしてください。</p></article>
+          <article><span>02</span><h2>右側の整理を確認する</h2><p>右側には、現在の発言を AI がどう理解したかが表示されます。違う場合は、次の入力で修正できます。</p></article>
+          <article id="conditionInstruction"><span>03</span><h2>各回の指示に沿って答える</h2><p>自分の実際の考えに基づいて説明を続けてください。決まった正解はありません。</p></article>
+        </div>
+        <div class="privacy-note"><b>お願い</b><span>実在人物の氏名、住所、連絡先などの個人情報は入力しないでください。いつでも実験者に中止を申し出られます。</span></div>
+        <button type="button" class="primary-button start-button" id="startTask">課題を開始する</button>
+      </div>
+    </section>
+
+    <main class="app-shell hidden" id="appShell" data-condition="A">
+      <section class="conversation-pane" aria-label="対話エリア">
+        <header class="app-header">
+          <div class="brand-mark" aria-hidden="true"><span></span></div>
+          <div><h1>AI と相談</h1><p>特別な夕食の味・体験・判断理由を考える</p></div>
+          <div class="turn-progress" aria-live="polite"><span id="turnLabel">TURN 1</span><b id="turnCount">1 / 6</b></div>
+        </header>
+
+        <div class="turn-prompt" id="turnPrompt"><span>今回の課題</span><div><p id="promptText"></p><small id="guideText"></small></div></div>
+
+        <div class="chat-stage" id="chatStage" data-aoi="AOI_Left_Context">
+          <div class="empty-conversation" id="emptyConversation"><div class="ai-orb">AI</div><p>まず、あなたの考えを入力してください。</p></div>
+        </div>
+
+        <form class="composer-wrap" id="composer" data-aoi="AOI_Left_Input">
+          <div class="composer-meta"><span id="inputHint">あなたの考えを入力</span><span id="charCount">0 / 500</span></div>
+          <div class="composer">
+            <label class="sr-only" for="messageInput">メッセージを入力</label>
+            <textarea id="messageInput" maxlength="500" rows="2" placeholder="ここに入力してください" required></textarea>
+            <button type="submit" id="sendButton" aria-label="送信"><span>送信</span><b aria-hidden="true">↑</b></button>
+          </div>
+        </form>
+      </section>
+
+      <aside class="insight-pane" aria-label="AI による会話内容の推測">
+        <header class="insight-header">
+          <div><p>会話からの整理</p><h2>AI の推測</h2></div>
+          <span class="condition-badge" id="conditionBadge">確認のみ</span>
+        </header>
+        <div class="insight-intro"><p id="insightHelp">AI が会話から推測した内容です。違う場合は次の発言で直せます。</p></div>
+        <div class="criteria-list" id="criteriaList" data-aoi="AOI_Right_Estimation"></div>
+      </aside>
+
+      <div class="saving-status" id="savingStatus" aria-live="polite">保存済み</div>
+      <div class="ai-loading hidden" id="aiLoading" role="status" aria-live="assertive">
+        <div class="loading-card"><span class="loading-ring"></span><div><b id="loadingTitle">対話 AI が回答を作成中</b><small id="loadingDetail">続いて分析 AI が右側を更新します</small></div></div>
+      </div>
+    </main>
+
+    <section class="reflection-screen hidden" id="reflectionScreen" aria-labelledby="reflectionTitle">
+      <form class="reflection-card" id="reflectionForm">
+        <div class="prep-heading"><div><p class="eyebrow">対話後の振り返り</p><h1 id="reflectionTitle">各回の判断過程を振り返る</h1></div><span>ステップ 3 / 3</span></div>
+        <div class="reflection-warning"><b>先に視線計測を停止してから、このページに回答してください。</b><span>振り返り画面は主要な視線分析の対象には含まれません。</span></div>
+        <p class="prep-lead">先ほどの実際の体験に基づいて回答してください。覚えていない場合は推測せず、「なかった／わからない」を選んでください。</p>
+        <div class="reflection-table" id="reflectionRows"></div>
+        <section class="overall-review">
+          <label class="scale-field"><span>AI が補助できる部分と、自分で判断すべき部分を区別できた <b id="clarityValue">4</b></span><input type="range" name="clarity" min="1" max="7" value="4" /></label>
+          <label class="scale-field"><span>AI では代わりに決められない判断があると気づいた <b id="nonreplaceableValue">4</b></span><input type="range" name="nonreplaceable" min="1" max="7" value="4" /></label>
+          <label class="scale-field"><span>最終的な決定権は自分にあると感じた <b id="controlValue">4</b></span><input type="range" name="control" min="1" max="7" value="4" /></label>
+          <label class="scale-field"><span>この整理方法によって AI との対話体験が良くなった <b id="experienceValue">4</b></span><input type="range" name="experience" min="1" max="7" value="4" /></label>
+          <label class="scale-field"><span>判断の過程に負担を感じた <b id="effortValue">4</b></span><input type="range" name="effort" min="1" max="7" value="4" /></label>
+          <label class="scale-field"><span>この対話を通じて、AI に任せられることと自分で決めることを考えるようになった <b id="delegationReflectionValue">4</b></span><input type="range" name="delegationReflection" min="1" max="7" value="4" /></label>
+          <label><span>この対話のどの場面で、「AI に任せられることと自分で決めること」を意識しましたか。（なければ空欄でも構いません）</span><textarea name="turningPoint" rows="3" placeholder="例：AI が自分の意図と違う理解を示したとき……"></textarea></label>
+        </section>
+        <div class="reflection-actions"><button type="submit" class="primary-button">振り返りを保存して完了</button><button type="button" class="ghost-button" id="reflectionExport" hidden>完全ログを書き出す</button></div>
+      </form>
+    </section>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <dialog class="experimenter-dialog" id="experimenterDialog">
+      <form method="dialog" class="experimenter-card">
+        <div class="dialog-title"><div><p class="eyebrow">EXPERIMENTER</p><h2>実験者メニュー</h2></div><button value="close" aria-label="閉じる">×</button></div>
+        <dl class="session-summary" id="sessionSummary"></dl>
+        <div class="dialog-actions">
+          <button type="button" id="exportCsv">時間ログ CSV</button>
+          <button type="button" id="exportJson">完全ログ JSON</button>
+          <button type="button" id="toggleFullscreen">全画面の切替</button>
+          <button type="button" class="danger-button" id="resetSession">セッションを終了・初期化</button>
+        </div>
+        <p class="dialog-note">このメニューの開閉も操作ログに記録されます。参加者の視線計測中は開かないでください。</p>
+      </form>
+    </dialog>
+
+    <script src="./app.js?v=4.0.0-ja"></script>
+  </body>
+</html>

@@ -1,0 +1,203 @@
+{
+  "version": "special-dinner-topic-library-v2",
+  "purpose": "仅供服务端识别参与者已谈及和尚未谈及的晚餐维度；不得向参与者展示角色、触发词或候选列表。",
+  "roleSources": [
+    {
+      "id": "small_appetite_guest",
+      "label": "疲劳且食欲较小的用餐者",
+      "contributedTopics": ["portion_appetite", "flavor_balance", "temperature_aroma"]
+    },
+    {
+      "id": "sensory_sensitive_guest",
+      "label": "对温度、气味和口感较敏感的用餐者",
+      "contributedTopics": ["texture_progression", "temperature_aroma", "dietary_safety"]
+    },
+    {
+      "id": "pairing_enthusiast",
+      "label": "重视饮品与食物搭配的用餐者",
+      "contributedTopics": ["flavor_balance", "menu_composition", "familiarity_novelty", "plating_visual"]
+    },
+    {
+      "id": "conversation_focused_host",
+      "label": "希望自然聊天的准备者",
+      "contributedTopics": ["dining_flow", "conversation_content", "table_atmosphere", "preparation_burden"]
+    },
+    {
+      "id": "low_effort_host",
+      "label": "不熟练且希望少照料的准备者",
+      "contributedTopics": ["preparation_burden", "menu_composition", "sharing_serving"]
+    },
+    {
+      "id": "cautious_guest",
+      "label": "有饮食限制并重视身体感受的用餐者",
+      "contributedTopics": ["dietary_safety", "portion_appetite", "flavor_balance"]
+    },
+    {
+      "id": "novelty_seeking_guest",
+      "label": "期待特别感但不希望猎奇的用餐者",
+      "contributedTopics": ["familiarity_novelty", "menu_composition", "texture_progression", "plating_visual"]
+    },
+    {
+      "id": "shared_table_guest",
+      "label": "重视共同进食方式的用餐者",
+      "contributedTopics": ["sharing_serving", "dining_flow", "temperature_aroma", "table_atmosphere"]
+    },
+    {
+      "id": "visual_presentation_host",
+      "label": "重视整体呈现但不追求华丽的准备者",
+      "contributedTopics": ["plating_visual", "lighting_visibility", "menu_composition", "familiarity_novelty"]
+    },
+    {
+      "id": "atmosphere_sensitive_guest",
+      "label": "容易受空间明暗与声音影响的用餐者",
+      "contributedTopics": ["lighting_visibility", "table_atmosphere", "dining_flow", "temperature_aroma"]
+    },
+    {
+      "id": "reserved_conversation_host",
+      "label": "重视交流但不擅长主动找话题的准备者",
+      "contributedTopics": ["conversation_content", "dining_flow", "sharing_serving", "table_atmosphere"]
+    }
+  ],
+  "topics": [
+    {
+      "id": "flavor_balance",
+      "label": "味道平衡",
+      "minTurn": 1,
+      "roleSources": ["small_appetite_guest", "pairing_enthusiast", "cautious_guest"],
+      "triggers": ["味道", "口味", "调味", "咸", "甜", "酸", "辣", "苦", "鲜", "油脂香", "清淡", "浓郁", "味", "風味", "塩", "甘", "酸味", "辛", "あっさり", "濃い"],
+      "expansionGoal": "理解主要风味怎样才算合适，以及何时会变成负担。",
+      "internalCue": "从参与者已经说出的菜或感受出发，询问味道达到什么状态才符合这顿晚餐。",
+      "avoidCue": "不要预设具体调味，不要让参与者从口味选项中选择。"
+    },
+    {
+      "id": "texture_progression",
+      "label": "口感变化",
+      "minTurn": 2,
+      "roleSources": ["sensory_sensitive_guest", "novelty_seeking_guest"],
+      "triggers": ["口感", "软", "嫩", "脆", "酥", "滑", "黏", "嚼", "筋", "入口", "食感", "柔らか", "やわらか", "歯ごたえ", "さく", "もち", "噛"],
+      "expansionGoal": "理解入口与持续进食时希望保留或避免的口感。",
+      "internalCue": "把参与者已有的食物方向连接到入口、咀嚼或久放后的感受，开放询问其影响。",
+      "avoidCue": "不要列举软、脆等答案，不要自行认定质地偏好。"
+    },
+    {
+      "id": "temperature_aroma",
+      "label": "温度与香气",
+      "minTurn": 2,
+      "roleSources": ["small_appetite_guest", "sensory_sensitive_guest", "shared_table_guest"],
+      "triggers": ["温度", "热", "烫", "凉", "冷", "清凉", "温暖", "香气", "气味", "闻", "冒热气", "温度", "熱", "冷", "涼", "温か", "香り", "匂い"],
+      "expansionGoal": "理解温度和香气如何改变食欲、舒适度或共同进食感。",
+      "internalCue": "联系已有菜品，询问温度或香气在真实入口和用餐过程中应带来什么感受。",
+      "avoidCue": "不得把清凉直接等同冰块，也不得主动制造固定映射。"
+    },
+    {
+      "id": "portion_appetite",
+      "label": "份量与食欲",
+      "minTurn": 1,
+      "roleSources": ["small_appetite_guest", "cautious_guest"],
+      "triggers": ["份量", "量", "食欲", "胃口", "饱", "吃不下", "少量", "大份", "小份", "负担", "食欲", "量", "満腹", "少なめ", "食べきれ", "重い"],
+      "expansionGoal": "理解吃到何种程度算满足，以及份量怎样影响身体负担。",
+      "internalCue": "不要询问克数；开放询问理想的饱足与停止进食感受。",
+      "avoidCue": "不要替参与者设定份量，不要把吃得多等同重视。"
+    },
+    {
+      "id": "menu_composition",
+      "label": "菜单组合",
+      "minTurn": 2,
+      "roleSources": ["pairing_enthusiast", "low_effort_host", "novelty_seeking_guest"],
+      "triggers": ["菜单", "搭配", "主菜", "配菜", "前菜", "主食", "甜点", "饮料", "酒", "啤酒", "组合", "献立", "組み合わせ", "主菜", "副菜", "主食", "デザート", "飲み物", "ビール"],
+      "expansionGoal": "理解各部分在整顿晚餐中的作用，而不是单纯增加菜数。",
+      "internalCue": "根据已说出的核心食物，询问其他部分怎样支持而不抢走重点。",
+      "avoidCue": "不要自动组成套餐，不要靠列菜名让参与者选择。"
+    },
+    {
+      "id": "dining_flow",
+      "label": "用餐节奏",
+      "minTurn": 2,
+      "roleSources": ["conversation_focused_host", "shared_table_guest"],
+      "triggers": ["聊天", "说话", "节奏", "中断", "起身", "一直忙", "频繁", "慢慢吃", "自然吃", "用餐过程", "会話", "話", "ペース", "中断", "立ち上が", "頻繁", "ゆっくり", "食事中"],
+      "expansionGoal": "理解食物操作、进食速度和注意力怎样影响共同用餐。",
+      "internalCue": "把已有菜单方向放进真实用餐过程，询问什么动作或状态会帮助或妨碍这顿饭。",
+      "avoidCue": "不要自动推断用餐越长越好，也不要建议不断加料。"
+    },
+    {
+      "id": "preparation_burden",
+      "label": "准备与照料负担",
+      "minTurn": 1,
+      "roleSources": ["conversation_focused_host", "low_effort_host"],
+      "triggers": ["准备", "麻烦", "省事", "简单", "照料", "看火", "加料", "收拾", "清洗", "洗碗", "忙", "手間", "準備", "簡単", "世話", "火加減", "追加", "片付け", "洗い物"],
+      "expansionGoal": "理解准备和席间照料的负担怎样影响最终体验。",
+      "internalCue": "不进入步骤；询问哪些照料行为会改变参与者想要的用餐体验。",
+      "avoidCue": "不要展开采购、时间表或详细制作方法。"
+    },
+    {
+      "id": "familiarity_novelty",
+      "label": "熟悉与特别感",
+      "minTurn": 2,
+      "roleSources": ["pairing_enthusiast", "novelty_seeking_guest"],
+      "triggers": ["特别", "惊喜", "新鲜", "熟悉", "日常", "纪念", "仪式感", "猎奇", "意外", "特別", "驚き", "新鮮", "馴染み", "いつも", "記念", "非日常", "珍しい"],
+      "expansionGoal": "理解特别感来自哪里，以及它何时会破坏熟悉与舒适。",
+      "internalCue": "联系参与者已有的食物和对象状态，询问什么变化会使这顿饭显得特别但仍然合适。",
+      "avoidCue": "不要把特别等同稀奇食材、复杂摆盘或菜品数量。"
+    },
+    {
+      "id": "dietary_safety",
+      "label": "饮食限制与身体边界",
+      "minTurn": 2,
+      "roleSources": ["sensory_sensitive_guest", "cautious_guest"],
+      "triggers": ["过敏", "不能吃", "不吃", "忌口", "酒精", "刺激", "消化", "胃", "身体", "安全", "全熟", "アレルギー", "食べられない", "避け", "アルコール", "刺激", "消化", "胃", "身体", "安全", "加熱"],
+      "expansionGoal": "识别方案必须遵守且不能由AI替代确认的饮食边界。",
+      "internalCue": "仅在参与者谈到身体或限制时优先承接；否则以不预设答案的方式询问方案尚需避开什么。",
+      "avoidCue": "不要猜测疾病或过敏，不要承诺零风险。"
+    },
+    {
+      "id": "sharing_serving",
+      "label": "共同进食方式",
+      "minTurn": 2,
+      "roleSources": ["conversation_focused_host", "low_effort_host", "shared_table_guest"],
+      "triggers": ["一起吃", "分享", "分餐", "夹菜", "端上", "盛", "桌上", "每人", "两个人", "共同", "一緒に", "取り分け", "シェア", "盛り付け", "食卓", "一人ずつ", "二人"],
+      "expansionGoal": "理解分取、共享和上桌方式怎样影响注意力与舒适度。",
+      "internalCue": "联系已有菜品，开放询问共同进食时哪些动作会改变这顿饭的感觉。",
+      "avoidCue": "不要默认共享更亲密，也不要规定摆盘形式。"
+    },
+    {
+      "id": "plating_visual",
+      "label": "摆盘与视觉呈现",
+      "minTurn": 2,
+      "roleSources": ["pairing_enthusiast", "novelty_seeking_guest", "visual_presentation_host"],
+      "triggers": ["摆盘", "装盘", "颜色", "色彩", "好看", "视觉", "盘子", "餐具", "端上来", "呈现", "盛り付け", "見た目", "色合い", "皿", "食器", "きれい", "見える"],
+      "expansionGoal": "理解食物呈现怎样传达特别感、影响食欲，并避免为了好看妨碍进食。",
+      "internalCue": "从参与者已经说出的菜品或用餐感受出发，询问视觉呈现应帮助对方注意到什么，以及什么形式会造成负担。",
+      "avoidCue": "不要自动规定餐具、配色或复杂造型，不要把华丽等同重视。"
+    },
+    {
+      "id": "lighting_visibility",
+      "label": "灯光与可见度",
+      "minTurn": 2,
+      "roleSources": ["visual_presentation_host", "atmosphere_sensitive_guest"],
+      "triggers": ["灯光", "光线", "明亮", "昏暗", "暖光", "冷光", "看清", "照明", "影子", "亮度", "灯り", "照明", "明るい", "暗い", "暖色", "見やすい", "影"],
+      "expansionGoal": "理解明暗怎样影响看清食物、身体放松、摆盘感受和共同用餐注意力。",
+      "internalCue": "必须把灯光连接到看清食物、进食舒适或当前菜单呈现中的至少一项，再开放询问参与者希望保留的体验。",
+      "avoidCue": "不要自行加入蜡烛、彩灯或固定灯色，不要把昏暗自动等同浪漫。"
+    },
+    {
+      "id": "conversation_content",
+      "label": "聊天内容与交流负担",
+      "minTurn": 2,
+      "roleSources": ["conversation_focused_host", "reserved_conversation_host"],
+      "triggers": ["聊天话题", "聊什么", "谈什么", "聊天内容", "回忆", "沉默", "冷场", "开口", "交流", "说些什么", "話題", "何を話す", "会話の内容", "思い出", "沈黙", "話し始め", "交流"],
+      "expansionGoal": "理解食物和用餐节奏应怎样为交流留出空间，而不是替参与者编写话题脚本。",
+      "internalCue": "联系进食动作、共享方式或菜品注意力，询问怎样的交流状态才不会让这顿饭变成表演或审问。",
+      "avoidCue": "不要提供话题清单，不要要求披露私密经历，也不要假定沉默一定不好。"
+    },
+    {
+      "id": "table_atmosphere",
+      "label": "餐桌氛围与感官背景",
+      "minTurn": 2,
+      "roleSources": ["conversation_focused_host", "shared_table_guest", "atmosphere_sensitive_guest", "reserved_conversation_host"],
+      "triggers": ["氛围", "气氛", "环境", "安静", "放松", "正式", "随意", "音乐", "声音", "餐桌布置", "背景", "空気感", "雰囲気", "環境", "静か", "落ち着く", "音楽", "音", "食卓の雰囲気"],
+      "expansionGoal": "理解声音、正式程度和餐桌背景怎样支持食物体验与两个人的自然状态。",
+      "internalCue": "从参与者已经说出的食物和共同用餐目标出发，只询问一种氛围因素怎样改变食欲、注意力或交流。",
+      "avoidCue": "不要自动加入音乐、香薰、礼服或重新布置家具，不要把正式等同特别。"
+    }
+  ]
+}
