@@ -585,7 +585,13 @@ els.setupForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (!apiReady) { showToast("AI 接続を確認してください。"); return; }
   const data = new FormData(els.setupForm);
-  session = newSession(String(data.get("participantId")).trim(), String(data.get("condition")));
+  const participantId = String(data.get("participantId") || "").trim();
+  if (!participantId) {
+    showToast("参加者番号を入力してください。");
+    els.participantId.focus();
+    return;
+  }
+  session = newSession(participantId, String(data.get("condition")));
   saveSession();
   if (els.fullscreenToggle.checked) await tryFullscreen();
   showOnly(els.prepScreen);
