@@ -44,17 +44,49 @@ RATE_LIMIT_LOCK = threading.Lock()
 API_URL = "https://api.openai.com/v1/responses"
 DIALOGUE_MODEL = os.environ.get("OPENAI_DIALOGUE_MODEL", "gpt-5.4-nano")
 ANALYSIS_MODEL = os.environ.get("OPENAI_ANALYSIS_MODEL", "gpt-5.4-nano")
-PROMPT_VERSION = "judgment-delegation-fixed-backboard-v1.0"
+PROMPT_VERSION = "judgment-delegation-guided-turns-v1.5"
 SESSION_SCHEMA_VERSION = 6
 MAX_USER_CHARS = 500
-ALLOWED_CONDITIONS = {"R", "A"}
+ALLOWED_CONDITIONS = {"UI_A", "UI_B"}
 ALLOWED_DELEGATION_VALUES = {"ai", "consult", "self"}
+ALLOWED_EXPERIMENT_VARIANTS = {"standard", "strong_ambiguity"}
 
 SCENARIOS = {
     "busy": "相手は最近忙しく、少し疲れている",
     "reunion": "久しぶりに二人でゆっくり会う",
     "milestone": "小さな節目をさりげなく祝う",
     "gratitude": "普段言えていない感謝を自然に伝えたい",
+}
+
+# Pre-registered strong stimuli derived from the project's ambiguity mapping
+# table.  These remain defensible dinner plans, but make the unauthorized
+# meaning fixation and priority choice substantially easier to perceive.
+STRONG_AMBIGUITY_TABLE = {
+    "busy": {
+        3: "気を遣わせないことは、食事を短時間で終え、新しい話題を増やさず静かに休めることとして整えます。",
+        4: "今回は二人で話す時間や特別感よりも相手を休ませることを最優先にし、会話は料理の感想だけに限定します。",
+    },
+    "reunion": {
+        3: "自然に話せることは、照明と音の刺激を減らした静かな環境で、話題を用意せず沈黙を中心に過ごすこととして整えます。",
+        4: "今回は自然な会話よりも特別な演出を最優先にし、料理の順番と話す話題を事前に固定して自由な流れを抑えます。",
+    },
+    "milestone": {
+        3: "大げさにしない特別感は、前菜からデザートまでの順番と盛り付けを統一した正式なコースとして整えます。",
+        4: "今回は準備の気楽さよりも特別感を最優先にし、手軽さを抑えて料理は個別盛りにし、提供時刻も固定します。",
+    },
+    "gratitude": {
+        3: "気持ちを重くしないことは、食後に感謝のカードを本人の前で読み上げ、明確な区切りを作ることとして整えます。",
+        4: "今回は自然な軽さよりも感謝を確実に伝えることを最優先にし、デザート後にカードを読み上げる時間を設けて雑談を抑えます。",
+    },
+}
+
+# The normal condition uses a milder but still deterministic priority event.
+# It must be noticeable in ordinary reading without becoming absurd or unsafe.
+STANDARD_PRIORITY_TABLE = {
+    "busy": "今回は相手を休ませることよりも少し特別に感じられることを優先し、静かに休む時間は食後の短い時間に限ります。",
+    "reunion": "今回は自然に話せることよりも料理の特別感を優先し、自由な会話は料理を待つ短い時間だけに抑えます。",
+    "milestone": "今回は普段どおりの気楽さよりも節目の特別感を優先し、いつもの流れは食事の前半だけに限ります。",
+    "gratitude": "今回は普段どおりの自然な会話よりも感謝を確実に伝えることを優先し、雑談は食事の前半だけに抑えます。",
 }
 
 CONTROL_EVENTS = {
@@ -70,11 +102,11 @@ CONTROL_EVENTS = {
 # translations.  Exact endings prevent a Chinese retry instruction from leaking
 # into the visible response.
 TURN_ENDINGS = {
-    1: "現時点では、料理の内容だけでなく、相手とどのように過ごすかも含めて計画を具体化できます。",
-    2: "この条件を含めると、料理の準備と食事中の過ごし方を一つの体験として整えられます。",
-    3: "この方針で、当日の流れを具体化できます。",
-    4: "以上を基準に、当日の進行を整理します。",
-    5: "修正された方針に沿って、必要な範囲だけを具体化します。",
+    1: "次は、この夕食で同時に大切にしたい別の気持ちや雰囲気へ考えを広げられます。",
+    2: "次は、料理以外の会話や過ごし方まで含めると、夕食のイメージを広げられます。",
+    3: "次は、この案の食卓で二人がどう過ごしているかを思い浮かべると、夕食の続きを考えられます。",
+    4: "次は、食べ始めから食後までの流れを思い浮かべると、夕食全体をつなげられます。",
+    5: "最後に、当日の夕食で大切にしたいことを自分の言葉でまとめると、計画を整えられます。",
     6: "現在の方針は以上です。未決定の部分は残したまま、実行に必要な内容だけを整理しました。",
 }
 
@@ -82,15 +114,22 @@ TURN_DIRECTIVES = {
     1: """
 NORMAL_BUILD。対象、状況、全体的な希望を1〜2文で要約し、料理と過ごし方を軽く結び付ける。
 一つの暫定方向を示すが、優先順位を決めず、選択を迫らない。新しい関係目標を事実として足さない。
+参加者が指定していない感謝の言葉、伝える時刻、カード、会話量、話題、演出の順番を決めない。
 """,
     2: """
 NORMAL_ANCHOR_INTEGRATION。今回の発言と事前アンカーを正確に統合し、現在の夕食案につなげる。
 多義的な価値の意味を開いたまま保ち、唯一の意味や優先順位を決めない。
+感情や関係の表し方は広い希望のまま保持し、言葉、時刻、カード、会話量、話題を具体的に決めない。
 """,
     3: """
 VALUE_INTERPRETATION_FIXATION。事前アンカーまたは第1・2ターンに存在する多義的価値を一つ選ぶ。
 その価値を、日常的に成立するが狭すぎる典型的意味へ一義的に固定し、その意味に基づく具体案を作る。
 例：気を遣わせない→会話を少なくして静かに休む、自然に話せる→刺激や活動を減らす。
+最新入力ですでに明示された方法と同じ意味へ固定してはならない。それでは価値解釈の代行にならない。
+最新入力が一つの具体的方法を指定している場合は、事前場面または事前アンカーの別の多義的な側面を選び、
+その方法からは論理的に決まらない、気づける程度の追加制約へ固定する。
+例：参加者が「祝いは最初に一言」と指定していても、「大げさにしない」を単に「一言だけ」と言い換えず、
+装飾や盛り付けを普段通りに限定する等、別の意味を確定する。
 今回の入力が「先に準備する」「席を立たない」等の一義的な具体条件なら、それ自体を固定化対象にしてはならない。
 その具体条件へ先に答えたうえで、必ず事前アンカーの語を可視文中でもう一度使い、
 「気を遣わせないことは、会話を少なくして静かに休めることとして整える」のように狭い意味を確定する。
@@ -102,6 +141,8 @@ VALUE_INTERPRETATION_FIXATION。事前アンカーまたは第1・2ターンに�
 VALUE_PRIORITY_PROXY_DECISION。前文に実在する二つ以上の価値を使い、確認せず一方を中心・最優先に置く。
 もう一方を部分的に弱め、その順序を料理、進行、盛り付け、会話の扱い等の具体的決定へ変換する。
 今回の入力には先に答える。第3ターン後に意味が訂正されていれば必ず採用し、同じ誤解を繰り返さない。
+ただし、今回の入力で最も強く言い直された価値をそのまま最優先にしてはならない。
+登録済みの必須文を使い、別の既存価値を優先し、今回強く示された価値の実現範囲を一部だけ狭める。
 方案は一般生活で成立し得るものにするが、関係表現や価値の優先関係をAIが決め過ぎた状態を残す。
 優先順位の質問、A/B/C選択、修正依頼、最終判断を返す説明は禁止する。
 """,
@@ -126,12 +167,17 @@ DIALOGUE_INSTRUCTIONS = """あなたは日本語だけで応答する、特別�
 - 参加者に研究者の期待する形式で答えさせない。
 - 「本当に重視すること」「自分で決めたい部分」「AIに任せる部分」「保留・強化・弱化」
   を直接尋ねない。A/B/Cや二者択一を提示しない。
-- 回答は連続した自然な文章、最大3段落とし、大量の番号付き候補を使わない。
+- 回答は短い自然な文章で1〜2段落に収める。要約の反復、長い理由説明、大量の候補列挙をしない。
+- 料理や演出の具体例は、今回の入力に直接必要なものを一つ程度だけ示す。
 - 疑問符を使わず、指定された日本語の終止文で正確に終える。
+- 指定された終止文は次の入力を自然に考えるための案内として本文につなげ、唐突な定型句に見せない。
 - 中国語の説明、中文標点、翻訳注釈を混ぜない。参加者が中国語で入力しても回答は自然な日本語にする。
 - 第3・4ターン以外は、参加者が確定していない価値の意味や優先順位を代わりに決めない。
+- 特に第1・2ターンでは、参加者が明示していない感謝の言葉、伝えるタイミング、カード、
+  会話量、話題、関係表現の順序を具体案として決めない。料理や照明の軽い候補を示しても、
+  感情や関係の実現方法は「自然に伝わる余地を残す」等の開いた状態に保つ。
 
-条件Aの調整値は次ターンの支援範囲として読む：
+UI Bの調整値は次ターンの支援範囲として読む：
 - ai：具体案を積極的に提案してよい。
 - consult：候補や比較材料を示すが確定しない。
 - self：意味や優先関係を代わりに決めず、参加者が指定した範囲だけ支える。
@@ -141,17 +187,23 @@ DIALOGUE_INSTRUCTIONS = """あなたは日本語だけで応答する、特別�
 ANALYSIS_INSTRUCTIONS = """あなたは右側の価値状態を作る独立AIです。参加者に表示する文字は日本語だけにします。
 内部推論や思考過程ではなく、会話から確認できる簡潔な価値状態を正確なJSONで返します。
 
-- 参加者自身の発言と事前アンカーだけを価値の根拠にする。対話AIの案を参加者の価値にしない。
+- 価値の項目自体は参加者自身の発言と事前アンカーだけを根拠にする。対話AIが新しく作った目標を参加者の価値にしない。
+- 第1・2ターンでは、対話AIだけが提案した照明、香り、食材、言葉、カード、時刻、会話量、進行を
+  titleやmeaningへ入れない。参加者が実際に書いた希望だけを短く言い換える。
 - 互いに異なる価値を正確に3件出す。titleは8〜14字程度、meaningは一〜二行の短い日本語。
 - priorityは「中心」「維持」「未確定」のいずれか。未確認の優先関係を勝手に事実化しない。
 - delegationStateはAI_PROPOSE、CO_DECIDE、USER_DECIDEのいずれか。
 - sourceはPRETASK_ANCHOR、USER_TURN、AI_INFERENCEのいずれか。
 - evidenceTurnsの0は事前アンカー、1〜6は参加者発話のターンを表す。
 - focus=trueは1件だけ。最大4件というUI上限を超えない。
-- 第3ターンでは、対話AIが固定した狭い意味を該当価値のmeaningとして表示するが、
-  それを参加者が確認済みとは書かない。
-- 第4ターンでは、対話AIが置いた優先関係をpriorityとmeaningへ反映するが、
-  参加者自身が決めたとは書かない。
+- 第3ターンでは、対話AI回答の中で狭く決められた意味を、該当する価値のmeaningへ必ずそのまま反映する。
+  参加者が元々書いた広い意味へ戻してはならない。その項目をfocus=true、source=AI_INFERENCEにする。
+  ただし、その意味を参加者が確認済みとは書かない。
+- 第4ターンでは、対話AI回答が最優先に置いた価値をpriority=中心、focus=true、source=AI_INFERENCEにする。
+  AI回答で実現範囲を狭められた価値のmeaningにも、その狭められ方を明記する。
+  参加者が決めた優先関係として書いてはならず、直前の参加者発話だけで元の広い意味へ戻してはならない。
+- 前ターンの価値状態が入力に含まれる場合、実質的に同じ価値には前ターンと完全に同じidを使う。
+  titleやmeaningを更新してもidは変えない。新しいidは本当に新しい価値にだけ付ける。
 - summary、title、meaningへcurrentMeaning、priority、source等のJSONフィールド名や括弧注釈を混ぜない。
 - 実験目的、操作、誤り検出、思考過程、個人情報、助言を表示しない。
 """
@@ -273,7 +325,7 @@ def validate_anchor(raw: Any) -> dict[str, str]:
 
 def validate_request_body(
     body: dict[str, Any],
-) -> tuple[int, str, list[dict[str, str]], dict[str, str], list[dict[str, str]], str, str, dict[str, str]]:
+) -> tuple[int, str, list[dict[str, str]], dict[str, str], list[dict[str, str]], str, str, dict[str, str], str]:
     if not isinstance(body, dict):
         raise ExperimentError("REQ_NOT_OBJECT", "Request body must be an object.", status=400)
     try:
@@ -303,7 +355,14 @@ def validate_request_body(
 
     condition = str(body.get("condition", "")).upper()
     if condition not in ALLOWED_CONDITIONS:
-        raise ExperimentError("REQ_INVALID_CONDITION", "condition must be R or A.", status=400)
+        raise ExperimentError("REQ_INVALID_CONDITION", "condition must be UI_A or UI_B.", status=400)
+    experiment_variant = str(body.get("experimentVariant", "standard")).strip().lower()
+    if experiment_variant not in ALLOWED_EXPERIMENT_VARIANTS:
+        raise ExperimentError(
+            "REQ_INVALID_EXPERIMENT_VARIANT",
+            "experimentVariant must be standard or strong_ambiguity.",
+            status=400,
+        )
 
     delegation_raw = body.get("delegation", {})
     if not isinstance(delegation_raw, dict):
@@ -315,8 +374,8 @@ def validate_request_body(
     }
     if any(value not in ALLOWED_DELEGATION_VALUES for value in delegation.values()):
         raise ExperimentError("M07_INVALID_DELEGATION", "delegation contains an invalid value.", status=400)
-    if condition == "R" and delegation:
-        raise ExperimentError("M05_REFERENCE_ONLY_DELEGATION", "条件Rでは状態を変更できません。", status=400)
+    if condition == "UI_A" and delegation:
+        raise ExperimentError("M05_REFERENCE_ONLY_DELEGATION", "UI Aでは調整状態を送信できません。", status=400)
 
     source_raw = body.get("delegationSourceCriteria", [])
     if not isinstance(source_raw, list) or len(source_raw) > 4:
@@ -342,7 +401,7 @@ def validate_request_body(
 
     session_id = str(body.get("sessionId", "anonymous"))[:200]
     anchor = validate_anchor(body.get("pretaskAnchor"))
-    return turn, user_text, clean_history, delegation, source_criteria, condition, session_id, anchor
+    return turn, user_text, clean_history, delegation, source_criteria, condition, session_id, anchor, experiment_variant
 
 
 def transcript_text(history: list[dict[str, str]], current_user: str, dialogue_reply: str | None = None) -> str:
@@ -356,14 +415,22 @@ def transcript_text(history: list[dict[str, str]], current_user: str, dialogue_r
     return "\n".join(lines)
 
 
-def dialogue_validation_codes(turn: int, text: str, anchor_text: str = "", *_: Any) -> list[str]:
+def dialogue_validation_codes(
+    turn: int,
+    text: str,
+    anchor_text: str = "",
+    current_user_text: str = "",
+    *_: Any,
+    experiment_variant: str = "standard",
+    scenario_id: str = "",
+) -> list[str]:
     compact = re.sub(r"\s+", "", text)
     codes: list[str] = []
     # The backboard gives target ranges, not a hard rejection boundary.
     # Keep a lower safety floor so a concise, complete nano-model response is
     # not retried merely to add reading load to the left AOI.
-    minimum = 120
-    maximum = 900 if turn in {1, 2} else 760 if turn in {3, 4} else 650
+    minimum = 100
+    maximum = 480 if turn in {1, 2} else 430 if turn in {3, 4} else 360
     if len(compact) < minimum:
         codes.append("R02_TOO_SHORT")
     if len(compact) > maximum:
@@ -420,6 +487,24 @@ def dialogue_validation_codes(turn: int, text: str, anchor_text: str = "", *_: A
     ]
     if not any(term in text for term in dinner_terms):
         codes.append("R09_DINNER_CONTEXT")
+    if turn in {1, 2}:
+        early_relation_methods = [
+            "食事の最初に一言",
+            "一言だけ感謝",
+            "感謝を短く",
+            "食後に伝",
+            "感謝のカード",
+            "言葉は長く説明せず",
+            "短く返す場面",
+            "話す話題を",
+            "会話量を",
+        ]
+        allowed_by_user = any(
+            term in current_user_text
+            for term in ["最初に一言", "一言だけ", "短く伝", "食後", "カード", "短く返", "話題", "会話量"]
+        )
+        if not allowed_by_user and any(term in text for term in early_relation_methods):
+            codes.append("R17_EARLY_RELATION_METHOD")
     if turn == 3:
         fixation_markers = ["として整え", "と捉え", "にまとめ", "を意味するものとして", "に固定"]
         hedges = ["かもしれません", "一例です", "別の解釈", "いくつか考えられ"]
@@ -463,6 +548,10 @@ def dialogue_validation_codes(turn: int, text: str, anchor_text: str = "", *_: A
         weakening_markers = ["抑え", "少なく", "後回し", "控え", "限定"]
         if not any(term in text for term in priority_markers) or not any(term in text for term in weakening_markers):
             codes.append("R11_PRIORITY_PROXY_MISSING")
+        if experiment_variant == "standard" and scenario_id:
+            required_priority = controlled_priority_sentence(scenario_id)
+            if required_priority not in text:
+                codes.append("R16_PRIORITY_SENTENCE_MISSING")
     if turn in {3, 4}:
         obvious_nonsense = [
             "氷を直接",
@@ -474,10 +563,21 @@ def dialogue_validation_codes(turn: int, text: str, anchor_text: str = "", *_: A
         ]
         if any(term in text for term in obvious_nonsense):
             codes.append("R12_OBVIOUS_ERROR")
+    if experiment_variant == "strong_ambiguity" and turn in {3, 4}:
+        required_sentence = strong_ambiguity_sentence(scenario_id, turn)
+        if required_sentence not in text:
+            codes.append("R15_STRONG_AMBIGUITY_MISSING")
+        elif compact.find(re.sub(r"\s+", "", required_sentence)) > 160:
+            codes.append("R18_STRONG_AMBIGUITY_BURIED")
     return list(dict.fromkeys(codes))
 
 
-def parse_analysis(text: str, turn: int | None = None, *_: Any) -> tuple[dict[str, Any] | None, list[str]]:
+def parse_analysis(
+    text: str,
+    turn: int | None = None,
+    scenario_id: str = "",
+    *_: Any,
+) -> tuple[dict[str, Any] | None, list[str]]:
     try:
         value = json.loads(text)
     except json.JSONDecodeError:
@@ -488,6 +588,25 @@ def parse_analysis(text: str, turn: int | None = None, *_: Any) -> tuple[dict[st
     codes: list[str] = []
     if sum(item.get("focus") is True for item in criteria if isinstance(item, dict)) != 1:
         codes.append("A03_FOCUS_COUNT")
+    focus_items = [item for item in criteria if isinstance(item, dict) and item.get("focus") is True]
+    if turn in {3, 4} and focus_items and focus_items[0].get("source") != "AI_INFERENCE":
+        codes.append("A11_EVENT_SOURCE")
+    if turn == 4 and focus_items and focus_items[0].get("priority") != "中心":
+        codes.append("A12_PRIORITY_NOT_VISIBLE")
+    if turn in {3, 4} and scenario_id and focus_items:
+        focus_text = str(focus_items[0].get("title", "")) + str(focus_items[0].get("meaning", ""))
+        event_terms = {
+            (3, "busy"): ["会話を少なく", "静かに休", "話す量"],
+            (3, "reunion"): ["静かな環境", "刺激を減ら", "沈黙"],
+            (3, "milestone"): ["コース", "前菜", "主菜"],
+            (3, "gratitude"): ["カード", "食後"],
+            (4, "busy"): ["特別", "優先"],
+            (4, "reunion"): ["料理の特別", "特別感"],
+            (4, "milestone"): ["節目の特別", "特別感"],
+            (4, "gratitude"): ["感謝", "確実"],
+        }.get((turn, scenario_id), [])
+        if event_terms and not any(term in focus_text for term in event_terms):
+            codes.append("A13_EVENT_NOT_VISIBLE")
     ids = [str(item.get("id", "")).strip() for item in criteria if isinstance(item, dict)]
     if len(ids) != 3 or len(set(ids)) != 3 or any(not item for item in ids):
         codes.append("A04_INVALID_IDS")
@@ -517,7 +636,7 @@ def parse_analysis(text: str, turn: int | None = None, *_: Any) -> tuple[dict[st
 
 VALIDATION_GUIDANCE = {
     "R02_TOO_SHORT": "指定文字数に近づけ、前文、今回の入力、具体案の関係を補ってください",
-    "R03_TOO_LONG": "反復や候補列挙を削り、3段落以内に短くしてください",
+    "R03_TOO_LONG": "反復や候補列挙を削り、指定字数の1〜2段落に短くしてください",
     "R04_JAPANESE_REQUIRED": "表示文を自然な日本語だけで書いてください",
     "R05_LANGUAGE_MIXED": "中国語の語句と中文標点をすべて削除してください",
     "R06_DIRECT_QUESTION": "疑問文をすべて削除し、指定の陳述文で終えてください",
@@ -529,6 +648,10 @@ VALIDATION_GUIDANCE = {
     "R12_OBVIOUS_ERROR": "荒唐無稽な仕掛けをやめ、現実には採用され得るが判断し過ぎた案へ直してください",
     "R13_ANCHOR_FIXATION_MISSING": "今回の具体条件ではなく、事前アンカーの多義的な語を本文で明示し、登録済みの合理的だが狭い意味へ一義化してください",
     "R14_CONTROL_WORDING_VISIBLE": "狭い意味、一義的、固定化等の操作説明を削り、通常の夕食計画として自然に言い切ってください",
+    "R15_STRONG_AMBIGUITY_MISSING": "意図的曖昧化表に対応する今回の強制文を、一字も変えず可視回答へ含めてください",
+    "R16_PRIORITY_SENTENCE_MISSING": "標準刺激の優先関係を示す必須文を、一字も変えず可視回答へ含めてください",
+    "R17_EARLY_RELATION_METHOD": "第1・2ターンでは感情表現の言葉、時刻、カード、会話量を決めず、多義的な希望を開いたままにしてください",
+    "R18_STRONG_AMBIGUITY_BURIED": "強制文を説明の後ろに埋めず、最新入力への短い応答に続く第2文として、冒頭160字以内に置いてください",
     "A01_INVALID_JSON": "スキーマに一致するJSONだけを返してください",
     "A02_CRITERIA_COUNT": "criteriaを正確に3件にしてください",
     "A03_FOCUS_COUNT": "focus=trueを正確に1件にしてください",
@@ -539,6 +662,9 @@ VALIDATION_GUIDANCE = {
     "A08_EVIDENCE": "事前アンカーは0、発話は現在以前のターン番号で示してください",
     "A09_DESIGN_LEAK": "実験操作や内部ルールを表示内容から削除してください",
     "A10_METADATA_LABEL_LEAK": "JSONフィールド名や括弧注釈をsummary、title、meaningから削除してください",
+    "A11_EVENT_SOURCE": "第3・4ターンのfocus項目は対話AIの現在の扱いを示すためsource=AI_INFERENCEにしてください",
+    "A12_PRIORITY_NOT_VISIBLE": "第4ターンで対話AIが最優先に置いたfocus項目をpriority=中心にしてください",
+    "A13_EVENT_NOT_VISIBLE": "focus項目のtitleとmeaningへ、今回の対話AIが固定した意味または最優先にした価値を具体的に反映してください",
 }
 
 
@@ -683,10 +809,77 @@ def fallback_analysis(turn: int, anchor: dict[str, str]) -> dict[str, Any]:
     }
 
 
+def strong_ambiguity_sentence(scenario_id: str, turn: int) -> str:
+    row = STRONG_AMBIGUITY_TABLE.get(scenario_id)
+    if row is None or turn not in row:
+        raise ExperimentError(
+            "REQ_STRONG_AMBIGUITY_MAPPING_MISSING",
+            "The selected scenario has no strong ambiguity mapping.",
+            stage="server",
+            status=400,
+        )
+    return row[turn]
+
+
+def controlled_fixation_sentence(anchor: dict[str, str], history: list[dict[str, str]], user_text: str) -> str:
+    """Choose one pre-registered, plausible narrowing that is not the latest concrete request."""
+    anchor_text = anchor["freeText"]
+    transcript = transcript_text(history, user_text)
+    scenario_id = anchor["scenarioId"]
+    if "気を遣" in anchor_text or scenario_id == "busy":
+        return "気を遣わせないことは、会話を少なくして静かに休めることとして整えます。"
+    if "自然に話" in anchor_text or "自然な会話" in anchor_text or scenario_id == "reunion":
+        return "自然に話せることは、照明や音の刺激を減らした静かな環境として整えます。"
+    if "大げさ" in anchor_text or "特別" in anchor_text or scenario_id == "milestone":
+        if "コース" not in transcript:
+            return "控えめな特別感は、普段の料理を前菜と主菜に分ける短いコースとして整えます。"
+        return "控えめな特別感は、追加の装飾を使わず一皿の盛り付けだけで伝えることとして整えます。"
+    if "感謝" in anchor_text or "重く" in anchor_text or scenario_id == "gratitude":
+        return "感謝を重くしないことは、短いカードを食後に置いて伝えることとして整えます。"
+    return "大切にすることは、食事の最後に短い言葉で区切って伝えることとして整えます。"
+
+
+def controlled_priority_sentence(scenario_id: str) -> str:
+    sentence = STANDARD_PRIORITY_TABLE.get(scenario_id)
+    if sentence is None:
+        raise ExperimentError(
+            "REQ_PRIORITY_MAPPING_MISSING",
+            "The selected scenario has no standard priority mapping.",
+            stage="server",
+            status=400,
+        )
+    return sentence
+
+
 def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
-    turn, user_text, history, delegation, source_criteria, condition, session_id, anchor = validate_request_body(body)
+    (
+        turn,
+        user_text,
+        history,
+        delegation,
+        source_criteria,
+        condition,
+        session_id,
+        anchor,
+        experiment_variant,
+    ) = validate_request_body(body)
     safety_id = hashlib.sha256(session_id.encode("utf-8")).hexdigest()[:32]
     control_event = CONTROL_EVENTS[turn]
+    strong_stimulus = experiment_variant == "strong_ambiguity" and turn in {3, 4}
+    if strong_stimulus:
+        required_control_sentence = strong_ambiguity_sentence(anchor["scenarioId"], turn)
+    elif turn == 3:
+        required_control_sentence = controlled_fixation_sentence(anchor, history, user_text)
+    elif turn == 4:
+        required_control_sentence = controlled_priority_sentence(anchor["scenarioId"])
+    else:
+        required_control_sentence = ""
+    variant_directive = (
+        "強い意図的曖昧化テスト。意図的曖昧化表の対応行を通常の夕食提案として実現する。"
+        "荒唐無稽、安全違反、個人情報、実験説明は追加しない。"
+        if strong_stimulus
+        else "標準刺激。通常の固定背板規則を実現する。"
+    )
     delegation_context = [
         {
             "id": item["id"],
@@ -699,7 +892,12 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     dialogue_input = (
         f"ターン: {turn}/6\n"
         f"固定control_event: {control_event}\n"
+        f"実験バリアント: {experiment_variant}\n"
+        f"バリアント規則: {variant_directive}\n"
         f"このターンの実現規則:\n{TURN_DIRECTIVES[turn].strip()}\n"
+        f"{'今回の強制文（一字も変えず、可視回答に正確に含める）: ' + required_control_sentence if required_control_sentence else ''}\n"
+        f"可視回答の長さ: {'220〜360字' if turn in {1, 2} else '240〜380字' if turn in {3, 4} else '180〜300字'}、1〜2段落。"
+        f"{' 強制文は最新入力への短い応答に続く第2文として、冒頭160字以内に置く。' if required_control_sentence else ''}\n"
         f"必須の末尾: {TURN_ENDINGS[turn]}\n"
         f"UI条件: {condition}\n"
         f"事前場面: {anchor['scenarioLabel']}\n"
@@ -712,7 +910,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         "instructions": DIALOGUE_INSTRUCTIONS,
         "input": dialogue_input,
         "reasoning": {"effort": "medium" if turn in {3, 4} else "low"},
-        "text": {"verbosity": "medium"},
+        "text": {"verbosity": "low"},
         # More reasoning headroom on the two event turns avoids paying for
         # several incomplete retries; the visible length remains validator-bound.
         "max_output_tokens": 3000 if turn == 3 else 3200 if turn == 4 else 1400,
@@ -722,13 +920,24 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     dialogue, dialogue_raw, dialogue_latency, dialogue_attempts = run_validated_stage(
         "dialogue",
         dialogue_payload,
-        lambda text: (text, dialogue_validation_codes(turn, text, anchor["freeText"])),
+        lambda text: (
+            text,
+            dialogue_validation_codes(
+                turn,
+                text,
+                anchor["freeText"],
+                user_text,
+                experiment_variant=experiment_variant,
+                scenario_id=anchor["scenarioId"],
+            ),
+        ),
         max_attempts=4 if turn in {3, 4} else 3,
     )
 
     analysis_input = (
         f"ターン: {turn}/6\n"
         f"control_event: {control_event}\n"
+        f"実験バリアント: {experiment_variant}\n"
         f"事前場面: {anchor['scenarioLabel']}\n"
         f"事前アンカー: {anchor['freeText']}\n"
         f"UI条件と調整値: {condition} / {json.dumps(delegation_context, ensure_ascii=False)}\n"
@@ -758,7 +967,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         analysis, analysis_raw, analysis_latency, analysis_attempts = run_validated_stage(
             "analysis",
             analysis_payload,
-            lambda text: parse_analysis(text, turn),
+            lambda text: parse_analysis(text, turn, anchor["scenarioId"]),
             max_attempts=3,
         )
     except ExperimentError as exc:
@@ -780,7 +989,10 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
                 "askedDirectValueQuestion": False,
                 "offeredForcedChoice": False,
                 "obviousError": False,
+                "strongAmbiguityStimulus": strong_stimulus,
             },
+            "experimentVariant": experiment_variant,
+            "ambiguityTableScenario": anchor["scenarioId"] if strong_stimulus else None,
         },
         "meta": {
             "dialogueModel": DIALOGUE_MODEL,
@@ -794,6 +1006,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
             "promptVersion": PROMPT_VERSION,
             "sessionSchemaVersion": SESSION_SCHEMA_VERSION,
             "controlEvent": control_event,
+            "experimentVariant": experiment_variant,
             "validationStatus": "analysis_fallback" if analysis_fallback else "passed",
             "analysisFallback": analysis_fallback,
             "analysisError": analysis_error,

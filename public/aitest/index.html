@@ -7,28 +7,39 @@
     <meta name="robots" content="noindex,nofollow" />
     <base href="/aitest/" />
     <title>AI 対話実験</title>
-    <link rel="stylesheet" href="./styles.css?v=5.0.3-fixed-backboard" />
+    <link rel="stylesheet" href="./styles.css?v=5.0.16-reflection-scale" />
   </head>
   <body>
     <section class="setup-screen" id="setupScreen" aria-labelledby="setupTitle">
       <form class="setup-card" id="setupForm">
         <p class="eyebrow">視線計測実験</p>
-        <h1 id="setupTitle">実験セッションの準備</h1>
-        <p class="setup-copy">実験者が匿名の参加者番号と割り当て条件を設定してください。氏名などの個人情報は入力しません。</p>
+        <h1 id="setupTitle">実験を始める前の設定</h1>
+        <p class="setup-copy">実験者が、参加者番号、画面タイプ、AI回答の設定を選んでください。氏名などの個人情報は入力しません。</p>
         <label class="field">
           <span>参加者番号</span>
           <input id="participantId" name="participantId" inputmode="text" autocomplete="off" placeholder="P001" maxlength="32" required />
           <small>例：P001、001（1〜32文字）</small>
         </label>
         <fieldset class="condition-picker">
-          <legend>実験条件</legend>
-          <label><input type="radio" name="condition" value="R" checked /><span><b>条件 R</b>価値推論を参照</span></label>
-          <label><input type="radio" name="condition" value="A" /><span><b>条件 A</b>判断方法を調整</span></label>
+          <legend>画面タイプ</legend>
+          <label><input type="radio" name="condition" value="UI_A" checked /><span><b>UI A　確認のみ</b><small>AIが希望をどう受け取ったかを見る</small></span></label>
+          <label><input type="radio" name="condition" value="UI_B" /><span><b>UI B　調整あり</b><small>AIにどこまで考えてもらうかを変えられる</small></span></label>
+        </fieldset>
+        <fieldset class="variant-picker">
+          <legend>AI回答に入れる「解釈のずれ」</legend>
+          <label>
+            <input type="radio" name="experimentVariant" value="standard" checked />
+            <span><b>通常のずれ</b><small>第3・4回に、通常設定の解釈のずれを入れる</small></span>
+          </label>
+          <label class="strong-variant">
+            <input type="radio" name="experimentVariant" value="strong_ambiguity" />
+            <span><b>大きなずれを必ず入れる</b><small>第3・4回の動作を確認するためのテスト用</small></span>
+          </label>
         </fieldset>
         <label class="fullscreen-check"><input type="checkbox" id="fullscreenToggle" checked />開始時に全画面表示を試みる</label>
         <div class="ai-connection" id="aiConnection" role="status">
           <span class="status-dot"></span>
-          <div><b>2つの AI を確認中</b><small>対話 AI / 価値状態 AI</small></div>
+          <div><b>2つの AI を確認中</b><small>会話を作るAI / 内容を整理するAI</small></div>
         </div>
         <div class="setup-actions">
           <button type="button" class="ghost-button" id="resumeButton" hidden>前回の続きから再開</button>
@@ -40,15 +51,15 @@
 
     <section class="prep-screen hidden" id="prepScreen" aria-labelledby="prepTitle">
       <form class="prep-card" id="prepForm">
-        <div class="prep-heading"><div><p class="eyebrow">事前確認</p><h1 id="prepTitle">機器と現在の状態</h1></div><span>ステップ 1 / 3</span></div>
-        <p class="prep-lead">現在の状態は視線データの補助説明にのみ使用します。良し悪しを評価するものではありません。</p>
+        <div class="prep-heading"><div><p class="eyebrow">事前確認</p><h1 id="prepTitle">機器と体調の確認</h1></div><span>ステップ 1 / 3</span></div>
+        <p class="prep-lead">体調の回答は、視線データを確認するときだけ使います。良し悪しを評価するものではありません。</p>
         <div class="prep-columns">
           <section class="prep-section">
-            <h2>現在の状態</h2>
+            <h2>今の体調</h2>
             <label class="scale-field"><span>眠気の程度 <b id="sleepinessValue">4</b></span><input type="range" name="sleepiness" min="1" max="7" value="4" /></label>
             <label class="scale-field"><span>緊張の程度 <b id="tensionValue">4</b></span><input type="range" name="tension" min="1" max="7" value="4" /></label>
-            <label class="scale-field"><span>現在の判断への自信 <b id="confidenceValue">4</b></span><input type="range" name="confidence" min="1" max="7" value="4" /></label>
-            <label class="scale-field"><span>AI 利用への慣れ <b id="familiarityValue">4</b></span><input type="range" name="familiarity" min="1" max="7" value="4" /></label>
+            <label class="scale-field"><span>今の考えへの自信 <b id="confidenceValue">4</b></span><input type="range" name="confidence" min="1" max="7" value="4" /></label>
+            <label class="scale-field"><span>AIチャットの使い慣れ <b id="familiarityValue">4</b></span><input type="range" name="familiarity" min="1" max="7" value="4" /></label>
           </section>
           <section class="prep-section checklist-section">
             <h2>機器と環境の確認</h2>
@@ -64,38 +75,97 @@
 
     <section class="instruction-screen hidden" id="instructionScreen" aria-labelledby="instructionTitle">
       <div class="instruction-card">
-        <div class="prep-heading"><div><p class="eyebrow">対話型構想課題</p><h1 id="instructionTitle">少し特別な夕食を考える</h1></div><span>ステップ 2 / 3</span></div>
-        <div class="story-brief">
-          <p class="story-label">課題</p>
-          <h2>大切な相手と、自宅で少し特別な夕食を過ごす計画を、AIと一緒に考えてください。</h2>
-          <p>料理だけでなく、食事中の過ごし方や雰囲気も含めて構想できます。AIとの6回の対話を通して、計画を進めるために必要だと思うことを自由に入力してください。正解はありません。</p>
-        </div>
+        <div class="instruction-scroll">
+          <div class="prep-heading"><div><p class="eyebrow">AIと一緒に考える課題</p><h1 id="instructionTitle">少し特別な夕食を考える</h1></div><span>ステップ 2 / 3</span></div>
+          <div class="story-brief">
+            <p class="story-label">課題</p>
+            <h2>大切な相手と、自宅で少し特別な夕食を過ごす計画を、AIと一緒に考えてください。</h2>
+            <p>料理だけでなく、食事中の過ごし方や雰囲気も一緒に考えられます。AIとの6回のやり取りを通して、計画を進めるために必要だと思うことを自由に入力してください。正解はありません。</p>
+          </div>
 
-        <form id="anchorForm" class="anchor-form">
-          <fieldset class="scenario-picker">
-            <legend>最も想像しやすい場面を一つ選んでください</legend>
-            <label><input type="radio" name="scenario" value="busy" required /><span>相手は最近忙しく、少し疲れている</span></label>
-            <label><input type="radio" name="scenario" value="reunion" /><span>久しぶりに二人でゆっくり会う</span></label>
-            <label><input type="radio" name="scenario" value="milestone" /><span>小さな節目をさりげなく祝う</span></label>
-            <label><input type="radio" name="scenario" value="gratitude" /><span>普段言えていない感謝を自然に伝えたい</span></label>
-          </fieldset>
-          <label class="anchor-text">
-            <span>この相手との時間について、今回少し気にしていることを一文で書いてください。</span>
-            <textarea id="anchorText" maxlength="500" rows="2" placeholder="料理名や予算ではなく、過ごし方や避けたいことを書いてください。" required></textarea>
-          </label>
-        </form>
+          <form id="anchorForm" class="anchor-form">
+            <div class="anchor-intro">
+              <span>対話の出発点</span>
+              <div>
+                <h3>最初に、「どんな夕食にしたいか」を一文で書きます</h3>
+                <p>ここで書いた希望は、この後の6回のやり取りでAIが夕食を考えるための最初の手がかりになります。</p>
+              </div>
+            </div>
+            <fieldset class="scenario-picker">
+              <legend>1．最も想像しやすい場面を一つ選ぶ</legend>
+              <label><input type="radio" name="scenario" value="busy" required /><span>相手は最近忙しく、少し疲れている</span></label>
+              <label><input type="radio" name="scenario" value="reunion" /><span>久しぶりに二人でゆっくり会う</span></label>
+              <label><input type="radio" name="scenario" value="milestone" /><span>小さな節目をさりげなく祝う</span></label>
+              <label><input type="radio" name="scenario" value="gratitude" /><span>普段言えていない感謝を自然に伝えたい</span></label>
+            </fieldset>
+            <label class="anchor-text">
+              <span class="anchor-text-heading"><b>2．選んだ場面で望んでいる「感じ」や「時間」を一文で書く</b><small id="anchorCharCount">0 / 160</small></span>
+              <textarea id="anchorText" maxlength="160" rows="2" aria-describedby="anchorHelp" placeholder="例：気負わず、普段より少し丁寧な時間にしたい。" required></textarea>
+              <small id="anchorHelp">料理や演出の方法は、まだ決めなくてかまいません。「気を遣わせたくない」「自然に話せる時間にしたい」のように、相手の気持ちや二人の空気を書いてください。</small>
+            </label>
+            <div class="anchor-bridge"><b>この一文はどこで使う？</b><span>対話が始まると、各回の上部に「最初に書いた希望」として表示されます。AIの回答を読むときも、次に書くことを考えるときも、この夕食の出発点として使います。</span></div>
+          </form>
 
-        <div class="instruction-grid">
-          <article><span>01</span><h2>自由に続ける</h2><p>各回では、AIの回答を踏まえ、計画を次に進めるために必要だと思うことを入力します。</p></article>
-          <article><span>02</span><h2>右側の状態を見る</h2><p>右側には、AIが現在形成している価値の意味、優先状態、参加方法が短く表示されます。</p></article>
-          <article id="conditionInstruction"><span>03</span><h2>表示を参照する</h2><p>右側の表示は対話と同じタイミングで更新されます。</p></article>
+          <section class="ui-flow-guide" aria-labelledby="uiFlowTitle">
+            <div class="ui-flow-heading">
+              <p class="story-label">画面の使い方</p>
+              <h2 id="uiFlowTitle">番号の順に見て、次の入力を考えます</h2>
+            </div>
+            <div class="ui-mini-screen" aria-hidden="true">
+              <span class="ui-mini-scale">1920 × 1080 縮小表示</span>
+              <div class="ui-mini-left">
+                <header class="ui-mini-app-header">
+                  <strong>AI と相談</strong><small>少し特別な夕食</small><b>3 / 6</b>
+                </header>
+                <div class="ui-mini-prompt">
+                  <strong>この回に書くこと</strong>
+                  <div><i></i><i></i></div>
+                </div>
+                <div class="ui-mini-chat">
+                  <div class="ui-mini-user"><i></i><i></i></div>
+                  <div class="ui-mini-answer">
+                    <span class="flow-point point-one">1</span>
+                    <small>AI の回答</small><i></i><i></i><i></i><i></i>
+                  </div>
+                </div>
+                <div class="ui-mini-input">
+                  <span class="flow-point point-three">3</span>
+                  <small>次の入力</small><i></i><b>↑</b>
+                </div>
+              </div>
+              <div class="ui-mini-right">
+                <span class="flow-point point-two">2</span>
+                <header><strong>AIが読み取ったこと</strong><b>UI</b></header>
+                <p>AIがあなたの希望をどう受け取ったか</p>
+                <div class="ui-mini-criteria">
+                  <article><strong>自然に話せる時間</strong><i></i><i></i><div><b></b><b></b><b></b></div></article>
+                  <article><strong>相手への負担を抑える</strong><i></i><i></i><div><b></b><b></b><b></b></div></article>
+                  <article><strong>控えめな特別感</strong><i></i><i></i><div><b></b><b></b><b></b></div></article>
+                </div>
+                <div class="ui-mini-example"><strong>次に伝える例文</strong><i></i></div>
+              </div>
+              <svg class="ui-flow-lines" viewBox="0 0 1920 1080" preserveAspectRatio="none">
+                <defs><marker id="flowArrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z"></path></marker></defs>
+                <path d="M315 545 C720 430 1110 350 1435 310" marker-end="url(#flowArrow)"></path>
+                <path d="M1460 350 C1340 735 820 875 260 935" marker-end="url(#flowArrow)"></path>
+              </svg>
+            </div>
+            <div class="ui-flow-notes">
+              <article><span>01</span><div><h3>AIの回答を読む</h3><p>左側に表示されたAIの回答を読み、どのような夕食案になったか確認します。</p></div></article>
+              <article id="conditionInstruction"><span>02</span><div><h3>右側でAIの読み取りを確認する</h3><p>AIがあなたの希望をどう受け取ったか、右側の表示で確認します。</p></div></article>
+              <article><span>03</span><div><h3>次に伝える内容を考えて入力する</h3><p>AIの回答と右側の表示を踏まえ、次に伝えたいことを考えて入力します。</p></div></article>
+            </div>
+          </section>
+          <div class="privacy-note"><b>お願い</b><span>実在人物の氏名、住所、連絡先などの個人情報は入力しないでください。いつでも実験者に中止を申し出られます。</span></div>
         </div>
-        <div class="privacy-note"><b>お願い</b><span>実在人物の氏名、住所、連絡先などの個人情報は入力しないでください。いつでも実験者に中止を申し出られます。</span></div>
-        <button type="button" class="primary-button start-button" id="startTask">6回の対話を開始する</button>
+        <div class="instruction-actions">
+          <span id="startTaskHint">場面を一つ選び、4文字以上の一文を入力すると開始できます。</span>
+          <button type="button" class="primary-button start-button" id="startTask" disabled>6回の対話を開始する</button>
+        </div>
       </div>
     </section>
 
-    <main class="app-shell hidden" id="appShell" data-condition="R">
+    <main class="app-shell hidden" id="appShell" data-condition="UI_A">
       <section class="conversation-pane" aria-label="対話エリア">
         <header class="app-header">
           <div class="brand-mark" aria-hidden="true"><span></span></div>
@@ -103,8 +173,8 @@
           <div class="turn-progress" aria-live="polite"><span id="turnLabel">対話 1</span><b id="turnCount">1 / 6</b></div>
         </header>
         <div class="turn-prompt" id="turnPrompt">
-          <span>今回の入力</span>
-          <div><p id="promptText">AIの回答を踏まえ、計画を次に進めるために必要だと思うことを自由に入力してください。</p><small id="guideText">決まった答え方はありません。</small></div>
+          <span id="promptKicker">対話 1｜全体像</span>
+          <div><p id="promptText">まず、夕食の全体像を伝える</p><small id="guideText">相手の状態、作りたい雰囲気、料理の方向など、今考えていることから書いてください。</small></div>
         </div>
         <div class="chat-stage" id="chatStage" data-aoi="AOI_Left_Context">
           <div class="empty-conversation" id="emptyConversation"><div class="ai-orb">AI</div><p>まず、現在考えていることを入力してください。</p></div>
@@ -119,18 +189,29 @@
         </form>
       </section>
 
-      <aside class="insight-pane" aria-label="AIの価値推論と判断参加状態" data-aoi="AOI_Right_Delegation">
+      <aside class="insight-pane" aria-label="AIが会話をどう理解したか" data-aoi="AOI_Right_Delegation">
         <header class="insight-header">
-          <div><p>会話から形成された状態</p><h2>AI の価値推論</h2></div>
-          <span class="condition-badge" id="conditionBadge">参照のみ</span>
+          <div><p>あなたの希望について</p><h2>AIが読み取ったこと</h2></div>
+          <span class="condition-badge" id="conditionBadge">UI A</span>
         </header>
-        <div class="insight-intro"><p id="insightHelp">価値の意味、優先状態、AIの参加方法を表示します。</p></div>
+        <div class="insight-intro"><p id="insightHelp">AIがあなたの希望をどう受け取ったかを表示します。</p></div>
         <div class="criteria-list" id="criteriaList"></div>
+        <section class="example-assist hidden" id="exampleAssist" data-aoi="AOI_Right_Example">
+          <button type="button" id="createExample">
+            <span>次に伝える短い例文を作る</span>
+            <small>この回に書く内容に合わせた1文の例です</small>
+          </button>
+          <div class="example-guide hidden" id="exampleGuide" role="status" aria-live="polite">
+            <div><span>次に書く内容</span><b>1文の例</b></div>
+            <p id="exampleGuideText"></p>
+            <small>必要な部分だけ使い、＿＿を自分の考えに置き換えてください。</small>
+          </div>
+        </section>
       </aside>
 
       <div class="saving-status" id="savingStatus" aria-live="polite">保存済み</div>
       <div class="ai-loading hidden" id="aiLoading" role="status" aria-live="assertive">
-        <div class="loading-card"><span class="loading-ring"></span><div><b id="loadingTitle">対話 AI が回答を作成中</b><small id="loadingDetail">続いて右側の価値状態を更新します</small></div></div>
+        <div class="loading-card"><span class="loading-ring"></span><div><b id="loadingTitle">会話AIが回答を作成中</b><small id="loadingDetail">続いて右側の「AIが読み取ったこと」を更新します</small></div></div>
       </div>
     </main>
 
@@ -141,14 +222,28 @@
         <p class="prep-lead">第2・3・4・6回について、1（全くそう思わない）〜5（とてもそう思う）で回答してください。</p>
         <div class="reflection-table" id="reflectionRows"></div>
         <section class="overall-review">
-          <label class="scale-field"><span>右側でAIの理解を確認しやすかった <b id="understandingValue">3</b></span><input type="range" name="understanding" min="1" max="5" value="3" /></label>
-          <label class="scale-field"><span>AIが何を優先しているか確認しやすかった <b id="priorityValue">3</b></span><input type="range" name="priority" min="1" max="5" value="3" /></label>
-          <label class="scale-field"><span>次に伝える内容を考えるうえで役立った <b id="nextInputValue">3</b></span><input type="range" name="nextInput" min="1" max="5" value="3" /></label>
-          <label class="scale-field"><span>課題から求められる答えが分かるように感じた <b id="targetExposureValue">3</b></span><input type="range" name="targetExposure" min="1" max="5" value="3" /></label>
+          <div class="overall-scale-rows" id="overallScaleRows"></div>
           <label><span>AIの理解や進め方に「少し違う」と感じた時点があれば記入してください。</span><textarea name="turningPoint" rows="3"></textarea></label>
         </section>
         <div class="reflection-actions"><button type="submit" class="primary-button">振り返りを保存して完了</button><button type="button" class="ghost-button" id="reflectionExport" hidden>完全ログを書き出す</button></div>
       </form>
+    </section>
+
+    <section class="debrief-screen hidden" id="debriefScreen" aria-labelledby="debriefTitle">
+      <div class="debrief-card">
+        <div class="prep-heading"><div><p class="eyebrow">課題後の説明</p><h1 id="debriefTitle">実験で使った回答の仕組み</h1></div><span>振り返り保存後</span></div>
+        <div class="debrief-order"><b>振り返りは保存済みです。</b><span>追加インタビューは、この説明とデータ利用の再確認の後に行います。</span></div>
+        <div class="debrief-copy">
+          <p>この研究は、AIに任せる部分と、自分で判断する部分を利用者がどう捉えるかを調べています。</p>
+          <dl>
+            <div><dt>画面の違い</dt><dd>UI AはAIの読み取りを確認する画面、UI Bは判断の分担と短い入力例も使える画面でした。</dd></div>
+            <div><dt>第3・4回</dt><dd>第3回は曖昧な意味を狭く捉え、第4回はAIが希望の優先順位を先に決める回答を出しやすくしていました。</dd></div>
+            <div><dt>説明を後にした理由</dt><dd>目的を先に知ることで、視線や入力が変わるのを避けるためです。能力を評価する実験ではありません。</dd></div>
+          </dl>
+          <p>質問があれば実験者にお伝えください。続いて、データ利用を続けるか撤回するかを確認します。</p>
+        </div>
+        <div class="debrief-actions"><button type="button" class="primary-button" id="acknowledgeDebrief">説明を確認した（実験者）</button><button type="button" class="ghost-button" id="debriefExport">完全ログを書き出す</button></div>
+      </div>
     </section>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -165,6 +260,6 @@
         <p class="dialog-note">このメニューの開閉も操作ログに記録されます。視線計測中は開かないでください。</p>
       </form>
     </dialog>
-    <script src="./app.js?v=5.0.3-fixed-backboard"></script>
+    <script src="./app.js?v=5.0.16-reflection-scale"></script>
   </body>
 </html>

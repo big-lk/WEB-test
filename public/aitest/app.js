@@ -1,9 +1,52 @@
 "use strict";
 
-const STORAGE_KEY = "eye_ui_experiment_fixed_backboard_v6";
+const STORAGE_KEY = "eye_ui_experiment_fixed_backboard_v8";
 const MAX_TURNS = 6;
-const SESSION_SCHEMA_VERSION = 6;
-const FIXED_PROMPT = "AIの回答を踏まえ、計画を次に進めるために必要だと思うことを自由に入力してください。";
+const SESSION_SCHEMA_VERSION = 8;
+const TURN_PROMPTS = [
+  {
+    kicker: "1回目｜希望する雰囲気",
+    title: "料理の方法を決める前に、どんな夕食にしたいかを書く",
+    guide: "相手にどう感じてほしいか、二人の間にどんな空気があるとよいかを書いてください。実現方法はまだ一つに決めなくてかまいません。",
+    inputHint: "どんな感じの夕食にしたいかを入力",
+    placeholder: "相手の気持ちや、二人の間にほしい雰囲気を入力してください。"
+  },
+  {
+    kicker: "2回目｜もう一つ大切にしたいこと",
+    title: "同時に大切にしたい気持ちや雰囲気を一つ加える",
+    guide: "最初に書いた希望と一緒にかなえたいことを考えてください。料理や演出の方法は、まだ決め切らなくてかまいません。",
+    inputHint: "同時に大切にしたいことを入力",
+    placeholder: "もう一つ大切にしたい気持ちや雰囲気を入力してください。"
+  },
+  {
+    kicker: "3回目｜食事中の二人の過ごし方",
+    title: "料理以外に、どんな時間にしたいかを書く",
+    guide: "食事中の会話、距離感、気分、避けたい空気などを思い浮かべてください。具体的な方法まで決めなくてかまいません。",
+    inputHint: "食事中にほしい時間や空気を入力",
+    placeholder: "食事中の二人に、どんな時間や空気があるとよいか入力してください。"
+  },
+  {
+    kicker: "4回目｜食卓の場面を思い浮かべる",
+    title: "AIの案のあと、二人がどう過ごしているとよいかを書く",
+    guide: "実際に二人が食卓に座っている場面を思い浮かべ、どんな様子ならこの夕食らしいと感じるかを書いてください。",
+    inputHint: "食卓での二人の様子を入力",
+    placeholder: "実際の食卓で、二人がどう過ごしているとよいか入力してください。"
+  },
+  {
+    kicker: "5回目｜夕食の流れ",
+    title: "食べ始めから食後まで、自然だと思う流れを書く",
+    guide: "料理の出し方、会話、演出の強さなどを含め、二人にとって自然だと思う夕食の流れを書いてください。",
+    inputHint: "自然だと思う夕食の流れを入力",
+    placeholder: "食べ始めから食後まで、どんな流れが自然だと思うか入力してください。"
+  },
+  {
+    kicker: "6回目｜最後に伝えたい希望",
+    title: "当日の夕食で大切にしたいことを自分の言葉でまとめる",
+    guide: "細かな方法は未定のままでもかまいません。最後に大切にしたい感じや、避けたいことを書いてください。",
+    inputHint: "最後に大切にしたい希望を入力",
+    placeholder: "この夕食で最後に大切にしたいことを入力してください。"
+  }
+];
 const QUERY = new URLSearchParams(location.search);
 const PREVIEW_MODE = QUERY.get("preview") === "1";
 const EMBED_MODE = QUERY.get("embed") === "1" || window.self !== window.top;
@@ -16,15 +59,22 @@ const els = {
   setupScreen: $("#setupScreen"), setupForm: $("#setupForm"), participantId: $("#participantId"), resumeButton: $("#resumeButton"),
   fullscreenToggle: $("#fullscreenToggle"), prepScreen: $("#prepScreen"), prepForm: $("#prepForm"),
   instructionScreen: $("#instructionScreen"), conditionInstruction: $("#conditionInstruction"), anchorForm: $("#anchorForm"),
-  anchorText: $("#anchorText"), startTask: $("#startTask"), appShell: $("#appShell"), chatStage: $("#chatStage"),
-  emptyConversation: $("#emptyConversation"), promptText: $("#promptText"), turnLabel: $("#turnLabel"), guideText: $("#guideText"),
+  anchorText: $("#anchorText"), anchorCharCount: $("#anchorCharCount"), startTask: $("#startTask"),
+  startTaskHint: $("#startTaskHint"), appShell: $("#appShell"), chatStage: $("#chatStage"),
+  emptyConversation: $("#emptyConversation"), promptKicker: $("#promptKicker"), promptText: $("#promptText"),
+  turnLabel: $("#turnLabel"), guideText: $("#guideText"),
   turnCount: $("#turnCount"), composer: $("#composer"), messageInput: $("#messageInput"), sendButton: $("#sendButton"),
   charCount: $("#charCount"), inputHint: $("#inputHint"), criteriaList: $("#criteriaList"), conditionBadge: $("#conditionBadge"),
   insightHelp: $("#insightHelp"), savingStatus: $("#savingStatus"), toast: $("#toast"), dialog: $("#experimenterDialog"),
   sessionSummary: $("#sessionSummary"), exportCsv: $("#exportCsv"), exportJson: $("#exportJson"),
   toggleFullscreen: $("#toggleFullscreen"), resetSession: $("#resetSession"), aiConnection: $("#aiConnection"),
-  aiLoading: $("#aiLoading"), reflectionScreen: $("#reflectionScreen"), reflectionForm: $("#reflectionForm"),
-  reflectionRows: $("#reflectionRows"), reflectionExport: $("#reflectionExport")
+  aiLoading: $("#aiLoading"), loadingTitle: $("#loadingTitle"), loadingDetail: $("#loadingDetail"),
+  exampleAssist: $("#exampleAssist"), createExample: $("#createExample"),
+  exampleGuide: $("#exampleGuide"), exampleGuideText: $("#exampleGuideText"),
+  reflectionScreen: $("#reflectionScreen"), reflectionForm: $("#reflectionForm"),
+  reflectionRows: $("#reflectionRows"), overallScaleRows: $("#overallScaleRows"), reflectionExport: $("#reflectionExport"),
+  debriefScreen: $("#debriefScreen"), acknowledgeDebrief: $("#acknowledgeDebrief"),
+  debriefExport: $("#debriefExport")
 };
 
 let session = null;
@@ -63,17 +113,21 @@ function blankRound(turn) {
     aiMeta: null,
     delegation: {},
     delegationTouched: {},
+    exampleGeneratedAt: null,
+    exampleText: "",
+    exampleGenerationCount: 0,
     errors: []
   };
 }
 
-function newSession(participantId, condition) {
+function newSession(participantId, condition, experimentVariant = "standard") {
   return {
     version: SESSION_SCHEMA_VERSION,
     promptVersion: apiModels?.promptVersion || "unknown",
-    sessionId: `${participantId}-${condition}-${Date.now()}`,
+    sessionId: `${participantId}-${condition}-${experimentVariant}-${Date.now()}`,
     participantId: participantId.toUpperCase(),
     condition,
+    experimentVariant,
     status: "pretest",
     currentTurn: 1,
     createdAt: isoNow(),
@@ -87,13 +141,18 @@ function newSession(participantId, condition) {
     pretest: null,
     pretaskAnchor: null,
     reflection: null,
+    debriefAcknowledgedAt: null,
     rounds: Array.from({ length: MAX_TURNS }, (_, index) => blankRound(index + 1)),
     events: []
   };
 }
 
 function buildPreviewSession() {
-  const preview = newSession("PREVIEW", QUERY.get("condition") === "R" ? "R" : "A");
+  const preview = newSession(
+    "PREVIEW",
+    QUERY.get("condition") === "UI_A" ? "UI_A" : "UI_B",
+    QUERY.get("variant") === "strong_ambiguity" ? "strong_ambiguity" : "standard"
+  );
   preview.status = "running";
   preview.currentTurn = 3;
   preview.startedAt = isoNow();
@@ -120,11 +179,11 @@ function buildPreviewSession() {
       aiResponseStartAt: stamp, aiResponseCompleteAt: stamp, rightPanelUpdateAt: stamp,
       aiDisplayedAt: stamp, analysisDisplayedAt: stamp, controlEvent: index ? "NORMAL_ANCHOR_INTEGRATION" : "NORMAL_BUILD",
       analysis: {
-        summary: "現在の価値状態",
+        summary: "AIが今の会話から読み取ったこと",
         criteria: [
-          { id: "natural-talk", title: "自然に話せる時間", meaning: "会話が作業や演出に遮られない過ごし方", priority: "中心", delegationState: "CO_DECIDE", source: "USER_TURN", evidenceTurns: [1, 2], focus: true },
-          { id: "light-burden", title: "相手への負担を抑える", meaning: "疲れていても気を遣わずに食べられる構成", priority: "維持", delegationState: "CO_DECIDE", source: "PRETASK_ANCHOR", evidenceTurns: [0, 2], focus: false },
-          { id: "small-special", title: "控えめな特別感", meaning: "大げさにせず普段との違いを残す状態", priority: "未確定", delegationState: "CO_DECIDE", source: "USER_TURN", evidenceTurns: [1], focus: false }
+          { id: "natural-talk", title: "自然に話せる時間", meaning: "料理や演出に邪魔されず、自然に話せること", priority: "中心", delegationState: "CO_DECIDE", source: "USER_TURN", evidenceTurns: [1, 2], focus: true },
+          { id: "light-burden", title: "相手への負担を抑える", meaning: "疲れていても気を遣わずに食事を楽しめること", priority: "維持", delegationState: "CO_DECIDE", source: "PRETASK_ANCHOR", evidenceTurns: [0, 2], focus: false },
+          { id: "small-special", title: "控えめな特別感", meaning: "大げさにせず、普段とは少し違うと感じられること", priority: "未確定", delegationState: "CO_DECIDE", source: "USER_TURN", evidenceTurns: [1], focus: false }
         ]
       }
     });
@@ -149,12 +208,14 @@ function saveSession() {
 function loadStoredSession() {
   try {
     const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-    return parsed?.version === SESSION_SCHEMA_VERSION ? parsed : null;
+    if (parsed?.version !== SESSION_SCHEMA_VERSION) return null;
+    if (!parsed.experimentVariant) parsed.experimentVariant = "standard";
+    return parsed;
   } catch { return null; }
 }
 
 function showOnly(target) {
-  [els.setupScreen, els.prepScreen, els.instructionScreen, els.appShell, els.reflectionScreen]
+  [els.setupScreen, els.prepScreen, els.instructionScreen, els.appShell, els.reflectionScreen, els.debriefScreen]
     .forEach((el) => el.classList.toggle("hidden", el !== target));
 }
 
@@ -167,7 +228,7 @@ async function checkAiHealth() {
     apiModels = data;
     els.aiConnection.classList.add("ready");
     els.aiConnection.querySelector("b").textContent = "2つの AI に接続済み";
-    els.aiConnection.querySelector("small").textContent = `対話：${data.dialogueModel} / 価値状態：${data.analysisModel}`;
+    els.aiConnection.querySelector("small").textContent = `会話を作るAI：${data.dialogueModel} / 内容を整理するAI：${data.analysisModel}`;
   } catch {
     apiReady = false;
     els.aiConnection.classList.add("error");
@@ -178,16 +239,18 @@ async function checkAiHealth() {
 }
 
 function prepareInstructions() {
-  const adjustable = session.condition === "A";
-  els.conditionInstruction.querySelector("h2").textContent = adjustable ? "参加方法を調整できる" : "同じ状態を参照する";
+  const adjustable = session.condition === "UI_B";
+  els.instructionScreen.dataset.condition = adjustable ? "UI_B" : "UI_A";
+  els.conditionInstruction.querySelector("h3").textContent = adjustable ? "右側を確認して、AIの関わり方を選ぶ" : "右側でAIの読み取りを確認する";
   els.conditionInstruction.querySelector("p").textContent = adjustable
-    ? "各価値について、AIに提案してもらう、一緒に考える、自分で決める、の状態を変更できます。"
-    : "各価値の参加方法は同じ位置と形式で表示されますが、この条件では変更できません。";
+    ? "右側でAIがあなたの希望をどう受け取ったか確認します。必要なら、AIにどこまで考えてもらうかをボタンで変え、次に伝える短い例文も作れます。"
+    : "右側で、AIがあなたの希望をどう受け取ったか確認します。右側には変更用のボタンはありません。";
   if (session.pretaskAnchor) {
     const radio = els.anchorForm.querySelector(`input[value="${session.pretaskAnchor.scenarioId}"]`);
     if (radio) radio.checked = true;
     els.anchorText.value = session.pretaskAnchor.freeText || "";
   }
+  updateAnchorState();
   showOnly(els.instructionScreen);
 }
 
@@ -201,7 +264,7 @@ function readAnchor() {
   const scenario = els.anchorForm.querySelector('input[name="scenario"]:checked');
   const freeText = els.anchorText.value.trim();
   if (!scenario) { showToast("場面カードを一つ選んでください。"); return null; }
-  if (freeText.length < 4) { showToast("今回少し気にしていることを一文で入力してください。"); els.anchorText.focus(); return null; }
+  if (freeText.length < 4) { showToast("選んだ場面で望んでいる感じや時間を、一文で入力してください。"); els.anchorText.focus(); return null; }
   const label = scenario.closest("label").querySelector("span").textContent;
   return { scenarioId: scenario.value, scenarioLabel: label, freeText };
 }
@@ -218,10 +281,10 @@ function startTask(resuming = false) {
   const round = session.rounds[session.currentTurn - 1];
   if (!round.promptShownAt) round.promptShownAt = isoNow();
   els.appShell.dataset.condition = session.condition;
-  els.conditionBadge.textContent = session.condition === "A" ? "調整できます" : "参照のみ";
-  els.insightHelp.textContent = session.condition === "A"
-    ? "価値の意味と優先状態を確認し、必要に応じてAIの参加方法を調整できます。"
-    : "価値の意味、優先状態、AIの参加方法を同じ形式で表示します。";
+  els.conditionBadge.textContent = session.condition === "UI_B" ? "UI B" : "UI A";
+  els.insightHelp.textContent = session.condition === "UI_B"
+    ? "本文はAIの解釈、タグはAIが置いた優先度です。ボタンの選択は、次に送信した内容へのAI回答から反映されます。"
+    : "本文はAIの解釈、タグはAIが置いた優先度を表します。";
   showOnly(els.appShell);
   renderAll();
   if (!resuming) logEvent("task_started", { condition: session.condition });
@@ -235,7 +298,19 @@ function renderAll() {
   renderTurn();
   renderCriteria();
   if (session.status === "complete") renderCompletion();
-  requestAnimationFrame(() => { els.chatStage.scrollTop = els.chatStage.scrollHeight; });
+  requestAnimationFrame(positionChatAtLatestAnswer);
+}
+
+function positionChatAtLatestAnswer() {
+  const answers = els.chatStage.querySelectorAll(".message.ai");
+  const latestAnswer = answers[answers.length - 1];
+  if (!latestAnswer) {
+    els.chatStage.scrollTop = 0;
+    return;
+  }
+  const stageTop = els.chatStage.getBoundingClientRect().top;
+  const answerTop = latestAnswer.getBoundingClientRect().top;
+  els.chatStage.scrollTop += answerTop - stageTop - 8;
 }
 
 function renderRoundMessages(round) {
@@ -248,6 +323,7 @@ function renderRoundMessages(round) {
 function createMessage(kind, speaker, text, time, turn) {
   const article = document.createElement("article");
   article.className = `message ${kind}${turn === session.currentTurn - 1 ? " current" : ""}`;
+  article.dataset.turn = String(turn);
   article.dataset.aoi = kind === "ai" ? "AOI_AI_Answer" : "AOI_Left_Context";
   const avatar = document.createElement("div");
   avatar.className = "message-avatar";
@@ -268,14 +344,21 @@ function createMessage(kind, speaker, text, time, turn) {
 function renderTurn() {
   const turn = Math.min(session.currentTurn, MAX_TURNS);
   const complete = session.status === "complete";
-  els.turnLabel.textContent = complete ? "完了" : `対話 ${turn}`;
+  const prompt = TURN_PROMPTS[turn - 1];
+  const background = session.pretaskAnchor
+    ? `選んだ場面：${session.pretaskAnchor.scenarioLabel}。最初に考えたこと：${session.pretaskAnchor.freeText}`
+    : "";
+  els.turnLabel.textContent = complete ? "完了" : `${turn}回目`;
   els.turnCount.textContent = `${turn} / ${MAX_TURNS}`;
-  els.promptText.textContent = complete ? "全6回の対話が完了しました。" : FIXED_PROMPT;
-  els.guideText.textContent = complete ? "視線計測を停止してから、振り返りへ進んでください。" : "決まった答え方はありません。";
+  els.promptKicker.textContent = complete ? "対話完了" : prompt.kicker;
+  els.promptText.textContent = complete ? "全6回の対話が完了しました。" : prompt.title;
+  els.guideText.textContent = complete
+    ? "視線計測を停止してから、振り返りへ進んでください。"
+    : `${prompt.guide} ${background}`;
   els.messageInput.disabled = complete;
   els.sendButton.disabled = complete;
-  els.messageInput.placeholder = complete ? "課題は完了しました" : "次に必要だと思うことを自由に入力してください。";
-  els.inputHint.textContent = complete ? "入力完了" : "次に必要だと思うことを自由に入力";
+  els.messageInput.placeholder = complete ? "課題は完了しました" : prompt.placeholder;
+  els.inputHint.textContent = complete ? "入力完了" : prompt.inputHint;
   firstFocusLoggedForTurn = Boolean(session.rounds[turn - 1]?.inputFirstFocusAt);
 }
 
@@ -288,22 +371,29 @@ function renderCriteria() {
   const source = completed.at(-1);
   const activeRound = session.rounds[Math.min(session.currentTurn - 1, MAX_TURNS - 1)];
   els.criteriaList.replaceChildren();
+  const exampleAvailable = session.condition === "UI_B" && session.status === "running";
+  els.exampleAssist.classList.toggle("hidden", !exampleAvailable);
+  els.createExample.disabled = !exampleAvailable;
+  const savedExample = activeRound.exampleText || "";
+  els.exampleGuide.classList.toggle("hidden", !exampleAvailable || !savedExample);
+  els.exampleGuideText.textContent = savedExample;
   if (!source) {
     const empty = document.createElement("article");
     empty.className = "criterion-card";
-    empty.innerHTML = "<div class=\"criterion-title\"><h3>価値状態の更新待ち</h3></div><p class=\"criterion-interpretation\">最初の対話後に、ここへ同じ形式の価値状態が表示されます。</p>";
+    empty.innerHTML = "<div class=\"criterion-title\"><h3>最初の回答を待っています</h3></div><p class=\"criterion-interpretation\">最初の回答が出ると、AIが会話から読み取った内容をここに表示します。</p>";
     els.criteriaList.append(empty);
     return;
   }
   let defaultsAdded = false;
   source.analysis.criteria.forEach((criterion) => {
     const key = criterion.id || criterion.title;
-    if (session.condition === "A" && !activeRound.delegation[key]) {
-      activeRound.delegation[key] = "consult";
+    if (session.condition === "UI_B" && !activeRound.delegation[key]) {
+      const previousRound = session.currentTurn > 1 ? session.rounds[session.currentTurn - 2] : null;
+      activeRound.delegation[key] = previousRound?.delegation[key] || "consult";
       activeRound.delegationTouched[key] = false;
       defaultsAdded = true;
     }
-    const selected = session.condition === "A"
+    const selected = session.condition === "UI_B"
       ? (activeRound.delegation[key] || "consult")
       : stateToControl(criterion.delegationState);
     const card = document.createElement("article");
@@ -316,16 +406,27 @@ function renderCriteria() {
     const tags = document.createElement("div");
     tags.className = "criterion-tags";
     const priority = document.createElement("span");
-    priority.textContent = `優先状態：${criterion.priority}`;
+    const priorityText = ({
+      "中心": "AIの優先度：高い",
+      "維持": "AIの優先度：維持",
+      "未確定": "AIの優先度：未確定"
+    })[criterion.priority] || `AIの優先度：${criterion.priority}`;
+    priority.textContent = priorityText;
     tags.append(priority);
     const label = document.createElement("p");
     label.className = "criterion-label";
-    label.textContent = "AIが現在形成している意味";
+    label.textContent = "AIはこう受け取っています";
     const meaning = document.createElement("p");
     meaning.className = "criterion-interpretation";
     meaning.textContent = criterion.meaning;
     heading.append(h3);
-    card.append(heading, tags, label, meaning, createDelegationControl(key, selected, session.condition === "R"));
+    card.append(heading, tags, label, meaning);
+    if (session.condition === "UI_B") {
+      const delegationBlock = document.createElement("div");
+      delegationBlock.className = "delegation-block";
+      delegationBlock.append(createDelegationControl(key, selected, false));
+      card.append(delegationBlock);
+    }
     els.criteriaList.append(card);
   });
   if (defaultsAdded) {
@@ -338,7 +439,7 @@ function createDelegationControl(key, selectedValue, readOnly) {
   const control = document.createElement("div");
   control.className = `delegation-control${readOnly ? " read-only" : ""}`;
   control.setAttribute("role", "group");
-  control.setAttribute("aria-label", "AIの参加方法");
+  control.setAttribute("aria-label", "AIにどこまで考えてもらうか");
   control.dataset.aoi = "AOI_Right_Delegation_Control";
   [["ai", "AIに提案してもらう"], ["consult", "一緒に考える"], ["self", "自分で決める"]].forEach(([value, label]) => {
     const button = document.createElement("button");
@@ -360,10 +461,42 @@ function createDelegationControl(key, selectedValue, readOnly) {
         item.classList.toggle("selected", selected);
         item.setAttribute("aria-pressed", selected ? "true" : "false");
       });
+      showToast(`「${button.textContent}」を選びました。次のAI回答から反映されます。`);
     });
     control.append(button);
   });
   return control;
+}
+
+function createNextInputExample() {
+  if (!session || session.status !== "running" || session.condition !== "UI_B") return;
+  const turn = session.currentTurn;
+  const round = session.rounds[turn - 1];
+  const completed = session.rounds.filter((item) => item.analysis);
+  const criteria = completed.at(-1)?.analysis?.criteria || [];
+  const titles = criteria.map((item) => item.title);
+  const focusTitle = criteria.find((item) => item.focus)?.title || titles[0] || "夕食全体の雰囲気";
+  const examples = {
+    1: "相手に＿＿と感じてほしく、二人の間に＿＿のような空気があるとよいです。",
+    2: `「${focusTitle}」と一緒に、＿＿と感じられることも大切にしたいです。`,
+    3: "食事中は、二人が＿＿のように過ごせる時間にしたいです。",
+    4: "食卓では、二人が＿＿のように過ごしているのがよいです。",
+    5: "食べ始めは＿＿で、食後は＿＿となる流れが自然です。",
+    6: "この夕食で最後に大切にしたいのは＿＿です。"
+  };
+  const text = examples[turn].slice(0, 100);
+  els.exampleGuideText.textContent = text;
+  els.exampleGuide.classList.remove("hidden");
+  round.exampleGeneratedAt = isoNow();
+  round.exampleText = text;
+  round.exampleGenerationCount = (round.exampleGenerationCount || 0) + 1;
+  logEvent("example_generated", {
+    at: round.exampleGeneratedAt,
+    textLength: text.length,
+    generationCount: round.exampleGenerationCount,
+    delegation: { ...round.delegation }
+  });
+  showToast("右下に短い例文の型を表示しました。必要な部分だけ使ってください。");
 }
 
 async function submitTurn() {
@@ -382,6 +515,16 @@ async function submitTurn() {
   ]);
   const previousAnalysis = index > 0 ? session.rounds[index - 1].analysis : null;
   els.aiLoading.classList.remove("hidden");
+  const loadingStartedAt = Date.now();
+  els.loadingTitle.textContent = "会話AIが回答を作成中";
+  els.loadingDetail.textContent = "続いて右側の「AIが読み取ったこと」を更新します";
+  const loadingTimer = window.setInterval(() => {
+    const elapsedSeconds = Math.floor((Date.now() - loadingStartedAt) / 1000);
+    if (elapsedSeconds >= 20) {
+      els.loadingTitle.textContent = "回答内容を再確認中";
+      els.loadingDetail.textContent = `入力は保存されています（${elapsedSeconds}秒経過）`;
+    }
+  }, 5000);
   els.messageInput.disabled = true;
   els.sendButton.disabled = true;
   logEvent("send_clicked", { length: text.length, sendClickAt: sendTime });
@@ -392,12 +535,13 @@ async function submitTurn() {
       body: JSON.stringify({
         sessionId: session.sessionId,
         condition: session.condition,
+        experimentVariant: session.experimentVariant || "standard",
         turn: session.currentTurn,
         userText: text,
         history,
         pretaskAnchor: session.pretaskAnchor,
-        delegation: session.condition === "A" ? round.delegation : {},
-        delegationSourceCriteria: session.condition === "A" ? (previousAnalysis?.criteria || []) : []
+        delegation: session.condition === "UI_B" ? round.delegation : {},
+        delegationSourceCriteria: session.condition === "UI_B" ? (previousAnalysis?.criteria || []) : []
       })
     });
     const result = await response.json();
@@ -433,7 +577,7 @@ async function submitTurn() {
       session.currentTurn += 1;
       session.rounds[session.currentTurn - 1].promptShownAt = isoNow();
       firstFocusLoggedForTurn = false;
-      logEvent("turn_prompt_displayed", { prompt: FIXED_PROMPT });
+      logEvent("turn_prompt_displayed", { prompt: TURN_PROMPTS[session.currentTurn - 1].title });
     }
     saveSession();
     renderAll();
@@ -459,6 +603,7 @@ async function submitTurn() {
     els.messageInput.disabled = false;
     els.sendButton.disabled = false;
   } finally {
+    window.clearInterval(loadingTimer);
     els.aiLoading.classList.add("hidden");
   }
 }
@@ -479,8 +624,32 @@ function openReflection() {
   showOnly(els.reflectionScreen);
 }
 
+function buildFivePointScale(name, statement) {
+  const fieldset = document.createElement("fieldset");
+  fieldset.className = "review-question";
+  const legend = document.createElement("legend");
+  legend.textContent = statement;
+  const options = document.createElement("div");
+  options.className = "five-point-options";
+  [1, 2, 3, 4, 5].forEach((value) => {
+    const label = document.createElement("label");
+    label.className = "five-point-option";
+    label.innerHTML = `<input type="radio" name="${name}" value="${value}" aria-label="${value}" ${value === 1 ? "required" : ""}><span class="rating-dot" aria-hidden="true"></span><span class="rating-number">${value}</span>`;
+    options.append(label);
+  });
+  fieldset.append(legend, options);
+  return fieldset;
+}
+
 function buildReflectionRows() {
   els.reflectionRows.replaceChildren();
+  els.overallScaleRows.replaceChildren();
+  [
+    ["understanding", "右側を見て、AIがどう受け取ったか確認しやすかった"],
+    ["priority", "AIが何を優先しているか確認しやすかった"],
+    ["nextInput", "次に伝える内容を考えるうえで役立った"],
+    ["targetExposure", "画面を見て、この回に何を書けばよいか分かりやすかった"]
+  ].forEach(([name, label]) => els.overallScaleRows.append(buildFivePointScale(name, label)));
   const prompts = [
     ["reflected", "AI回答は自分の考えを反映していた"],
     ["fixedMeaning", "AIが自分の言葉を一つの意味に決めていると感じた"],
@@ -492,12 +661,16 @@ function buildReflectionRows() {
     const card = document.createElement("section");
     card.className = "review-turn-card";
     const answer = session.rounds[turn - 1].aiText || "";
-    card.innerHTML = `<h2>対話 ${turn}</h2><p>${escapeHtml(answer.slice(0, 220))}</p>`;
-    prompts.forEach(([name, label]) => {
-      const row = document.createElement("label");
-      row.innerHTML = `<span>${label}</span><select name="${name}_${turn}" required><option value="">選択</option>${[1, 2, 3, 4, 5].map((value) => `<option value="${value}">${value}</option>`).join("")}</select>`;
-      card.append(row);
-    });
+    const heading = document.createElement("h2");
+    heading.textContent = `対話 ${turn}`;
+    const answerLabel = document.createElement("small");
+    answerLabel.className = "review-answer-label";
+    answerLabel.textContent = "この回のAI回答（全文）";
+    const answerText = document.createElement("p");
+    answerText.className = "review-answer";
+    answerText.textContent = answer;
+    card.append(heading, answerLabel, answerText);
+    prompts.forEach(([name, label]) => card.append(buildFivePointScale(`${name}_${turn}`, label)));
     els.reflectionRows.append(card);
   });
   if (session.reflection) {
@@ -510,7 +683,6 @@ function buildReflectionRows() {
     });
     ["understanding", "priority", "nextInput", "targetExposure"].forEach((name) => {
       els.reflectionForm.elements[name].value = session.reflection[name];
-      $(`#${name}Value`).textContent = session.reflection[name];
     });
     els.reflectionForm.elements.turningPoint.value = session.reflection.turningPoint || "";
     els.reflectionForm.querySelectorAll("input,select,textarea").forEach((item) => { item.disabled = true; });
@@ -519,6 +691,17 @@ function buildReflectionRows() {
 }
 
 function updateCharCount() { els.charCount.textContent = `${els.messageInput.value.length} / 500`; }
+function updateAnchorState() {
+  const scenarioSelected = Boolean(els.anchorForm.querySelector('input[name="scenario"]:checked'));
+  const textLength = els.anchorText.value.trim().length;
+  const ready = scenarioSelected && textLength >= 4;
+  els.anchorCharCount.textContent = `${els.anchorText.value.length} / 160`;
+  els.startTask.disabled = !ready;
+  els.startTaskHint.textContent = ready
+    ? "準備できました。対話を開始できます。"
+    : "場面を一つ選び、4文字以上の一文を入力すると開始できます。";
+  els.startTaskHint.classList.toggle("ready", ready);
+}
 function autoResize() {
   els.messageInput.style.height = "auto";
   els.messageInput.style.height = `${Math.min(els.messageInput.scrollHeight, 116)}px`;
@@ -538,27 +721,33 @@ function openExperimenterMenu() {
   logEvent("experimenter_menu_opened");
   els.sessionSummary.innerHTML = [
     ["参加者", session.participantId], ["条件", session.condition], ["状態", session.status],
-    ["現在", `${session.currentTurn} / 6`], ["規則", session.promptVersion], ["スキーマ", session.version]
+    ["現在", `${session.currentTurn} / 6`],
+    ["回答の設定", session.experimentVariant === "strong_ambiguity" ? "大きな解釈のずれを必ず入れる" : "通常の解釈のずれ"],
+    ["規則", session.promptVersion],
+    ["スキーマ", session.version]
   ].map(([term, value]) => `<div><dt>${term}</dt><dd>${escapeHtml(value)}</dd></div>`).join("");
   els.dialog.showModal();
 }
 
 function exportCsv() {
   const header = [
-    "participant_id", "condition", "session_schema_version", "prompt_version", "round", "control_event",
+    "participant_id", "session_id", "ui_condition", "experiment_variant", "session_schema_version", "prompt_version", "round", "control_event",
     "prompt_shown_ts", "ai_response_start_ts", "ai_response_complete_ts", "right_panel_update_ts",
     "input_focus_ts", "first_keystroke_ts", "last_keystroke_ts", "send_click_ts",
     "dialogue_model", "analysis_model", "dialogue_latency_ms", "analysis_latency_ms",
-    "validation_status", "delegation_json", "delegation_touched_json"
+    "validation_status", "delegation_json", "delegation_touched_json",
+    "example_generated_ts", "example_generation_count", "example_text"
   ];
   const rows = session.rounds.map((round) => [
-    session.participantId, session.condition, session.version, round.aiMeta?.promptVersion || session.promptVersion,
+    session.participantId, session.sessionId, session.condition, session.experimentVariant || "standard",
+    session.version, round.aiMeta?.promptVersion || session.promptVersion,
     round.turn, round.controlEvent || "", round.promptShownAt || "", round.aiResponseStartAt || "",
     round.aiResponseCompleteAt || "", round.rightPanelUpdateAt || "", round.inputFirstFocusAt || "",
     round.firstKeystrokeAt || "", round.lastKeystrokeAt || "", round.sendClickAt || "",
     round.aiMeta?.dialogueModel || "", round.aiMeta?.analysisModel || "", round.aiMeta?.dialogueLatencyMs || "",
     round.aiMeta?.analysisLatencyMs || "", round.aiMeta?.validationStatus || "", JSON.stringify(round.delegation),
-    JSON.stringify(round.delegationTouched)
+    JSON.stringify(round.delegationTouched), round.exampleGeneratedAt || "",
+    round.exampleGenerationCount || 0, round.exampleText || ""
   ]);
   download([header, ...rows].map((row) => row.map(csvCell).join(",")).join("\r\n"), `${safeName(session.sessionId)}_timing.csv`, "text/csv;charset=utf-8");
   logEvent("export_csv");
@@ -591,7 +780,17 @@ els.setupForm.addEventListener("submit", async (event) => {
     els.participantId.focus();
     return;
   }
-  session = newSession(participantId, String(data.get("condition")));
+  const unfinished = loadStoredSession();
+  if (unfinished && unfinished.status !== "finished") {
+    const replaceConfirmed = confirm(
+      `実験者確認：参加者 ${unfinished.participantId} の未完了記録が残っています。`
+      + "新しいセッションを開始すると、端末内の再開用記録は置き換わります。続けますか？"
+    );
+    if (!replaceConfirmed) return;
+  }
+  const experimentVariant = String(data.get("experimentVariant") || "standard");
+  session = newSession(participantId, String(data.get("condition")), experimentVariant);
+  session.events.push({ time: isoNow(), type: "experiment_variant_selected", experimentVariant });
   saveSession();
   if (els.fullscreenToggle.checked) await tryFullscreen();
   showOnly(els.prepScreen);
@@ -618,15 +817,21 @@ els.prepForm.addEventListener("submit", (event) => {
 });
 
 els.resumeButton.addEventListener("click", () => {
-  session = loadStoredSession();
-  if (!session) return;
+  const stored = loadStoredSession();
+  if (!stored) return;
+  if (!confirm(`実験者確認：参加者 ${stored.participantId} の未完了記録を再開しますか？`)) return;
+  session = stored;
   if (session.status === "pretest") showOnly(els.prepScreen);
   else if (session.status === "instructions") prepareInstructions();
-  else if (session.status === "reflection" || session.status === "finished") { buildReflectionRows(); showOnly(els.reflectionScreen); }
+  else if (session.status === "reflection") { buildReflectionRows(); showOnly(els.reflectionScreen); }
+  else if (session.status === "debrief" || session.status === "finished") { showOnly(els.debriefScreen); }
   else startTask(true);
 });
+els.anchorForm.addEventListener("input", updateAnchorState);
+els.anchorForm.addEventListener("change", updateAnchorState);
 els.startTask.addEventListener("click", () => startTask(false));
 els.composer.addEventListener("submit", (event) => { event.preventDefault(); submitTurn(); });
+els.createExample.addEventListener("click", createNextInputExample);
 els.messageInput.addEventListener("input", () => {
   updateCharCount();
   autoResize();
@@ -655,10 +860,7 @@ els.messageInput.addEventListener("keydown", (event) => {
 els.exportCsv.addEventListener("click", exportCsv);
 els.exportJson.addEventListener("click", exportJson);
 els.reflectionExport.addEventListener("click", exportJson);
-els.reflectionForm.querySelectorAll('input[type="range"]').forEach((input) => {
-  const output = $(`#${input.name}Value`);
-  input.addEventListener("input", () => { if (output) output.textContent = input.value; });
-});
+els.debriefExport.addEventListener("click", exportJson);
 els.reflectionForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const data = new FormData(els.reflectionForm);
@@ -679,12 +881,26 @@ els.reflectionForm.addEventListener("submit", (event) => {
     targetExposure: Number(data.get("targetExposure")),
     turningPoint: String(data.get("turningPoint") || "").trim()
   };
-  session.status = "finished";
-  logEvent("reflection_completed");
+  session.status = "debrief";
+  logEvent("blind_reflection_completed");
   saveSession();
   els.reflectionForm.querySelectorAll("input,select,textarea").forEach((item) => { item.disabled = true; });
   els.reflectionExport.hidden = false;
-  showToast("振り返りを保存しました。");
+  showOnly(els.debriefScreen);
+  showToast("振り返りを保存しました。続いて刺激設計を説明します。");
+});
+
+els.acknowledgeDebrief.addEventListener("click", () => {
+  if (!session || (session.status !== "debrief" && session.status !== "finished")) return;
+  if (!session.debriefAcknowledgedAt) {
+    session.debriefAcknowledgedAt = isoNow();
+    session.status = "finished";
+    logEvent("stimulus_design_disclosed", { beforeInterview: true });
+    saveSession();
+  }
+  els.acknowledgeDebrief.disabled = true;
+  els.acknowledgeDebrief.textContent = "説明確認済み";
+  showToast("刺激設計の説明を記録しました。データ利用を再確認してください。");
 });
 els.toggleFullscreen.addEventListener("click", async () => {
   if (document.fullscreenElement) await document.exitFullscreen();
@@ -693,6 +909,7 @@ els.toggleFullscreen.addEventListener("click", async () => {
 });
 els.resetSession.addEventListener("click", () => {
   if (!confirm("このセッションを終了し、端末内の記録を削除しますか？")) return;
+  session = null;
   localStorage.removeItem(STORAGE_KEY);
   location.reload();
 });
@@ -709,13 +926,30 @@ window.addEventListener("beforeunload", saveSession);
   await checkAiHealth();
   if (PREVIEW_MODE) {
     session = buildPreviewSession();
+    if (QUERY.get("screen") === "debrief") {
+      session.status = "debrief";
+      showOnly(els.debriefScreen);
+      return;
+    }
+    if (QUERY.get("screen") === "reflection") {
+      const previewAnswers = {
+        3: "温かい料理を一度に出せる形にします。気を遣わせないことは、食事を短時間で終え、新しい話題を増やさず静かに休めることとして整えます。この方針で、当日の流れを具体化できます。",
+        4: "準備の負担を減らす点は維持します。今回は二人で話す時間や特別感よりも相手を休ませることを最優先にし、会話は料理の感想だけに限定します。以上を基準に、当日の進行を整理します。",
+        6: "温かい主菜を中心にし、準備中と食事中の負担を抑えます。会話の進め方は決めず、確認できた希望だけを夕食の流れに反映します。現在の方針は以上です。未決定の部分は残したまま、実行に必要な内容だけを整理しました。"
+      };
+      Object.entries(previewAnswers).forEach(([turn, answer]) => { session.rounds[Number(turn) - 1].aiText = answer; });
+      session.status = "reflection";
+      buildReflectionRows();
+      showOnly(els.reflectionScreen);
+      return;
+    }
     startTask(true);
     return;
   }
   const stored = loadStoredSession();
   if (stored && stored.status !== "finished") {
     els.resumeButton.hidden = false;
-    els.resumeButton.textContent = `${stored.participantId} の続きから再開`;
+    els.resumeButton.textContent = "実験者：前回の未完了記録を確認";
   }
   showOnly(els.setupScreen);
 })();
