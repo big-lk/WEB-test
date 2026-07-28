@@ -5,16 +5,16 @@ const MAX_TURNS = 6;
 const SESSION_SCHEMA_VERSION = 8;
 const TURN_PROMPTS = [
   {
-    kicker: "1回目｜希望する雰囲気",
-    title: "料理の方法を決める前に、どんな夕食にしたいかを書く",
-    guide: "相手にどう感じてほしいか、二人の間にどんな空気があるとよいかを書いてください。実現方法はまだ一つに決めなくてかまいません。",
-    inputHint: "どんな感じの夕食にしたいかを入力",
-    placeholder: "相手の気持ちや、二人の間にほしい雰囲気を入力してください。"
+    kicker: "1回目｜雰囲気と目標",
+    title: "この夕食で目指したい雰囲気と、夕食後の二人を思い浮かべて書く",
+    guide: "相手にどう感じてほしいか、夕食後に二人がどうなっていたらよいかを書いてください。実現方法はまだ一つに決めなくてかまいません。",
+    inputHint: "目指したい雰囲気や夕食後の二人を入力",
+    placeholder: "夕食中の雰囲気や、夕食後の二人がどうなっていたらよいか入力してください。"
   },
   {
     kicker: "2回目｜もう一つ大切にしたいこと",
     title: "同時に大切にしたい気持ちや雰囲気を一つ加える",
-    guide: "最初に書いた希望と一緒にかなえたいことを考えてください。料理や演出の方法は、まだ決め切らなくてかまいません。",
+    guide: "最初に書いた目標と一緒にかなえたいことを考えてください。献立や演出の方法は、まだ決め切らなくてかまいません。",
     inputHint: "同時に大切にしたいことを入力",
     placeholder: "もう一つ大切にしたい気持ちや雰囲気を入力してください。"
   },
@@ -62,7 +62,8 @@ const els = {
   anchorText: $("#anchorText"), anchorCharCount: $("#anchorCharCount"), startTask: $("#startTask"),
   startTaskHint: $("#startTaskHint"), appShell: $("#appShell"), chatStage: $("#chatStage"),
   emptyConversation: $("#emptyConversation"), promptKicker: $("#promptKicker"), promptText: $("#promptText"),
-  turnLabel: $("#turnLabel"), guideText: $("#guideText"),
+  turnLabel: $("#turnLabel"), guideText: $("#guideText"), turnAnchor: $("#turnAnchor"),
+  anchorScenarioText: $("#anchorScenarioText"), anchorGoalText: $("#anchorGoalText"),
   turnCount: $("#turnCount"), composer: $("#composer"), messageInput: $("#messageInput"), sendButton: $("#sendButton"),
   charCount: $("#charCount"), inputHint: $("#inputHint"), criteriaList: $("#criteriaList"), conditionBadge: $("#conditionBadge"),
   insightHelp: $("#insightHelp"), savingStatus: $("#savingStatus"), toast: $("#toast"), dialog: $("#experimenterDialog"),
@@ -73,6 +74,7 @@ const els = {
   exampleGuide: $("#exampleGuide"), exampleGuideText: $("#exampleGuideText"),
   reflectionScreen: $("#reflectionScreen"), reflectionForm: $("#reflectionForm"),
   reflectionRows: $("#reflectionRows"), overallScaleRows: $("#overallScaleRows"), reflectionExport: $("#reflectionExport"),
+  delegationTurningPoint: $("#delegationTurningPoint"),
   debriefScreen: $("#debriefScreen"), acknowledgeDebrief: $("#acknowledgeDebrief"),
   debriefExport: $("#debriefExport")
 };
@@ -139,6 +141,7 @@ function newSession(participantId, condition, experimentVariant = "standard") {
     },
     aiModels: apiModels,
     pretest: null,
+    experimenterChecks: [],
     pretaskAnchor: null,
     reflection: null,
     debriefAcknowledgedAt: null,
@@ -241,10 +244,10 @@ async function checkAiHealth() {
 function prepareInstructions() {
   const adjustable = session.condition === "UI_B";
   els.instructionScreen.dataset.condition = adjustable ? "UI_B" : "UI_A";
-  els.conditionInstruction.querySelector("h3").textContent = adjustable ? "右側を確認して、AIの関わり方を選ぶ" : "右側でAIの読み取りを確認する";
+  els.conditionInstruction.querySelector("h3").textContent = adjustable ? "「AIが読み取ったこと」を確認し、AIの関わり方を選ぶ" : "「AIが読み取ったこと」を確認する";
   els.conditionInstruction.querySelector("p").textContent = adjustable
-    ? "右側でAIがあなたの希望をどう受け取ったか確認します。必要なら、AIにどこまで考えてもらうかをボタンで変え、次に伝える短い例文も作れます。"
-    : "右側で、AIがあなたの希望をどう受け取ったか確認します。右側には変更用のボタンはありません。";
+    ? "「AIが読み取ったこと」でAIの受け取り方を確認します。必要なら、AIにどこまで考えてもらうかをボタンで変え、次に伝える短い例文も作れます。"
+    : "「AIが読み取ったこと」で、AIがあなたの希望をどう受け取ったか確認します。変更用のボタンはありません。";
   if (session.pretaskAnchor) {
     const radio = els.anchorForm.querySelector(`input[value="${session.pretaskAnchor.scenarioId}"]`);
     if (radio) radio.checked = true;
@@ -264,7 +267,7 @@ function readAnchor() {
   const scenario = els.anchorForm.querySelector('input[name="scenario"]:checked');
   const freeText = els.anchorText.value.trim();
   if (!scenario) { showToast("場面カードを一つ選んでください。"); return null; }
-  if (freeText.length < 4) { showToast("選んだ場面で望んでいる感じや時間を、一文で入力してください。"); els.anchorText.focus(); return null; }
+  if (freeText.length < 4) { showToast("目指したい雰囲気と夕食後の二人の状態を、一文で入力してください。"); els.anchorText.focus(); return null; }
   const label = scenario.closest("label").querySelector("span").textContent;
   return { scenarioId: scenario.value, scenarioLabel: label, freeText };
 }
@@ -345,16 +348,18 @@ function renderTurn() {
   const turn = Math.min(session.currentTurn, MAX_TURNS);
   const complete = session.status === "complete";
   const prompt = TURN_PROMPTS[turn - 1];
-  const background = session.pretaskAnchor
-    ? `選んだ場面：${session.pretaskAnchor.scenarioLabel}。最初に考えたこと：${session.pretaskAnchor.freeText}`
-    : "";
   els.turnLabel.textContent = complete ? "完了" : `${turn}回目`;
   els.turnCount.textContent = `${turn} / ${MAX_TURNS}`;
   els.promptKicker.textContent = complete ? "対話完了" : prompt.kicker;
   els.promptText.textContent = complete ? "全6回の対話が完了しました。" : prompt.title;
   els.guideText.textContent = complete
     ? "視線計測を停止してから、振り返りへ進んでください。"
-    : `${prompt.guide} ${background}`;
+    : prompt.guide;
+  els.turnAnchor.classList.toggle("hidden", complete || !session.pretaskAnchor);
+  if (session.pretaskAnchor) {
+    els.anchorScenarioText.textContent = session.pretaskAnchor.scenarioLabel;
+    els.anchorGoalText.textContent = `最初に書いた目標：${session.pretaskAnchor.freeText}`;
+  }
   els.messageInput.disabled = complete;
   els.sendButton.disabled = complete;
   els.messageInput.placeholder = complete ? "課題は完了しました" : prompt.placeholder;
@@ -441,7 +446,7 @@ function createDelegationControl(key, selectedValue, readOnly) {
   control.setAttribute("role", "group");
   control.setAttribute("aria-label", "AIにどこまで考えてもらうか");
   control.dataset.aoi = "AOI_Right_Delegation_Control";
-  [["ai", "AIに提案してもらう"], ["consult", "一緒に考える"], ["self", "自分で決める"]].forEach(([value, label]) => {
+  [["ai", "AIに提案してもらう"], ["consult", "一緒に考える"], ["self", "自分で決定・固定"]].forEach(([value, label]) => {
     const button = document.createElement("button");
     button.type = "button";
     button.dataset.value = value;
@@ -517,7 +522,7 @@ async function submitTurn() {
   els.aiLoading.classList.remove("hidden");
   const loadingStartedAt = Date.now();
   els.loadingTitle.textContent = "会話AIが回答を作成中";
-  els.loadingDetail.textContent = "続いて右側の「AIが読み取ったこと」を更新します";
+  els.loadingDetail.textContent = "続いて「AIが読み取ったこと」を更新します";
   const loadingTimer = window.setInterval(() => {
     const elapsedSeconds = Math.floor((Date.now() - loadingStartedAt) / 1000);
     if (elapsedSeconds >= 20) {
@@ -637,7 +642,13 @@ function buildFivePointScale(name, statement) {
     label.innerHTML = `<input type="radio" name="${name}" value="${value}" aria-label="${value}" ${value === 1 ? "required" : ""}><span class="rating-dot" aria-hidden="true"></span><span class="rating-number">${value}</span>`;
     options.append(label);
   });
-  fieldset.append(legend, options);
+  const axis = document.createElement("div");
+  axis.className = "five-point-axis";
+  axis.innerHTML = "<span>1　全くそう思わない</span><span>5　とてもそう思う</span>";
+  const scale = document.createElement("div");
+  scale.className = "five-point-scale";
+  scale.append(options, axis);
+  fieldset.append(legend, scale);
   return fieldset;
 }
 
@@ -645,31 +656,32 @@ function buildReflectionRows() {
   els.reflectionRows.replaceChildren();
   els.overallScaleRows.replaceChildren();
   [
-    ["understanding", "右側を見て、AIがどう受け取ったか確認しやすかった"],
-    ["priority", "AIが何を優先しているか確認しやすかった"],
+    ["understanding", "「AIが読み取ったこと」の表示から、AIの受け取り方を確認しやすかった"],
+    ["priority", "「AIが読み取ったこと」の表示から、AIが重視した内容を確認しやすかった"],
     ["nextInput", "次に伝える内容を考えるうえで役立った"],
-    ["targetExposure", "画面を見て、この回に何を書けばよいか分かりやすかった"]
+    ["targetExposure", "各対話で、次に何を書けばよいか分かりやすかった"],
+    ["delegationBoundary", "対話を通して、「AIに提案してもらうこと」と「自分で決定・固定すること」を考えるようになった"]
   ].forEach(([name, label]) => els.overallScaleRows.append(buildFivePointScale(name, label)));
   const prompts = [
-    ["reflected", "AI回答は自分の考えを反映していた"],
-    ["fixedMeaning", "AIが自分の言葉を一つの意味に決めていると感じた"],
-    ["proxyPriority", "AIが重視点の優先順位を代わりに決めていると感じた"],
+    ["reflected", "AIの回答は、自分が入力した内容を反映していた"],
+    ["fixedMeaning", "AIの回答は、自分が入力した希望の捉え方を一つに限定していた"],
+    ["proxyPriority", "AIの回答は、自分が決めていない優先順位まで決めていた"],
     ["easyNext", "次に何を入力すればよいか考えやすかった"],
     ["needRevision", "自分の考えを修正・追加する必要を感じた"]
   ];
   REVIEW_TURNS.forEach((turn) => {
     const card = document.createElement("section");
     card.className = "review-turn-card";
+    const userText = session.rounds[turn - 1].userText || "";
     const answer = session.rounds[turn - 1].aiText || "";
     const heading = document.createElement("h2");
-    heading.textContent = `対話 ${turn}`;
-    const answerLabel = document.createElement("small");
-    answerLabel.className = "review-answer-label";
-    answerLabel.textContent = "この回のAI回答（全文）";
-    const answerText = document.createElement("p");
-    answerText.className = "review-answer";
-    answerText.textContent = answer;
-    card.append(heading, answerLabel, answerText);
+    heading.textContent = `対話 ${turn}：入力とAIの回答`;
+    const exchange = document.createElement("div");
+    exchange.className = "review-exchange";
+    exchange.innerHTML = `<section class="review-user"><small>対話 ${turn}で自分が入力した内容</small><p></p></section><section class="review-ai"><small>その入力に対するAIの回答</small><p></p></section>`;
+    exchange.querySelector(".review-user p").textContent = userText;
+    exchange.querySelector(".review-ai p").textContent = answer;
+    card.append(heading, exchange);
     prompts.forEach(([name, label]) => card.append(buildFivePointScale(`${name}_${turn}`, label)));
     els.reflectionRows.append(card);
   });
@@ -681,10 +693,11 @@ function buildReflectionRows() {
         if (input) input.value = value;
       });
     });
-    ["understanding", "priority", "nextInput", "targetExposure"].forEach((name) => {
+    ["understanding", "priority", "nextInput", "targetExposure", "delegationBoundary"].forEach((name) => {
       els.reflectionForm.elements[name].value = session.reflection[name];
     });
     els.reflectionForm.elements.turningPoint.value = session.reflection.turningPoint || "";
+    els.reflectionForm.elements.delegationTurningPoint.value = session.reflection.delegationTurningPoint || "";
     els.reflectionForm.querySelectorAll("input,select,textarea").forEach((item) => { item.disabled = true; });
     els.reflectionExport.hidden = false;
   }
@@ -699,7 +712,7 @@ function updateAnchorState() {
   els.startTask.disabled = !ready;
   els.startTaskHint.textContent = ready
     ? "準備できました。対話を開始できます。"
-    : "場面を一つ選び、4文字以上の一文を入力すると開始できます。";
+    : "場面を一つ選び、目指す雰囲気と夕食後の目標を一文で入力してください。";
   els.startTaskHint.classList.toggle("ready", ready);
 }
 function autoResize() {
@@ -790,6 +803,7 @@ els.setupForm.addEventListener("submit", async (event) => {
   }
   const experimentVariant = String(data.get("experimentVariant") || "standard");
   session = newSession(participantId, String(data.get("condition")), experimentVariant);
+  session.experimenterChecks = data.getAll("checks");
   session.events.push({ time: isoNow(), type: "experiment_variant_selected", experimentVariant });
   saveSession();
   if (els.fullscreenToggle.checked) await tryFullscreen();
@@ -808,8 +822,7 @@ els.prepForm.addEventListener("submit", (event) => {
     sleepiness: Number(data.get("sleepiness")),
     tension: Number(data.get("tension")),
     confidence: Number(data.get("confidence")),
-    familiarity: Number(data.get("familiarity")),
-    checks: data.getAll("checks")
+    familiarity: Number(data.get("familiarity"))
   };
   session.status = "instructions";
   logEvent("pretest_completed");
@@ -879,7 +892,9 @@ els.reflectionForm.addEventListener("submit", (event) => {
     priority: Number(data.get("priority")),
     nextInput: Number(data.get("nextInput")),
     targetExposure: Number(data.get("targetExposure")),
-    turningPoint: String(data.get("turningPoint") || "").trim()
+    delegationBoundary: Number(data.get("delegationBoundary")),
+    turningPoint: String(data.get("turningPoint") || "").trim(),
+    delegationTurningPoint: String(data.get("delegationTurningPoint") || "").trim()
   };
   session.status = "debrief";
   logEvent("blind_reflection_completed");
@@ -926,18 +941,47 @@ window.addEventListener("beforeunload", saveSession);
   await checkAiHealth();
   if (PREVIEW_MODE) {
     session = buildPreviewSession();
+    if (QUERY.get("screen") === "prep") {
+      session.status = "pretest";
+      showOnly(els.prepScreen);
+      return;
+    }
+    if (QUERY.get("screen") === "instructions") {
+      session.status = "instructions";
+      prepareInstructions();
+      return;
+    }
+    if (QUERY.get("screen") === "turn1") {
+      session.status = "running";
+      session.currentTurn = 1;
+      session.rounds = Array.from({ length: MAX_TURNS }, (_, index) => blankRound(index + 1));
+      startTask(true);
+      return;
+    }
     if (QUERY.get("screen") === "debrief") {
       session.status = "debrief";
       showOnly(els.debriefScreen);
       return;
     }
     if (QUERY.get("screen") === "reflection") {
-      const previewAnswers = {
-        3: "温かい料理を一度に出せる形にします。気を遣わせないことは、食事を短時間で終え、新しい話題を増やさず静かに休めることとして整えます。この方針で、当日の流れを具体化できます。",
-        4: "準備の負担を減らす点は維持します。今回は二人で話す時間や特別感よりも相手を休ませることを最優先にし、会話は料理の感想だけに限定します。以上を基準に、当日の進行を整理します。",
-        6: "温かい主菜を中心にし、準備中と食事中の負担を抑えます。会話の進め方は決めず、確認できた希望だけを夕食の流れに反映します。現在の方針は以上です。未決定の部分は残したまま、実行に必要な内容だけを整理しました。"
+      const previewExchanges = {
+        3: {
+          user: "食事中は、無理に話題を増やさず、自然に会話が続く雰囲気にしたいです。",
+          ai: "温かい料理を一度に出せる形にします。気を遣わせないことは、食事を短時間で終え、新しい話題を増やさず静かに休めることとして整えます。この方針で、当日の流れを具体化できます。"
+        },
+        4: {
+          user: "静かすぎるより、二人が落ち着いて近況を話せる食卓にしたいです。",
+          ai: "準備の負担を減らす点は維持します。今回は二人で話す時間や特別感よりも相手を休ませることを最優先にし、会話は料理の感想だけに限定します。以上を基準に、当日の進行を整理します。"
+        },
+        6: {
+          user: "相手に負担をかけず、食後に少し距離が近づいたと感じられることを大切にしたいです。",
+          ai: "温かい主菜を中心にし、準備中と食事中の負担を抑えます。会話の進め方は決めず、確認できた希望だけを夕食の流れに反映します。現在の方針は以上です。未決定の部分は残したまま、実行に必要な内容だけを整理しました。"
+        }
       };
-      Object.entries(previewAnswers).forEach(([turn, answer]) => { session.rounds[Number(turn) - 1].aiText = answer; });
+      Object.entries(previewExchanges).forEach(([turn, exchange]) => {
+        session.rounds[Number(turn) - 1].userText = exchange.user;
+        session.rounds[Number(turn) - 1].aiText = exchange.ai;
+      });
       session.status = "reflection";
       buildReflectionRows();
       showOnly(els.reflectionScreen);

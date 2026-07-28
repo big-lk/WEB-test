@@ -44,7 +44,7 @@ RATE_LIMIT_LOCK = threading.Lock()
 API_URL = "https://api.openai.com/v1/responses"
 DIALOGUE_MODEL = os.environ.get("OPENAI_DIALOGUE_MODEL", "gpt-5.4-nano")
 ANALYSIS_MODEL = os.environ.get("OPENAI_ANALYSIS_MODEL", "gpt-5.4-nano")
-PROMPT_VERSION = "judgment-delegation-guided-turns-v1.5"
+PROMPT_VERSION = "judgment-delegation-guided-turns-v1.6"
 SESSION_SCHEMA_VERSION = 6
 MAX_USER_CHARS = 500
 ALLOWED_CONDITIONS = {"UI_A", "UI_B"}
@@ -102,11 +102,11 @@ CONTROL_EVENTS = {
 # translations.  Exact endings prevent a Chinese retry instruction from leaking
 # into the visible response.
 TURN_ENDINGS = {
-    1: "次は、この夕食で同時に大切にしたい別の気持ちや雰囲気へ考えを広げられます。",
-    2: "次は、料理以外の会話や過ごし方まで含めると、夕食のイメージを広げられます。",
-    3: "次は、この案の食卓で二人がどう過ごしているかを思い浮かべると、夕食の続きを考えられます。",
-    4: "次は、食べ始めから食後までの流れを思い浮かべると、夕食全体をつなげられます。",
-    5: "最後に、当日の夕食で大切にしたいことを自分の言葉でまとめると、計画を整えられます。",
+    1: "次は、この目標と同時に大切にしたい別の気持ちや雰囲気を一つ加えてください。",
+    2: "次は、食事中の会話や距離感など、料理以外でどんな時間にしたいかを書いてください。",
+    3: "次は、この案の食卓で二人がどう過ごしているとよいかを書いてください。",
+    4: "次は、食べ始めから食後まで、二人にとって自然な流れを書いてください。",
+    5: "最後に、この夕食で大切にしたいことや避けたいことを、自分の言葉でまとめてください。",
     6: "現在の方針は以上です。未決定の部分は残したまま、実行に必要な内容だけを整理しました。",
 }
 
@@ -149,6 +149,8 @@ VALUE_PRIORITY_PROXY_DECISION。前文に実在する二つ以上の価値を使
     5: """
 CALIBRATION_ACCEPTANCE。第3・4ターン後の参加者の修正、部分拒否、優先順位、AI支援範囲をそのまま採用する。
 拒否された部分を外し、許可された範囲だけを具体化する。新しい価値や関係提案を足さず、新たな越権を作らない。
+これまでの計画全体を言い直さない。最新の修正または追加へ最初に答え、変わった点を一つだけ短く示す。
+変更されていない料理、雰囲気、会話、進行を再度まとめず、過去の回答と同じ文を繰り返さない。
 """,
     6: """
 FINAL_CONVERGENCE。確認済みの料理、過ごし方、価値の意味、優先関係を短く統合する。
@@ -168,6 +170,7 @@ DIALOGUE_INSTRUCTIONS = """あなたは日本語だけで応答する、特別�
 - 「本当に重視すること」「自分で決めたい部分」「AIに任せる部分」「保留・強化・弱化」
   を直接尋ねない。A/B/Cや二者択一を提示しない。
 - 回答は短い自然な文章で1〜2段落に収める。要約の反復、長い理由説明、大量の候補列挙をしない。
+- 過去の回答を毎回まとめ直さず、最新の入力によって追加または変更された部分を中心に書く。
 - 料理や演出の具体例は、今回の入力に直接必要なものを一つ程度だけ示す。
 - 疑問符を使わず、指定された日本語の終止文で正確に終える。
 - 指定された終止文は次の入力を自然に考えるための案内として本文につなげ、唐突な定型句に見せない。
@@ -305,6 +308,20 @@ def japanese_visible(text: str) -> bool:
     return kana >= 16
 
 
+def ensure_exact_turn_ending(turn: int, text: str) -> str:
+    """Repair only the registered participant-facing ending without rewriting AI content."""
+    stripped = text.rstrip()
+    required = TURN_ENDINGS[turn]
+    if stripped.endswith(required):
+        return stripped
+    # Nano occasionally omits the discourse marker while reproducing the rest
+    # exactly. Replace that near-match instead of showing the sentence twice.
+    without_marker = required.removeprefix("最後に、")
+    if without_marker != required and stripped.endswith(without_marker):
+        return stripped[: -len(without_marker)] + required
+    return f"{stripped}\n{required}"
+
+
 def validate_anchor(raw: Any) -> dict[str, str]:
     if not isinstance(raw, dict):
         raise ExperimentError("P01_ANCHOR_REQUIRED", "事前の場面カードと一文を入力してください。", status=400)
@@ -430,7 +447,7 @@ def dialogue_validation_codes(
     # Keep a lower safety floor so a concise, complete nano-model response is
     # not retried merely to add reading load to the left AOI.
     minimum = 100
-    maximum = 480 if turn in {1, 2} else 430 if turn in {3, 4} else 360
+    maximum = 480 if turn in {1, 2} else 430 if turn in {3, 4} else 280 if turn == 5 else 360
     if len(compact) < minimum:
         codes.append("R02_TOO_SHORT")
     if len(compact) > maximum:
@@ -777,7 +794,7 @@ def fallback_analysis(turn: int, anchor: dict[str, str]) -> dict[str, Any]:
         "criteria": [
             {
                 "id": "anchor-context",
-                "title": "事前の場面",
+                "title": "最初に選んだ場面",
                 "meaning": anchor["scenarioLabel"],
                 "priority": "維持",
                 "delegationState": "CO_DECIDE",
@@ -787,8 +804,8 @@ def fallback_analysis(turn: int, anchor: dict[str, str]) -> dict[str, Any]:
             },
             {
                 "id": f"turn-{turn}-record",
-                "title": "今回の発言",
-                "meaning": "今回の入力は記録し、意味を広げずに保持しています。",
+                "title": "今回伝えたこと",
+                "meaning": "この対話で入力した内容を、決めつけずにそのまま扱っています。",
                 "priority": "未確定",
                 "delegationState": "CO_DECIDE",
                 "source": "USER_TURN",
@@ -797,8 +814,8 @@ def fallback_analysis(turn: int, anchor: dict[str, str]) -> dict[str, Any]:
             },
             {
                 "id": "pending-meaning",
-                "title": "意味の確定状態",
-                "meaning": "信頼できる更新ができるまで新しい意味を追加しません。",
+                "title": "まだ決めていないこと",
+                "meaning": "会話から確認できない内容は、まだ決めていません。",
                 "priority": "未確定",
                 "delegationState": "CO_DECIDE",
                 "source": "AI_INFERENCE",
@@ -889,6 +906,15 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         }
         for item in source_criteria
     ]
+    visible_length_target = (
+        "220〜360字"
+        if turn in {1, 2}
+        else "240〜380字"
+        if turn in {3, 4}
+        else "140〜230字"
+        if turn == 5
+        else "180〜300字"
+    )
     dialogue_input = (
         f"ターン: {turn}/6\n"
         f"固定control_event: {control_event}\n"
@@ -896,7 +922,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         f"バリアント規則: {variant_directive}\n"
         f"このターンの実現規則:\n{TURN_DIRECTIVES[turn].strip()}\n"
         f"{'今回の強制文（一字も変えず、可視回答に正確に含める）: ' + required_control_sentence if required_control_sentence else ''}\n"
-        f"可視回答の長さ: {'220〜360字' if turn in {1, 2} else '240〜380字' if turn in {3, 4} else '180〜300字'}、1〜2段落。"
+        f"可視回答の長さ: {visible_length_target}、1〜2段落。"
         f"{' 強制文は最新入力への短い応答に続く第2文として、冒頭160字以内に置く。' if required_control_sentence else ''}\n"
         f"必須の末尾: {TURN_ENDINGS[turn]}\n"
         f"UI条件: {condition}\n"
@@ -917,20 +943,24 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         "store": False,
         "safety_identifier": safety_id,
     }
-    dialogue, dialogue_raw, dialogue_latency, dialogue_attempts = run_validated_stage(
-        "dialogue",
-        dialogue_payload,
-        lambda text: (
-            text,
+    def parse_dialogue_candidate(text: str) -> tuple[str, list[str]]:
+        normalized = ensure_exact_turn_ending(turn, text)
+        return (
+            normalized,
             dialogue_validation_codes(
                 turn,
-                text,
+                normalized,
                 anchor["freeText"],
                 user_text,
                 experiment_variant=experiment_variant,
                 scenario_id=anchor["scenarioId"],
             ),
-        ),
+        )
+
+    dialogue, dialogue_raw, dialogue_latency, dialogue_attempts = run_validated_stage(
+        "dialogue",
+        dialogue_payload,
+        parse_dialogue_candidate,
         max_attempts=4 if turn in {3, 4} else 3,
     )
 

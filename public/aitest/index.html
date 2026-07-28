@@ -6,15 +6,15 @@
     <meta name="color-scheme" content="light" />
     <meta name="robots" content="noindex,nofollow" />
     <base href="/aitest/" />
-    <title>AI 対話実験</title>
-    <link rel="stylesheet" href="./styles.css?v=5.0.16-reflection-scale" />
+    <title>AI 食事・献立相談実験</title>
+    <link rel="stylesheet" href="./styles.css?v=5.0.18-professor-review" />
   </head>
   <body>
     <section class="setup-screen" id="setupScreen" aria-labelledby="setupTitle">
       <form class="setup-card" id="setupForm">
         <p class="eyebrow">視線計測実験</p>
         <h1 id="setupTitle">実験を始める前の設定</h1>
-        <p class="setup-copy">実験者が、参加者番号、画面タイプ、AI回答の設定を選んでください。氏名などの個人情報は入力しません。</p>
+        <p class="setup-copy">実験者が、参加者番号、画面タイプ、AI回答の設定、機器・環境を確認してください。氏名などの個人情報は入力しません。</p>
         <label class="field">
           <span>参加者番号</span>
           <input id="participantId" name="participantId" inputmode="text" autocomplete="off" placeholder="P001" maxlength="32" required />
@@ -36,6 +36,16 @@
             <span><b>大きなずれを必ず入れる</b><small>第3・4回の動作を確認するためのテスト用</small></span>
           </label>
         </fieldset>
+        <fieldset class="experimenter-checklist">
+          <legend>実験者による機器・環境確認</legend>
+          <p>ここは参加者ではなく、実験者が確認してください。</p>
+          <div>
+            <label><input type="checkbox" name="checks" value="tracker" required /><span>Tobii の接続とキャリブレーションが完了</span></label>
+            <label><input type="checkbox" name="checks" value="distance" required /><span>目と画面の距離が約 60 cm</span></label>
+            <label><input type="checkbox" name="checks" value="display" required /><span>1920×1080、表示倍率 100%</span></label>
+            <label><input type="checkbox" name="checks" value="quiet" required /><span>照明・通知・約15分間の中断なしを確認</span></label>
+          </div>
+        </fieldset>
         <label class="fullscreen-check"><input type="checkbox" id="fullscreenToggle" checked />開始時に全画面表示を試みる</label>
         <div class="ai-connection" id="aiConnection" role="status">
           <span class="status-dot"></span>
@@ -43,7 +53,7 @@
         </div>
         <div class="setup-actions">
           <button type="button" class="ghost-button" id="resumeButton" hidden>前回の続きから再開</button>
-          <button type="submit" class="primary-button">準備画面へ</button>
+          <button type="submit" class="primary-button">参加者の事前確認へ</button>
         </div>
         <p class="keyboard-note">実験者メニュー：<kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>E</kbd></p>
       </form>
@@ -51,24 +61,14 @@
 
     <section class="prep-screen hidden" id="prepScreen" aria-labelledby="prepTitle">
       <form class="prep-card" id="prepForm">
-        <div class="prep-heading"><div><p class="eyebrow">事前確認</p><h1 id="prepTitle">機器と体調の確認</h1></div><span>ステップ 1 / 3</span></div>
-        <p class="prep-lead">体調の回答は、視線データを確認するときだけ使います。良し悪しを評価するものではありません。</p>
-        <div class="prep-columns">
-          <section class="prep-section">
-            <h2>今の体調</h2>
-            <label class="scale-field"><span>眠気の程度 <b id="sleepinessValue">4</b></span><input type="range" name="sleepiness" min="1" max="7" value="4" /></label>
-            <label class="scale-field"><span>緊張の程度 <b id="tensionValue">4</b></span><input type="range" name="tension" min="1" max="7" value="4" /></label>
-            <label class="scale-field"><span>今の考えへの自信 <b id="confidenceValue">4</b></span><input type="range" name="confidence" min="1" max="7" value="4" /></label>
-            <label class="scale-field"><span>AIチャットの使い慣れ <b id="familiarityValue">4</b></span><input type="range" name="familiarity" min="1" max="7" value="4" /></label>
-          </section>
-          <section class="prep-section checklist-section">
-            <h2>機器と環境の確認</h2>
-            <label><input type="checkbox" name="checks" value="tracker" required /><span>Tobii の接続とキャリブレーションが完了している</span></label>
-            <label><input type="checkbox" name="checks" value="distance" required /><span>自然な姿勢で、目と画面の距離が約 60 cm になっている</span></label>
-            <label><input type="checkbox" name="checks" value="display" required /><span>画面は 1920×1080、OS とブラウザの拡大率は 100% になっている</span></label>
-            <label><input type="checkbox" name="checks" value="quiet" required /><span>照明が安定し、通知がオフで、今後約 15 分間中断されない</span></label>
-          </section>
-        </div>
+        <div class="prep-heading"><div><p class="eyebrow">参加者が回答</p><h1 id="prepTitle">今の状態を教えてください</h1></div><span>ステップ 1 / 3</span></div>
+        <p class="prep-lead">各項目について、現在の状態に近い位置を選んでください。良し悪しを評価するものではありません。</p>
+        <section class="prep-section participant-scales">
+          <label class="scale-field"><span>眠気の程度 <b id="sleepinessValue">4</b></span><input type="range" name="sleepiness" min="1" max="7" value="4" /><small><span>1　全く眠くない</span><span>7　とても眠い</span></small></label>
+          <label class="scale-field"><span>緊張の程度 <b id="tensionValue">4</b></span><input type="range" name="tension" min="1" max="7" value="4" /><small><span>1　全く緊張していない</span><span>7　とても緊張している</span></small></label>
+          <label class="scale-field"><span>この課題で、自分の考えを言葉にできそうだと思う程度 <b id="confidenceValue">4</b></span><input type="range" name="confidence" min="1" max="7" value="4" /><small><span>1　全くそう思わない</span><span>7　とてもそう思う</span></small></label>
+          <label class="scale-field"><span>AIチャットの使い慣れ <b id="familiarityValue">4</b></span><input type="range" name="familiarity" min="1" max="7" value="4" /><small><span>1　全く使ったことがない</span><span>7　よく使っている</span></small></label>
+        </section>
         <button type="submit" class="primary-button prep-next">課題の説明へ</button>
       </form>
     </section>
@@ -81,14 +81,15 @@
             <p class="story-label">課題</p>
             <h2>大切な相手と、自宅で少し特別な夕食を過ごす計画を、AIと一緒に考えてください。</h2>
             <p>料理だけでなく、食事中の過ごし方や雰囲気も一緒に考えられます。AIとの6回のやり取りを通して、計画を進めるために必要だと思うことを自由に入力してください。正解はありません。</p>
+            <p>この課題は、架空の日常場面について食事と献立を考えるものです。栄養指導、減量、治療、病気の管理、アレルギーの診断を行うものではありません。健康状態や詳しいアレルギー情報は入力しないでください。</p>
           </div>
 
           <form id="anchorForm" class="anchor-form">
             <div class="anchor-intro">
               <span>対話の出発点</span>
               <div>
-                <h3>最初に、「どんな夕食にしたいか」を一文で書きます</h3>
-                <p>ここで書いた希望は、この後の6回のやり取りでAIが夕食を考えるための最初の手がかりになります。</p>
+                <h3>最初に、目指したい雰囲気と夕食後の目標を一文で書きます</h3>
+                <p>ここで書いた目標は、この後の6回のやり取りでAIが夕食を考えるための出発点になります。</p>
               </div>
             </div>
             <fieldset class="scenario-picker">
@@ -99,11 +100,11 @@
               <label><input type="radio" name="scenario" value="gratitude" /><span>普段言えていない感謝を自然に伝えたい</span></label>
             </fieldset>
             <label class="anchor-text">
-              <span class="anchor-text-heading"><b>2．選んだ場面で望んでいる「感じ」や「時間」を一文で書く</b><small id="anchorCharCount">0 / 160</small></span>
-              <textarea id="anchorText" maxlength="160" rows="2" aria-describedby="anchorHelp" placeholder="例：気負わず、普段より少し丁寧な時間にしたい。" required></textarea>
-              <small id="anchorHelp">料理や演出の方法は、まだ決めなくてかまいません。「気を遣わせたくない」「自然に話せる時間にしたい」のように、相手の気持ちや二人の空気を書いてください。</small>
+              <span class="anchor-text-heading"><b>2．目指したい「雰囲気」と「夕食後の二人の状態」を一文で書く</b><small id="anchorCharCount">0 / 160</small></span>
+              <textarea id="anchorText" maxlength="160" rows="2" aria-describedby="anchorHelp" placeholder="例：気負わずに話せて、食後に今までより少し距離が近づいたと感じられる夕食にしたい。" required></textarea>
+              <small id="anchorHelp">時間の長さや献立・演出の方法を書く必要はありません。夕食中の雰囲気と、夕食後に相手との関係や気持ちがどうなっていたらよいかを書いてください。</small>
             </label>
-            <div class="anchor-bridge"><b>この一文はどこで使う？</b><span>対話が始まると、各回の上部に「最初に書いた希望」として表示されます。AIの回答を読むときも、次に書くことを考えるときも、この夕食の出発点として使います。</span></div>
+            <div class="anchor-bridge"><b>この一文はどこで使う？</b><span>対話が始まると、各回の上部に「最初に書いた目標」として表示されます。AIの回答を読むときも、次に書くことを考えるときも、この夕食の出発点として使います。</span></div>
           </form>
 
           <section class="ui-flow-guide" aria-labelledby="uiFlowTitle">
@@ -151,15 +152,15 @@
               </svg>
             </div>
             <div class="ui-flow-notes">
-              <article><span>01</span><div><h3>AIの回答を読む</h3><p>左側に表示されたAIの回答を読み、どのような夕食案になったか確認します。</p></div></article>
-              <article id="conditionInstruction"><span>02</span><div><h3>右側でAIの読み取りを確認する</h3><p>AIがあなたの希望をどう受け取ったか、右側の表示で確認します。</p></div></article>
-              <article><span>03</span><div><h3>次に伝える内容を考えて入力する</h3><p>AIの回答と右側の表示を踏まえ、次に伝えたいことを考えて入力します。</p></div></article>
+              <article><span>1</span><div><h3>AIの回答を読む</h3><p>左側に表示されたAIの回答を読み、どのような夕食案になったか確認します。</p></div></article>
+              <article id="conditionInstruction"><span>2</span><div><h3>「AIが読み取ったこと」を確認する</h3><p>AIがあなたの希望をどう受け取ったか、この表示で確認します。</p></div></article>
+              <article><span>3</span><div><h3>次の内容を入力して送信する</h3><p>次に伝えたいことを入力し、入力欄右側の「送信 ↑」ボタンを押します。</p></div></article>
             </div>
           </section>
           <div class="privacy-note"><b>お願い</b><span>実在人物の氏名、住所、連絡先などの個人情報は入力しないでください。いつでも実験者に中止を申し出られます。</span></div>
         </div>
         <div class="instruction-actions">
-          <span id="startTaskHint">場面を一つ選び、4文字以上の一文を入力すると開始できます。</span>
+          <span id="startTaskHint">場面を一つ選び、目指す雰囲気と夕食後の目標を一文で入力してください。</span>
           <button type="button" class="primary-button start-button" id="startTask" disabled>6回の対話を開始する</button>
         </div>
       </div>
@@ -175,9 +176,10 @@
         <div class="turn-prompt" id="turnPrompt">
           <span id="promptKicker">対話 1｜全体像</span>
           <div><p id="promptText">まず、夕食の全体像を伝える</p><small id="guideText">相手の状態、作りたい雰囲気、料理の方向など、今考えていることから書いてください。</small></div>
+          <div class="turn-anchor" id="turnAnchor"><b>あなたが選んだ場面</b><span id="anchorScenarioText"></span><small id="anchorGoalText"></small></div>
         </div>
         <div class="chat-stage" id="chatStage" data-aoi="AOI_Left_Context">
-          <div class="empty-conversation" id="emptyConversation"><div class="ai-orb">AI</div><p>まず、現在考えていることを入力してください。</p></div>
+          <div class="empty-conversation" id="emptyConversation"><div class="ai-orb">AI</div><p>夕食中に目指したい雰囲気や、夕食後の二人がどうなっていたらよいかを書いてください。</p></div>
         </div>
         <form class="composer-wrap" id="composer" data-aoi="AOI_Left_Input">
           <div class="composer-meta"><span id="inputHint">次に必要だと思うことを自由に入力</span><span id="charCount">0 / 500</span></div>
@@ -211,19 +213,20 @@
 
       <div class="saving-status" id="savingStatus" aria-live="polite">保存済み</div>
       <div class="ai-loading hidden" id="aiLoading" role="status" aria-live="assertive">
-        <div class="loading-card"><span class="loading-ring"></span><div><b id="loadingTitle">会話AIが回答を作成中</b><small id="loadingDetail">続いて右側の「AIが読み取ったこと」を更新します</small></div></div>
+        <div class="loading-card"><span class="loading-ring"></span><div><b id="loadingTitle">会話AIが回答を作成中</b><small id="loadingDetail">続いて「AIが読み取ったこと」を更新します</small></div></div>
       </div>
     </main>
 
     <section class="reflection-screen hidden" id="reflectionScreen" aria-labelledby="reflectionTitle">
       <form class="reflection-card" id="reflectionForm">
-        <div class="prep-heading"><div><p class="eyebrow">対話後の振り返り</p><h1 id="reflectionTitle">選んだ回を振り返る</h1></div><span>ステップ 3 / 3</span></div>
-        <div class="reflection-warning"><b>先に視線計測を停止してから回答してください。</b><span>この画面は主要な視線分析に含めません。</span></div>
-        <p class="prep-lead">第2・3・4・6回について、1（全くそう思わない）〜5（とてもそう思う）で回答してください。</p>
+        <div class="prep-heading"><div><p class="eyebrow">対話後の振り返り</p><h1 id="reflectionTitle">会話の振り返り</h1></div><span>ステップ 3 / 3</span></div>
+        <div class="reflection-warning"><b>実験者が視線計測を停止します。</b><span>実験者の指示があってから、以下の質問に回答してください。</span></div>
+        <p class="prep-lead">第2・3・4・6回で自分が入力した内容と、その入力に対するAIの回答を一組として読み、各項目を1〜5で評価してください。</p>
         <div class="reflection-table" id="reflectionRows"></div>
         <section class="overall-review">
           <div class="overall-scale-rows" id="overallScaleRows"></div>
-          <label><span>AIの理解や進め方に「少し違う」と感じた時点があれば記入してください。</span><textarea name="turningPoint" rows="3"></textarea></label>
+          <label><span>体験したAIとの対話で感じた「違和感」があれば記入してください。</span><textarea name="turningPoint" rows="3"></textarea></label>
+          <label><span>「AIに提案してもらうこと」と「自分で決定・固定すること」を考えた場面があれば記入してください（なければ空欄で構いません）。</span><textarea id="delegationTurningPoint" name="delegationTurningPoint" rows="3"></textarea></label>
         </section>
         <div class="reflection-actions"><button type="submit" class="primary-button">振り返りを保存して完了</button><button type="button" class="ghost-button" id="reflectionExport" hidden>完全ログを書き出す</button></div>
       </form>
@@ -260,6 +263,6 @@
         <p class="dialog-note">このメニューの開閉も操作ログに記録されます。視線計測中は開かないでください。</p>
       </form>
     </dialog>
-    <script src="./app.js?v=5.0.16-reflection-scale"></script>
+    <script src="./app.js?v=5.0.18-professor-review"></script>
   </body>
 </html>
