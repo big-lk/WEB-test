@@ -202,7 +202,7 @@ export default function FrameTraceCasePage() {
         </div>
       </section>
 
-      <nav aria-label="Case study sections" className="sticky top-16 z-30 overflow-x-auto border-b border-cyan-900/15 bg-[#f4f8f7]/95 backdrop-blur dark:bg-[#07161c]/95">
+      <nav aria-label="Case study sections" className="sticky top-[112px] z-40 overflow-x-auto border-b border-cyan-900/15 bg-[#f4f8f7]/95 backdrop-blur sm:top-[65px] dark:bg-[#07161c]/95">
         <div className="mx-auto flex max-w-6xl min-w-max gap-6 px-5 py-3 text-sm md:px-8">
           {t.nav.map(([label, href]) => <a key={href} href={href} className="font-medium text-[#47636a] no-underline hover:text-[#007f91] dark:text-white/65 dark:hover:text-cyan-300">{label}</a>)}
         </div>

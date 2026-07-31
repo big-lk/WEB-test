@@ -204,6 +204,14 @@ export default function TasteAgainCasePage() {
   const { language } = useLanguage()
   const t = copy[language]
   const work = portfolioWorks[language].find((item) => item.id === 'taste-again')
+  const storyMedia = [
+    { image: '/works/haojiu-meichi/ui/curry.jpg', position: 'center' },
+    { image: '/works/haojiu-meichi/ui/home.jpg', position: 'center 38%' },
+    { image: '/works/haojiu-meichi/ui/reminders.jpg', position: 'center 30%' },
+    { image: '/works/haojiu-meichi/ui/record.jpg', position: 'center 34%' },
+    { image: '/works/haojiu-meichi/ui/memories.jpg', position: 'center 28%' },
+    { image: '/works/haojiu-meichi/ui/curry.jpg', position: 'center' },
+  ]
 
   if (!work) return null
 
@@ -219,12 +227,17 @@ export default function TasteAgainCasePage() {
               <p className="mt-6 text-xl leading-8 text-neutral-200">{t.summary}</p>
               <p className="mt-5 text-sm leading-7 text-neutral-400">{work.role}</p>
             </div>
-            <img src={work.image} alt={work.title} className="aspect-[3/2] w-full rounded-lg border border-[#f7b718]/30 object-cover shadow-2xl shadow-black/50" />
+            <figure className="relative aspect-[3/2] overflow-hidden rounded-lg border border-[#f7b718]/35 bg-[#131313]">
+              <div aria-hidden="true" className="absolute inset-x-0 top-0 h-1 bg-[#f7b718]" />
+              <img src="/works/haojiu-meichi/ui/record.jpg" alt="" className="absolute -bottom-[20%] left-[6%] w-[28%] -rotate-6 border border-white/15 shadow-2xl" />
+              <img src="/works/haojiu-meichi/ui/home.jpg" alt={work.title} className="absolute -bottom-[10%] left-1/2 z-10 w-[34%] -translate-x-1/2 border border-white/15 shadow-2xl" />
+              <img src="/works/haojiu-meichi/ui/memories.jpg" alt="" className="absolute -bottom-[20%] right-[6%] w-[28%] rotate-6 border border-white/15 shadow-2xl" />
+            </figure>
           </div>
         </div>
       </section>
 
-      <nav aria-label="Case study sections" className="sticky top-16 z-30 overflow-x-auto border-b border-[#f7b718]/25 bg-[#fffaf0]/95 backdrop-blur dark:bg-neutral-950/95">
+      <nav aria-label="Case study sections" className="overflow-x-auto border-b border-[#f7b718]/25 bg-[#fffaf0] dark:bg-neutral-950">
         <div className="mx-auto flex max-w-6xl min-w-max gap-6 px-5 py-3 text-sm md:px-8">
           {t.nav.map(([label, href]) => <a key={href} href={href} className="font-medium text-neutral-600 no-underline hover:text-[#b57900] dark:text-neutral-300 dark:hover:text-[#f7b718]">{label}</a>)}
         </div>
@@ -257,17 +270,28 @@ export default function TasteAgainCasePage() {
           <div className="grid gap-7 md:grid-cols-[0.7fr_1.3fr] md:items-end">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#f7b718]">{t.storyKicker}</p>
-              <h2 className="mt-4 text-3xl font-semibold md:text-5xl">{t.storyTitle}</h2>
+              <h2 className="mt-4 text-3xl font-semibold md:text-4xl">{t.storyTitle}</h2>
             </div>
             <p className="text-lg leading-8 text-neutral-300">{t.storyCopy}</p>
           </div>
-          <img src="/works/haojiu-meichi/story-comic.png" alt={t.storyAlt} className="mt-10 aspect-[3/2] w-full rounded-lg border border-[#f7b718]/35 object-cover" />
-          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {t.storyPanels.map(([title, description]) => (
-              <div key={title} className="rounded-lg border border-white/[0.14] p-4">
-                <h3 className="text-sm font-semibold text-[#f7b718]">{title}</h3>
-                <p className="mt-2 text-sm leading-6 text-neutral-300">{description}</p>
-              </div>
+          <div className="mt-10 grid gap-px overflow-hidden border border-white/15 bg-white/15 sm:grid-cols-2 lg:grid-cols-3">
+            {t.storyPanels.map(([title, description], index) => (
+              <figure key={title} className="bg-neutral-950">
+                <div className="relative aspect-[4/3] overflow-hidden bg-neutral-900">
+                  <img
+                    src={storyMedia[index].image}
+                    alt=""
+                    loading="lazy"
+                    className="h-full w-full object-cover opacity-90"
+                    style={{ objectPosition: storyMedia[index].position }}
+                  />
+                  <span className="absolute left-4 top-4 text-5xl font-semibold leading-none text-[#f7b718] drop-shadow-[0_2px_12px_rgba(0,0,0,0.65)]">0{index + 1}</span>
+                </div>
+                <figcaption className="min-h-40 p-5">
+                  <h3 className="text-sm font-semibold text-[#f7b718]">{title}</h3>
+                  <p className="mt-3 text-sm leading-6 text-neutral-300">{description}</p>
+                </figcaption>
+              </figure>
             ))}
           </div>
         </div>
@@ -279,16 +303,16 @@ export default function TasteAgainCasePage() {
           <h2 className="mt-4 text-3xl font-semibold md:text-5xl">{t.uiTitle}</h2>
           <p className="mt-5 text-lg leading-8 text-neutral-600 dark:text-neutral-300">{t.uiCopy}</p>
         </div>
-        <div className="mt-12 grid gap-8 lg:grid-cols-3">
+        <div className="mt-12 grid gap-x-8 gap-y-14 lg:grid-cols-3">
           {t.uiPoints.map((point, index) => (
             <article key={point.title} className="flex flex-col">
-              <div className="mx-auto w-[min(82vw,286px)] overflow-hidden rounded-[2.2rem] border-[7px] border-neutral-900 bg-neutral-900 shadow-xl shadow-[#f7b718]/10">
-                <img src={point.image} alt={point.alt} loading="lazy" className="block w-full" />
-              </div>
+              <figure className="mx-auto w-[min(82vw,278px)] overflow-hidden border border-neutral-300 bg-[#fbf7ef] shadow-[0_24px_60px_rgba(0,0,0,0.12)] dark:border-neutral-700">
+                <img src={point.image} alt={point.alt} loading="lazy" className="block h-auto w-full" />
+              </figure>
               <p className="mt-6 text-xs font-semibold text-[#b57900] dark:text-[#f7b718]">UI 0{index + 1}</p>
               <h3 className="mt-2 text-xl font-semibold leading-snug">{point.title}</h3>
               <p className="mt-3 text-sm leading-7 text-neutral-600 dark:text-neutral-300">{point.copy}</p>
-              <p className="mt-4 rounded-md bg-[#fff4cf] px-4 py-3 text-sm font-medium leading-6 text-neutral-800 dark:bg-[#f7b718]/10 dark:text-neutral-200">{point.attraction}</p>
+              <p className="mt-4 border-l-2 border-[#f7b718] pl-4 text-sm font-medium leading-6 text-neutral-800 dark:text-neutral-200">{point.attraction}</p>
             </article>
           ))}
         </div>
@@ -298,13 +322,13 @@ export default function TasteAgainCasePage() {
         <div className="mx-auto max-w-6xl px-5 py-14 md:px-8 md:py-20">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#b57900] dark:text-[#f7b718]">{t.decisionsKicker}</p>
           <h2 className="mt-4 text-3xl font-semibold md:text-5xl">{t.decisionsTitle}</h2>
-          <div className="mt-9 grid gap-4 md:grid-cols-3">
+          <div className="mt-9 grid gap-8 md:grid-cols-3">
             {t.decisions.map(([title, description, driver], index) => (
-              <article key={title} className="rounded-lg border border-[#f7b718]/35 bg-white p-5 dark:bg-neutral-950">
+              <article key={title} className="border-t-2 border-[#f7b718] pt-5">
                 <span className="text-xs font-semibold text-[#b57900] dark:text-[#f7b718]">0{index + 1}</span>
                 <h3 className="mt-3 text-xl font-semibold">{title}</h3>
                 <p className="mt-3 text-sm leading-7 text-neutral-600 dark:text-neutral-300">{description}</p>
-                <p className="mt-5 border-t border-[#f7b718]/25 pt-4 text-sm font-semibold">{driver}</p>
+                <p className="mt-5 text-sm font-semibold">{driver}</p>
               </article>
             ))}
           </div>
@@ -342,13 +366,13 @@ export default function TasteAgainCasePage() {
           </div>
           <div className="grid gap-3">
             {t.result.map(([title, description], index) => (
-              <div key={title} className="grid gap-3 rounded-lg border border-[#f7b718]/30 bg-white p-5 md:grid-cols-[4rem_9rem_1fr] dark:bg-neutral-900">
+              <div key={title} className="grid gap-3 border-t border-[#f7b718]/45 py-5 md:grid-cols-[4rem_9rem_1fr]">
                 <span className="text-sm font-semibold text-[#b57900] dark:text-[#f7b718]">0{index + 1}</span>
                 <h3 className="font-semibold">{title}</h3>
                 <p className="text-sm leading-7 text-neutral-600 dark:text-neutral-300">{description}</p>
               </div>
             ))}
-            <div className="mt-3 rounded-lg bg-[#fff4cf] p-5 dark:bg-[#f7b718]/10">
+            <div className="mt-3 border-l-4 border-[#f7b718] bg-[#fff4cf]/55 p-5 dark:bg-[#f7b718]/10">
               <h3 className="font-semibold">{t.nextTitle}</h3>
               <ul className="mt-3 grid gap-2 text-sm leading-7 text-neutral-700 dark:text-neutral-300">
                 {t.next.map((item) => <li key={item}>→ {item}</li>)}
