@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'LKD｜作品集',
-    description: '工业设计 / HCI 研究与代表作',
+    description: '感性工学产品设计 / HCI 研究与代表作',
     images: ['/og-generated.png'],
   },
 }
