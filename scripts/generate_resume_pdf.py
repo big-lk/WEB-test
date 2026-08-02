@@ -191,52 +191,34 @@ STYLES = {
 
 projects = [
     {
-        "title": "人-AI 分担共创界面",
+        "title": "驾驶关注价值界面",
+        "meta": "智能驾驶 / 关注价值 HMI / 2025-2026",
+        "desc": "智驾越稳定，人越容易把驾驶交出去；界面不堆行车参数，而是明示 AI 正在关注哪些可能造成问题的对象。",
+        "feature": "特点：用表情和短句提示小朋友可能闯出、旁车可能靠近等高危情境，按危险程度控制提示强度。",
+    },
+    {
+        "title": "个人判断价值提升界面",
         "meta": "毕业设计 / AI 产品体验 / Human-AI Interaction",
-        "desc": "把共创过程拆成 AI 代行、AI 商谈和用户决定三种状态，让用户看见自己在哪一步还需要参与判断。",
-        "role": "交互概念、UI 架构、比较任务与验证流程",
-        "methods": "聊天调查、故事流程模拟、比较 UI、眼动追踪",
-        "value": "当前重点不是解释 AI 有多强，而是比较不同提示是否改变用户的视线分配和最终选择。",
+        "desc": "AI 共创的问题不只是回答质量，而是用户的判断很容易被输出结果盖过去；界面先让用户判断这一步谁负责，再让 AI 调整回答。",
+        "feature": "特点：把 AI 代行、AI 商谈、用户决定变成显性分担行为，并通过确认与再调整沉淀个人判断偏好。",
     },
     {
-        "title": "智驾注意力 AR-HUD",
-        "meta": "汽车 HMI / 智驾注意力 / 2025-2026",
-        "desc": "把智驾系统正在关注的风险位置、原因和紧急程度表达出来，避免界面只堆叠速度、距离和状态信息。",
-        "role": "HMI 研究、注意力设计、安全边界与感性评价计划",
-        "methods": "场景设计、AR-HUD 概念、人因工程梳理、感性评价设计",
-        "value": "先界定哪些信息可能帮助驾驶者理解系统关注点，后续用视频刺激比较提示强度和分心风险。",
+        "title": "好久没吃",
+        "meta": "微信小程序 / 饮食记忆 / 2025-2026",
+        "desc": "吃什么不总是搜索问题；很多时候只是突然想起那一碗好久没吃了。",
+        "feature": "特点：从个人饮食周期、味道线索和再会提醒进入选择，而不是把用户推向更大的推荐列表。",
     },
     {
-        "title": "日语试读辅助界面",
-        "meta": "学习 UX / AI 陪伴 / 2025-2026",
-        "desc": "从学习者自己的文稿出发，在试读卡顿时给出分级帮助，而不是一开始就替用户改完整段。",
-        "role": "学习体验、适当支援模型、UI 叙事",
-        "methods": "试读流程、卡顿支援、成长痕迹地图、反馈界面",
-        "value": "控制 AI 介入的时机，把卡顿从失败感转成可继续练习和回看的线索。",
-    },
-    {
-        "title": "FrameTrace 跨时间摄影引导",
+        "title": "FrameTrace",
         "meta": "MR 眼镜 / 跨时间摄影 / 2025-2026",
-        "desc": "通过 MR 眼镜提示过去照片的机位、方向和构图关系，让用户在真实地点重新完成拍摄。",
-        "role": "MR 交互、手势构图、空间记忆系统",
-        "methods": "手势场景、空间 UX、服务蓝图",
-        "value": "106 份形成性问卷用于确定下一版优先级；公共机位复现、隐私解释和行走安全仍需行为验证。",
+        "desc": "看到一张经典照片时，人会想知道它当时站在哪里、用什么角度拍出来；FrameTrace 把这个问题变成可行走、可对齐的摄影体验。",
+        "feature": "特点：用机位、焦距、构图和拍摄姿态提示，让用户像和另一个时间的人在同一机位共拍。",
     },
     {
-        "title": "好久没吃 微信小程序",
-        "meta": "微信小程序 / 饮食记忆提醒 / 2025-2026",
-        "desc": "记录吃过什么和当时感觉，在“好久没吃了”的时刻用个人饮食记忆提示旧味道。",
-        "role": "产品概念、饮食记忆模型、移动端 UX",
-        "methods": "决策旅程、时间轴模型、提醒设计",
-        "value": "首页先问感觉，再从个人记录里给出少量候选；当前 MVP 已完成核心流程，下一步看是否带来再吃行为。",
-    },
-    {
-        "title": "冰箱日期提示系统",
-        "meta": "产品系统 / 食材管理 / 2023",
-        "desc": "把食材放入、保存、提醒和料理计划连成一套流程，让用户在放进去的时候就开始管理日期。",
-        "role": "产品服务系统、硬件交互、行为设计",
-        "methods": "用户旅程、硬件场景、灯光引导交互",
-        "value": "手机 UI、冰箱屏幕和内部灯光分别承担远程提醒、查看和定位；硬件实现仍需要进一步工程验证。",
+        "title": "FRIDGE TIMELINE SYSTEM",
+        "meta": "大学毕业设计 / 食材日期管理 / 2023",
+        "desc": "让临期食材被看见、被注意，而不是在冰箱深处慢慢被忘掉。",
+        "feature": "特点：通过临期可见、灯光注意触发和手机联动，把日期管理习惯拆进日常开门和取用动作。",
     },
 ]
 
@@ -247,9 +229,9 @@ header = Table(
         [
             [
                 p("孔维鹏", STYLES["name"]),
-                p("求职方向：用户研究 / AI 产品体验 / 车载 HMI 实习", STYLES["headline"]),
+                p("求职方向：用户研究 / AI 产品体验实习", STYLES["headline"]),
                 p(
-                    "工业设计与人间情报设计背景。做项目时会先看用户在哪一刻犹豫、分心、忘记或没把握，再把问题转成界面结构、原型任务和可比较的设计判断。关注 AI 产品体验、车载 HMI、学习与日常行为系统。",
+                    "工业设计与人间情报设计背景。做项目时会先看用户在哪一刻犹豫、分心、忘记或没把握，再把问题转成界面结构、原型任务和可比较的设计结论。关注 AI 产品体验、用户研究、学习与日常行为系统。",
                     STYLES["body"],
                 ),
             ],
@@ -294,8 +276,8 @@ left += [Spacer(1, 3 * mm)]
 left += section(
     "时间与语言",
     [
-        bullet("实习时间：预计 2026 年 9-10 月可全时间投入。"),
-        bullet("入职时间：可考虑 2027 年 5 月后。"),
+        bullet("实习时间：2026.09-2026.11 可全职实习，预计约 3 个月。"),
+        bullet("正式入职：修士前期课程毕业后，可考虑 2027.05 以后入职。"),
         bullet("日语：JLPT N1，可进行日常沟通与设计讨论。"),
         bullet("求职地：以中国大陆岗位为主，可接受北京/南京等岗位所在地实习。"),
     ],
@@ -305,8 +287,6 @@ left += section(
     "工具能力",
     [
         pill_table(["Figma", "Photoshop", "Illustrator", "Blender", "After Effects"], columns=2, col_width=38 * mm),
-        Spacer(1, 2 * mm),
-        p("工具主要服务于 UX 实验模拟、概念原型、视频刺激和体验验证，并非单纯的软件执行岗定位。", STYLES["small"]),
     ],
 )
 
@@ -319,7 +299,7 @@ right += section(
                 "用户研究",
                 "AI 产品体验",
                 "车载 HMI",
-                "感性评价",
+                "主观体验测试",
                 "眼动追踪",
                 "UI/UX 原型",
             ],
@@ -330,9 +310,9 @@ right += section(
 )
 right += [Spacer(1, 3 * mm)]
 right += section(
-    "方法优势",
+    "研究与设计方法",
     [
-        bullet("用感性评价理解主观体验，并把它转化为可比较的界面版本。"),
+        bullet("用用户主观体验测试理解感受差异，并把它转化为可比较的界面版本。"),
         bullet("先拆清用户卡在哪一步，再决定提示、记录、解释或让用户自己判断。"),
         bullet("结合眼动追踪、选择任务与比较 UI，让注意路径和判断过程成为设计依据。"),
         bullet("能把用户行为、系统逻辑和商业/产品目标整理成可沟通的设计方案。"),
@@ -368,9 +348,7 @@ for project in projects:
         p(project["meta"], STYLES["meta"]),
         p(project["title"], STYLES["projectTitle"]),
         p(project["desc"], STYLES["small"]),
-        label_value("负责内容", project["role"]),
-        label_value("方法", project["methods"]),
-        label_value("形成的判断", project["value"]),
+        p(project["feature"], STYLES["small"]),
     ]
     card = Table([[block]], colWidths=[166 * mm])
     card.setStyle(
@@ -402,3 +380,176 @@ doc = SimpleDocTemplate(
 
 doc.build(story, onFirstPage=draw_page, onLaterPages=draw_page)
 print(OUTPUT)
+
+
+TARGET_RESUMES = [
+    {
+        "output": "output/pdf/kong-weipeng-resume-xiaomi-hmi-cn.pdf",
+        "headline": "求职方向：体验产品经理实习生 / 自动驾驶 HMI",
+        "summary": "工业设计与人间情报设计背景。关注智驾越稳定时，人如何继续参与路面判断，能把竞品体验、用户反馈和 HMI 细节转成可沟通的交互原型与产品需求。",
+        "keywords": ["汽车 HMI", "体验走查", "竞品分析", "用户反馈", "交互原型", "可用性测试"],
+        "methods": [
+            "拆解驾驶场景中的注意力、信任和接管前信息需求。",
+            "把体验问题转成 HMI 信息层级、提示强度和 UE/UI 可执行需求。",
+            "用用户主观体验测试、比较 UI 和眼动任务辅助判断界面取舍。",
+            "能以产品视角说明设计细节为什么影响理解、分心或行动。",
+        ],
+        "projects": ["驾驶关注价值界面", "个人判断价值提升界面", "好久没吃", "FrameTrace", "FRIDGE TIMELINE SYSTEM"],
+    },
+    {
+        "output": "output/pdf/kong-weipeng-resume-xiaomi-ai-innovation-cn.pdf",
+        "headline": "求职方向：AI 创新产品实习生 / 场景定义与产品叙事",
+        "summary": "关注 AI 技术进入真实生活时，用户为什么需要它、怎样理解它、在哪一步还想保留自己的判断。能把复杂功能说成人话，并把场景、交互和故事整理成产品 Brief。",
+        "keywords": ["AI 产品体验", "场景挖掘", "产品 Brief", "用户画像", "竞品拆解", "内容脚本"],
+        "methods": [
+            "从用户评论、日常行为和使用卡点中提炼真实场景，而不是先套功能。",
+            "把 AI 能力翻译成普通人能理解的使用理由、界面提示和产品文案。",
+            "用 Figma、Blender、After Effects 和 AI 工具快速做可沟通原型。",
+            "能说明一个新产品好在哪、差在哪，以及我会怎样调整入口和反馈。",
+        ],
+        "projects": ["个人判断价值提升界面", "好久没吃", "FrameTrace", "驾驶关注价值界面", "FRIDGE TIMELINE SYSTEM"],
+    },
+    {
+        "output": "output/pdf/kong-weipeng-resume-xiaomi-ai-vehicle-service-cn.pdf",
+        "headline": "求职方向：AI 产品实习生 / 车载语音与生活服务",
+        "summary": "把车内体验理解为移动中的生活服务场景：用户会分心、犹豫、想不起目的，也可能过度依赖系统。我的项目更关注语音/轻交互怎样帮助用户说清需求，并用最少信息完成下一步。",
+        "keywords": ["车载生活服务", "语音交互", "需求挖掘", "功能策划", "交互设计", "AI 场景"],
+        "methods": [
+            "从车内注意力、即时需求和生活习惯切入功能策划。",
+            "把用户说不清的需求拆成场景入口、反馈语气和可继续的行动。",
+            "用小程序 MVP、比较 UI 和情境模拟验证产品概念是否容易理解。",
+            "关注 AI 介入时机：什么时候代行、什么时候商谈、什么时候交回用户决定。",
+        ],
+        "projects": ["驾驶关注价值界面", "好久没吃", "个人判断价值提升界面", "FRIDGE TIMELINE SYSTEM", "FrameTrace"],
+    },
+]
+
+
+def build_target_resume(profile):
+    by_title = {project["title"]: project for project in projects}
+    target_story = []
+    header = Table(
+        [
+            [
+                [
+                    p("孔维鹏", STYLES["name"]),
+                    p(profile["headline"], STYLES["headline"]),
+                    p(profile["summary"], STYLES["body"]),
+                ],
+                [
+                    p("<b>地点</b> 日本札幌 / 意向中国大陆", STYLES["small"]),
+                    p("<b>邮箱</b> littlekeen@outlook.com", STYLES["small"]),
+                    p("<b>网站</b> lkdesigner.top", STYLES["small"]),
+                    Spacer(1, 2 * mm),
+                    QRFlowable(PORTFOLIO_URL, 22 * mm),
+                    p("扫码查看详细作品集", STYLES["small"]),
+                ],
+            ]
+        ],
+        colWidths=[119 * mm, 47 * mm],
+    )
+    header.setStyle(
+        TableStyle(
+            [
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("BACKGROUND", (0, 0), (-1, -1), PAPER),
+                ("BOX", (0, 0), (-1, -1), 0.65, LINE_YELLOW),
+                ("LEFTPADDING", (0, 0), (-1, -1), 10),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+                ("TOPPADDING", (0, 0), (-1, -1), 9),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 9),
+            ]
+        )
+    )
+    target_story += [header, Spacer(1, 5.5 * mm)]
+
+    left = []
+    left += section(
+        "教育经历",
+        [
+            p("<b>札幌市立大学</b> · 人间情报设计专业", STYLES["body"]),
+            p("修士前期课程（相当于研究生）· 2025.04 入学 - 预计 2027.04 毕业", STYLES["small"]),
+            p("<b>哈尔滨理工大学</b> · 工业设计系", STYLES["body"]),
+            p("大学本科 · 2023.07 毕业", STYLES["small"]),
+        ],
+    )
+    left += [Spacer(1, 3 * mm)]
+    left += section(
+        "时间与语言",
+        [
+            bullet("实习时间：2026.09-2026.11 可全职实习，预计约 3 个月。"),
+            bullet("正式入职：修士前期课程毕业后，可考虑 2027.05 以后入职。"),
+            bullet("日语：JLPT N1，可进行日常沟通与设计讨论。"),
+            bullet("求职地：以中国大陆岗位为主，可接受北京等岗位所在地实习。"),
+        ],
+    )
+    left += [Spacer(1, 3 * mm)]
+    left += section("工具能力", [pill_table(["Figma", "Photoshop", "Illustrator", "Blender", "After Effects", "AI 工具辅助原型"], columns=2, col_width=38 * mm)])
+
+    right = []
+    right += section("岗位匹配关键词", [pill_table(profile["keywords"], columns=2, col_width=42 * mm)])
+    right += [Spacer(1, 3 * mm)]
+    right += section("研究与设计方法", [bullet(item) for item in profile["methods"]])
+    right += [Spacer(1, 3 * mm)]
+    right += section(
+        "奖项与外部协作",
+        [
+            bullet("札幌市路面电车新电车设计方案征集奖。"),
+            bullet("札幌市交通振兴局地域连携广告振兴项目。"),
+        ],
+    )
+
+    intro = Table([[left, right]], colWidths=[78 * mm, 86 * mm])
+    intro.setStyle(
+        TableStyle(
+            [
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+                ("TOPPADDING", (0, 0), (-1, -1), 0),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+            ]
+        )
+    )
+    target_story += [intro, Spacer(1, 5 * mm), p("代表项目", STYLES["section"]), Spacer(1, 2 * mm)]
+
+    for title in profile["projects"]:
+        project = by_title[title]
+        block = [
+            p(project["meta"], STYLES["meta"]),
+            p(project["title"], STYLES["projectTitle"]),
+            p(project["desc"], STYLES["small"]),
+            p(project["feature"], STYLES["small"]),
+        ]
+        card = Table([[block]], colWidths=[166 * mm])
+        card.setStyle(
+            TableStyle(
+                [
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ("BACKGROUND", (0, 0), (-1, -1), colors.white),
+                    ("LINEABOVE", (0, 0), (-1, 0), 0.55, LINE_YELLOW),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                    ("TOPPADDING", (0, 0), (-1, -1), 4.5),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 2.5),
+                ]
+            )
+        )
+        target_story += [KeepTogether([card]), Spacer(1, 2.2 * mm)]
+
+    target_doc = SimpleDocTemplate(
+        profile["output"],
+        pagesize=A4,
+        rightMargin=18 * mm,
+        leftMargin=18 * mm,
+        topMargin=17 * mm,
+        bottomMargin=20 * mm,
+        title=f"KONG WEIPENG Resume - {profile['headline']}",
+        author="KONG WEIPENG",
+    )
+    target_doc.build(target_story, onFirstPage=draw_page, onLaterPages=draw_page)
+    print(profile["output"])
+
+
+for target in TARGET_RESUMES:
+    build_target_resume(target)

@@ -1,11 +1,11 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'FrameTrace 跨时间摄影引导｜MR 案例',
-  description: '从 106 份概念印象问卷到 Quest 3 原型计划：探索公共摄影机位、私人照片记忆与跨时间共同摄影体验。',
+  title: 'FrameTrace｜MR 跨时间摄影案例',
+  description: '把“这张经典照片怎么拍的”变成可行走、可对齐、可共同完成的跨时间摄影体验。',
   openGraph: {
-    title: 'FrameTrace 跨时间摄影引导｜MR 案例',
-    description: '概念研究、数据清洗、设计转向、空间共创、隐私与行走安全。',
+    title: 'FrameTrace｜MR 跨时间摄影案例',
+    description: '和另一个时间的人，在同一个机位完成一次共拍。',
     images: ['/works/frametrace/hero.jpg'],
   },
   twitter: {
