@@ -17,7 +17,7 @@ const copy = {
     interests: [['Kansei Evaluation', 'Translating subjective impressions into design variables and evaluation language.'], ['Human-AI Co-creation', 'Designing AI systems that preserve user agency, correction, trust, and authorship.'], ['Spatial and Product Systems', 'Connecting physical objects, interface layers, timing, location, and service behavior.']],
     methods: ['Semantic differential method', 'Interview and observation', 'Scenario design', 'Prototype testing', 'System mapping', 'UX journey mapping'],
     current: [['Building a vocabulary', 'Organizing emotional descriptors such as trust, effort, timing, confidence, freshness, and control.'], ['Connecting system and behavior', 'Exploring how UI, hardware, AR overlays, light guidance, and data records can change everyday actions.'], ['Testing through prototypes', 'Using interface boards, concept renders, and small flows to test whether the framing supports real design decisions.']],
-    publications: [{ title: 'Six Portfolio Design Studies', venue: 'Portfolio', year: '2025-2026', note: 'AI co-creation, transparent driving HMI, learning support, AR travel photography, food memory, and fridge timeline systems.' }],
+    publications: [{ title: 'Five Concrete Design Questions', venue: 'Portfolio', year: '2022-2026', note: 'AI co-creation, driving attention, personal food cycles, MR photography guidance, and refrigerator date-and-location management.' }],
   },
   ja: {
     eyebrow: '研究',
@@ -33,7 +33,7 @@ const copy = {
     interests: [['感性評価', '主観的な印象をデザイン変数と評価言語へ翻訳する。'], ['人とAIの共創', 'ユーザーの主導権、修正、信頼、作者性を残すAIシステムを考える。'], ['空間とプロダクトシステム', '物理オブジェクト、UIレイヤー、時間、場所、サービス行動を接続する。']],
     methods: ['SD法', 'インタビューと観察', 'シナリオ設計', 'プロトタイプ評価', 'システムマッピング', 'UXジャーニーマッピング'],
     current: [['語彙をつくる', '信頼、努力、タイミング、自信、新鮮さ、制御感などの感性語を整理する。'], ['システムと行動をつなぐ', 'UI、ハードウェア、AR表示、ライトガイド、記録データが日常行動をどう変えるかを探る。'], ['プロトタイプで検証する', 'インターフェースボード、コンセプトレンダリング、小さな操作フローを用いて、設計判断を検証する。']],
-    publications: [{ title: '6つのポートフォリオ・デザインスタディ', venue: 'Portfolio', year: '2025-2026', note: 'AI共創、透明化HMI、学習支援、AR旅行写真、食の記憶、冷蔵庫タイムラインシステム。' }],
+    publications: [{ title: '5つの具体的なデザイン課題', venue: 'Portfolio', year: '2022-2026', note: 'AI共創、運転への注意、個人の食周期、MR写真ガイド、冷蔵庫内の期限・位置管理。' }],
   },
   zh: {
     eyebrow: '我在追的不是学科名',
@@ -42,14 +42,14 @@ const copy = {
     questionsTitle: '我反复问的事',
     interestsTitle: '三个问题入口',
     methodsTitle: '我常用的办法',
-    currentTitle: '现在正在补哪类证据',
+    currentTitle: '我怎样验证判断',
     publicationsTitle: '这些问题落在哪些项目里',
     stepLabel: '步骤',
     questions: ['用户说“我不想完全交给 AI”时，他真正担心失去的是效率、责任感，还是自己的想法？', '用户不自信、分心、卡顿、想不起来的时候，产品应该帮助到哪里就停下？', '一次记录、一次提示、一次回看，能不能让用户下一次更容易行动？'],
     interests: [['主观体验测试', '把“安心、有把握、想继续”这些话，变成能比较的界面版本。'], ['人-AI 共创', '不只看 AI 输出好不好，也看用户在哪一步还需要参与判断。'], ['产品系统', '把界面、硬件、空间和时间提示连起来，观察它能否进入日常行为。']],
     methods: ['语义差异法', '访谈与观察', '场景设计', '比较原型', '眼动追踪', '系统映射', 'UX 旅程图'],
     current: [['把问题说准', '先说明用户在哪个场景、哪一步、因为什么停住，而不是直接套一个大概念。'], ['把界面做成比较', '同一个问题做不同程度的提示，看用户更容易理解、继续行动，还是被打扰。'], ['把行为看出来', '用选择任务、眼动追踪和小流程，检查注意力和判断有没有真的变化。']],
-    publications: [{ title: '五个具体问题', venue: 'Portfolio', year: '2025-2026', note: '驾驶关注价值、个人判断价值、饮食记忆、跨时间摄影、食材日期管理。' }],
+    publications: [{ title: '五个具体问题', venue: 'Portfolio', year: '2022-2026', note: 'AI 共创中的个人判断、驾驶关注价值、个人饮食周期、MR 摄影引导、冰箱物品日期与位置管理。' }],
   },
 }
 

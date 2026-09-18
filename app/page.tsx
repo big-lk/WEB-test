@@ -7,43 +7,44 @@ import { portfolioWorks } from '../lib/portfolio-data'
 
 const copy = {
   en: {
-    eyebrow: 'Industrial Design / HCI / Kansei Engineering',
+    eyebrow: 'Kansei Product Design / HCI',
     title: 'KONG WEIPENG',
-    role: 'Research-driven industrial designer exploring sensory experience between people, products, and technology.',
-    intro: 'I turn subtle feelings into design knowledge through user research, Kansei evaluation, prototyping, and interface design.',
+    role: 'I use human-centered research to turn subjective experience into product decisions.',
+    intro: 'With a background in kansei engineering and industrial design, I connect user evaluation, behavioral and physiological signals, interaction definition, and working prototypes.',
     primary: 'View Works',
     secondary: 'Research Focus',
-    status: 'Sapporo City University · Industrial Design',
+    status: 'Sapporo City University · Human Information Design',
     heroNote: 'Design research, product meaning, and human-centered technology.',
-    exploreTitle: 'Explore',
-    exploreText: 'Choose the entry point that matches what you want to inspect first.',
-    valueTitle: 'What I Am Building',
-    valueText: 'This portfolio is becoming a living record of research questions, design decisions, prototypes, and reflections rather than a static gallery.',
+    exploreTitle: 'Career Information',
+    exploreText: 'Industrial Design B.Eng. and Human Information Design master’s student, working across product experience, smart hardware, and mobility HMI.',
+    valueTitle: 'How I Turn a Problem into Design',
+    valueText: 'I locate the specific break in use, decide whether the interface should prompt, explain, record, or return the decision, then compare how attention and judgment change.',
     selectedWorks: 'Selected Work',
-    selectedWorksText: 'Six design studies across AI co-creation, mobility HMI, learning support, AR travel photography, food memory, and product-service systems.',
+    selectedWorksText: 'Five projects across AI co-creation, driving attention, personal food cycles, MR photography, and refrigerator date-and-location management.',
     researchFocus: 'Research Focus',
     researchText: 'My work sits between design practice, human-centered research, AI interaction, spatial experience, and product-service systems.',
-    about: 'About',
-    aboutText: 'Based in Sapporo, I study industrial design through Kansei Engineering, UI/UX, AI interaction, mobility HMI, AR experience, and everyday product systems.',
+    about: 'Background and Skills',
+    aboutText: 'Industrial Design B.Eng. from Harbin University of Science and Technology; currently in the Human Information Design (HCI) master’s program at Sapporo City University in Japan. Japanese JLPT N1. I use Figma, Photoshop, Illustrator, Blender, After Effects, and Codex to build concepts, experiment simulations, and working prototypes.',
     contact: 'Contact',
     previousWork: 'Previous work',
     nextWork: 'Next work',
     contactText: 'Available for portfolio review, design research conversations, and collaborative projects.',
     email: 'littlekeen@outlook.com',
+    phone: 'Mobile / WeChat: +86 18475264028',
     explore: [
-      ['Works', 'Project process, prototype status, and next steps.', '/works'],
-      ['Research', 'Questions, methods, and current research direction.', '/research'],
-      ['Contact', 'Portfolio review and collaboration discussion.', '/#contact'],
+      ['Education', 'Industrial Design B.Eng. / Human Information Design master’s candidate', '/resume'],
+      ['Direction', 'Human-computer interaction and product experience design', '/works'],
+      ['Contact', 'Mobile and WeChat: +86 18475264028', '#contact'],
     ],
     focus: [
       ['Kansei Engineering', 'Translating emotional impressions into design variables.'],
-      ['Human-AI Interaction', 'Preserving agency, transparency, trust, and learning evidence in AI-supported experiences.'],
+      ['Human-AI Interaction', 'Preserving personal judgment instead of hiding it behind a polished AI answer.'],
       ['Product-Service Systems', 'Connecting physical products, interface layers, timing, location, and everyday behavior.'],
     ],
     process: [
       ['Question', 'How can vague preferences become concrete design material?'],
       ['Method', 'Combine interviews, scenario design, system mapping, interface prototypes, and visual storytelling.'],
-      ['Output', 'Show reasoning, iteration, and next steps behind each project.'],
+      ['Observe', 'Use comparative prototypes, choice tasks, or eye tracking to see whether attention and judgment change.'],
     ],
     methods: [
       ['Interview', 'I use interviews to catch the words, pauses, and contradictions that reveal what people actually value.'],
@@ -57,41 +58,42 @@ const copy = {
   ja: {
     eyebrow: 'インダストリアルデザイン / HCI / 感性工学',
     title: '孔 維鵬',
-    role: '人・プロダクト・テクノロジーのあいだにある感性的な体験を探究するデザインリサーチャー。',
-    intro: 'ユーザー調査、感性評価、プロトタイピングを通して、曖昧な感覚をデザイン判断へつなげる方法を研究しています。',
+    role: 'AIとインターフェースが、人の判断・注意・行動をどう残せるかを研究しています。',
+    intro: '迷い、分心、忘却、自信のなさが生まれる瞬間から、比較できるUIとプロトタイプを作ります。',
     primary: '作品を見る',
     secondary: '研究を見る',
-    status: '札幌市立大学 · インダストリアルデザイン',
+    status: '札幌市立大学 · 人間情報デザイン',
     heroNote: 'デザインリサーチ、プロダクトの意味、人間中心のテクノロジー。',
-    exploreTitle: '見る入口',
-    exploreText: '最初に見たい内容に合わせて入口を選べます。',
-    valueTitle: 'このサイトで構築しているもの',
-    valueText: 'このポートフォリオは、研究課題、デザイン判断、プロトタイプ、振り返りを継続的に記録する場として育てています。',
+    exploreTitle: '応募情報',
+    exploreText: '工業デザイン学士、人間情報デザイン修士前期。プロダクト体験、スマートハードウェア、モビリティHMIを横断しています。',
+    valueTitle: '課題をデザインへ変える方法',
+    valueText: '具体的な利用の断点を見つけ、UIが提示・説明・記録・本人の判断のどれを担うか決め、注意と判断の変化を比較します。',
     selectedWorks: '作品',
-    selectedWorksText: 'AI共創、モビリティHMI、学習支援、AR旅行写真、食の記憶、プロダクトサービスシステムを横断する6つのデザインスタディです。',
+    selectedWorksText: 'AI共創の判断、知能運転の注意、個人の食周期、時間を越える写真体験、冷蔵庫内の期限・位置管理を扱う5つのプロジェクトです。',
     researchFocus: '研究の焦点',
     researchText: 'デザイン実践、人間中心研究、AIインタラクション、空間体験、プロダクトサービスシステムを横断しています。',
-    about: 'プロフィール',
-    aboutText: '札幌を拠点に、感性工学、UI/UX、AIインタラクション、モビリティHMI、AR体験、日常のプロダクトシステムを通してインダストリアルデザインを学んでいます。',
+    about: '背景とスキル',
+    aboutText: 'ハルビン理工大学工業デザイン学科（工学）卒業。現在は日本・札幌市立大学人間情報デザイン（HCI）修士前期課程に在籍。日本語能力試験N1。Figma、Photoshop、Illustrator、Blender、After Effects、Codexでコンセプト、実験シミュレーション、動くプロトタイプを制作します。',
     contact: '連絡',
     previousWork: '前の作品',
     nextWork: '次の作品',
     contactText: 'ポートフォリオレビュー、デザインリサーチ、共同プロジェクトの相談を歓迎します。',
     email: 'littlekeen@outlook.com',
+    phone: '携帯 / WeChat（同一番号）：+86 18475264028',
     explore: [
-      ['作品', 'プロセス、プロトタイプの状態、次のステップ。', '/works'],
-      ['研究', '問い、方法、現在の研究方向。', '/research'],
-      ['連絡', 'ポートフォリオレビューや共同研究の相談。', '/#contact'],
+      ['学歴', '工業デザイン（工学）/ 人間情報デザイン修士前期', '/resume'],
+      ['専門方向', 'HCIとプロダクト体験デザイン', '/works'],
+      ['連絡', '携帯 / WeChat：+86 18475264028', '#contact'],
     ],
     focus: [
       ['感性工学', '感情的な印象をデザイン要素へ翻訳する。'],
-      ['人とAIのインタラクション', '主体性、透明性、信頼、学習の証拠を残すAI体験を考える。'],
+      ['人とAIのインタラクション', '整ったAI回答に隠されず、個人の判断を残す体験を考える。'],
       ['プロダクトサービスシステム', '物理プロダクト、UI、時間、場所、日常行動を結びつける。'],
     ],
     process: [
       ['問い', '曖昧な好みを、どのように具体的なデザイン材料へ変換できるか。'],
       ['方法', 'インタビュー、シナリオ設計、システムマッピング、UIプロトタイプ、ビジュアル表現を組み合わせる。'],
-      ['成果', 'プロジェクトごとの思考、反復、次の課題が見えるポートフォリオを構築する。'],
+      ['観察', '比較UI、選択課題、アイトラッキングで注意と判断の変化を見る。'],
     ],
     methods: [
       ['インタビュー', '発言だけでなく、迷い、沈黙、矛盾からユーザーが本当に重視している価値を読み取ります。'],
@@ -105,31 +107,32 @@ const copy = {
   zh: {
     eyebrow: '感性工学产品设计 / HCI',
     title: '孔维鹏',
-    role: '我用感性工学和产品设计研究具体场景里的判断、注意和记忆。',
-    intro: '我通常从一个很小的卡点开始：用户为什么犹豫、分心、忘记、没把握，或者不想完全交给系统。然后再把这个卡点做成界面、原型和可以比较的任务。',
+    role: '我把用户的主观感受、行为与生理信号，转成可以讨论和验证的产品判断。',
+    intro: '感性工学与工业设计背景，关注 AI 产品、智能硬件和汽车 HMI；从真实场景出发，完成交互定义、实验模拟和可运行原型。',
     primary: '看作品',
     secondary: '看问题',
-    status: '札幌市立大学 · 人间情报设计',
+    status: '札幌市立大学 · 人间情报设计（人机交互 HCI 方向）',
     heroNote: '先把问题说清楚，再决定界面应该提示、记录、解释，还是让用户自己判断。',
-    exploreTitle: '从哪里看都可以',
-    exploreText: '作品、研究和简历不是三份材料，而是同一条思考线的不同入口。',
-    valueTitle: '我的项目怎么读',
-    valueText: '我不想只展示最终画面。每个项目都先交代一个具体使用断点，再说明我为什么这样组织界面，最后标出目前已经做到的部分和还需要验证的部分。',
+    exploreTitle: '求职信息',
+    exploreText: '工业设计（工科）本科，人间情报设计（人机交互 HCI 方向）硕士研究生在读。专业方向为人机交互与产品体验设计。',
+    valueTitle: '我怎么把问题变成设计',
+    valueText: '先找具体使用断点，再确定界面该提示、解释、记录还是把决定权留给用户，最后用比较任务观察注意和判断是否改变。',
     selectedWorks: '五个具体问题',
-    selectedWorksText: '这 5 个项目分别讨论：驾驶关注如何被保留、AI 共创里个人判断如何不被盖过去、饮食记忆如何重新进入选择、经典照片如何被再次进入、临期食材如何被看见。',
+    selectedWorksText: '这 5 个项目分别讨论：AI 共创中的个人判断、智能驾驶中的路面关注、个人饮食周期、MR 摄影引导，以及冰箱物品的日期与位置管理。',
     researchFocus: '我的问题意识',
     researchText: '感性工学对我来说不是把界面形容得更感性，而是把“有把握、想继续、该自己决定”这类话拆成可以比较的界面差异。',
-    about: '我从哪里来',
-    aboutText: '目前在札幌学习人间情报设计。我的项目从驾驶关注价值界面、个人判断价值提升界面、好久没吃、FrameTrace 到 FRIDGE TIMELINE SYSTEM，表面媒介不同，核心都在处理人如何继续判断、注意和行动。',
+    about: '背景与能力',
+    aboutText: '哈尔滨理工大学工业设计（工科）本科，现为日本札幌市立大学人间情报设计（人机交互 HCI 方向）硕士研究生在读。日语 N1。使用 Figma、Photoshop、Illustrator、Blender、After Effects 与 Codex 构建概念、实验模拟和可运行原型。',
     contact: '聊一聊',
     previousWork: '上一个作品',
     nextWork: '下一个作品',
-    contactText: '如果你也关心技术如何保留人的判断位置，可以和我聊聊。',
+    contactText: '产品体验、智能硬件、汽车 HMI 与用户研究方向均可联系。',
     email: 'littlekeen@outlook.com',
+    phone: '手机 / 微信（同号）：+86 18475264028',
     explore: [
-      ['作品', '看每个项目的问题、取舍和边界。', '/works'],
-      ['研究', '看我怎么把感受变成设计问题。', '/research'],
-      ['联系', '讨论作品、实习或合作。', '/#contact'],
+      ['教育', '工业设计（工科）本科 / 人间情报设计硕士在读', '/resume'],
+      ['专业方向', '人机交互与产品体验设计', '/works'],
+      ['联系', '手机 / 微信同号：+86 18475264028', '#contact'],
     ],
     focus: [
       ['用户卡点', '先找用户在哪一刻开始犹豫、分心、忘记或没把握。'],
@@ -209,7 +212,7 @@ export default function Home() {
 
           <div className="relative min-h-[420px] overflow-hidden rounded-lg border border-[#f7b718]/45 bg-neutral-950 text-white shadow-xl shadow-[#f7b718]/15 transition hover:border-[#f7b718] dark:border-[#f7b718]/35">
             {heroWork.image ? (
-              <img key={heroWork.title} src={heroWork.image} alt={heroWork.title} className="absolute inset-0 size-full animate-[heroFade_4.2s_ease-in-out] object-cover opacity-72" />
+              <img key={heroWork.title} src={heroWork.image} alt={heroWork.title} className="absolute inset-0 size-full animate-[heroFade_4.2s_ease-in-out] object-contain opacity-72" />
             ) : (
               <div key={heroWork.title} className="absolute inset-0 grid animate-[heroFade_4.2s_ease-in-out] place-items-center bg-[#fff4cf] text-black">
                 <div className="grid size-36 place-items-center rounded-full border border-[#f7b718]/60 bg-white text-6xl font-semibold text-[#b57900]">
@@ -307,7 +310,7 @@ export default function Home() {
           {works.map((work) => (
             <Link href={work.href} key={work.title} className="flex w-[82vw] shrink-0 snap-start flex-col overflow-hidden rounded-lg border border-[#f7b718]/28 bg-white no-underline shadow-sm shadow-[#f7b718]/10 transition hover:-translate-y-1 hover:border-[#b57900] sm:w-[26rem] lg:w-[31rem] dark:border-[#f7b718]/25 dark:bg-neutral-900">
               {work.image ? (
-                <img src={work.image} alt={work.title} className="h-64 w-full object-cover" />
+                <img src={work.image} alt={work.title} className="h-64 w-full bg-neutral-950 object-contain" />
               ) : (
                 <div className="grid h-64 place-items-center bg-[#fff4cf] px-6 text-center dark:bg-neutral-950">
                   <div>
@@ -372,7 +375,8 @@ export default function Home() {
           <h2 className="text-3xl font-semibold tracking-normal">{t.contact}</h2>
           <p className="mt-4 leading-8 text-neutral-300">{t.contactText}</p>
           <a href={`mailto:${t.email}`} className="mt-8 inline-block text-lg font-medium text-[#f7b718] no-underline hover:text-white">{t.email}</a>
-          <p className="mt-4 text-sm text-neutral-400">lkdesigner.top</p>
+          <p className="mt-4 text-sm text-neutral-300">{t.phone}</p>
+          <p className="mt-2 text-sm text-neutral-400">lkdesigner.top</p>
         </div>
       </section>
     </main>

@@ -4,13 +4,13 @@ import SiteChrome from '../components/site-chrome'
 
 export const metadata: Metadata = {
   title: {
-    default: 'LKD｜工业设计・人机交互（HCI）作品集',
+    default: '孔维鹏｜人机交互与产品体验设计',
     template: '%s ｜ LKD',
   },
-  description: '感性设计・UI/UX・研究与作品展示',
+  description: '孔维鹏的产品体验作品集：AI 共创、智能硬件、智能汽车 HMI、个人饮食周期与 MR 摄影引导。',
   openGraph: {
-    title: 'LKD｜作品集',
-    description: '工业设计 / 人机交互（HCI）的研究与代表作品。',
+    title: '孔维鹏｜产品设计作品集',
+    description: '人机交互、AI 产品体验、智能硬件、智能汽车 HMI 与感性工学产品设计。',
     images: ['/og-generated.png'],
     type: 'website',
     url: '/',
@@ -28,15 +28,15 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'LKD｜作品集',
-    description: '感性工学产品设计 / HCI 研究与代表作',
+    title: '孔维鹏｜产品设计作品集',
+    description: '人机交互、AI 产品体验、智能硬件、智能汽车 HMI 与感性工学产品设计。',
     images: ['/og-generated.png'],
   },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="zh-CN">
       <body className="min-h-screen antialiased bg-[#fffaf0] text-neutral-950 dark:bg-neutral-950 dark:text-neutral-100">
         <SiteChrome>{children}</SiteChrome>
       </body>

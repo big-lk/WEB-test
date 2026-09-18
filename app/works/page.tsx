@@ -8,7 +8,7 @@ const copy = {
   en: {
     eyebrow: 'Portfolio',
     title: 'Selected Works',
-    intro: 'Six design studies across AI co-creation, mobility HMI, learning support, AR travel photography, food memory, and product-service systems. Each work is treated as a research process, not only as a final visual outcome.',
+    intro: 'Five projects about personal judgment in AI, attention in intelligent driving, personal food cycles, MR photography guidance, and refrigerator date-and-location management.',
     detailLabels: { role: 'Role', method: 'Methods', next: 'Next step' },
     processTitle: 'Process',
     valueTitle: 'Value',
@@ -22,7 +22,7 @@ const copy = {
   ja: {
     eyebrow: 'ポートフォリオ',
     title: '作品',
-    intro: 'AI共創、モビリティHMI、学習支援、AR旅行写真、食の記憶、プロダクトサービスシステムを横断する6つのデザインスタディです。完成形だけでなく、研究と検証のプロセスを重視しています。',
+    intro: 'AI共創における個人判断、知能運転での注意、個人の食周期、MR写真ガイド、冷蔵庫内の期限・位置管理を扱う5つのプロジェクトです。',
     detailLabels: { role: '担当', method: '方法', next: '次のステップ' },
     processTitle: 'プロセス',
     valueTitle: '価値',
@@ -36,14 +36,14 @@ const copy = {
   zh: {
     eyebrow: '作品不是分类，是问题',
     title: '作品',
-    intro: '这 5 个项目不是按媒介分类，而是按问题展开：智驾里人如何继续关注，AI 共创里个人判断如何不被盖过去，饮食和摄影里的记忆如何再次进入行动，冰箱里临期食材如何被看见并形成日期管理习惯。',
-    detailLabels: { role: '我负责的部分', method: '我怎么判断', next: '还要补上的证据' },
+    intro: '这 5 个项目分别从真实场景展开：AI 共创中怎样引导个人判断，智能驾驶中怎样维持路面关注，饮食周期怎样帮助再次选择，MR 怎样引导摄影，以及冰箱物品怎样管理日期并快速找寻。',
+    detailLabels: { role: '我负责的部分', method: '判断依据', next: '验证方式' },
     processTitle: '我怎么推进',
     valueTitle: '核心发现',
     researchTitle: '先听人怎么想',
     researchNote: '这些数据能说明什么',
     decisionsTitle: '所以设计改了哪里',
-    limitsTitle: '现在还不能说太满的地方',
+    limitsTitle: '验证边界',
     deliveryTitle: '已经能被使用的部分',
     viewCase: '看完整案例',
   },
@@ -63,9 +63,11 @@ export default function WorksPage() {
       <div className="mt-12 grid gap-10">
         {works.map((work) => (
           <article id={work.id} key={work.title} className="scroll-mt-24 overflow-hidden rounded-lg border border-[#f7b718]/32 bg-white dark:border-[#f7b718]/25 dark:bg-neutral-900">
-            <div className="grid md:grid-cols-[0.95fr_1.05fr]">
+            <div>
               {'image' in work && work.image ? (
-                <img src={work.image} alt={work.title} className="h-full min-h-[320px] w-full object-cover" />
+                <div className="grid place-items-center border-b border-[#f7b718]/25 bg-neutral-950 p-2 md:p-4">
+                  <img src={work.image} alt={work.title} className="max-h-[760px] w-full object-contain" />
+                </div>
               ) : (
                 <div className="grid min-h-[320px] place-items-center bg-[#fff4cf] px-8 text-center dark:bg-neutral-950">
                   <div>

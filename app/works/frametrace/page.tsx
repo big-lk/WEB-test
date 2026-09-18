@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useLanguage } from '../../../components/language-context'
 
-const hero = '/works/frametrace/hero.jpg'
+const hero = '/works/portfolio/frametrace-grid-4.png'
 const privateMemory = '/works/frametrace/private-memory.jpg'
 const journeyImages = [
   '/works/frametrace/story-discover.jpg',
@@ -95,28 +95,28 @@ const copy = {
   },
   zh: {
     back: '返回作品列表',
-    eyebrow: '跨时间摄影引导 · 研究进行中',
+    eyebrow: 'MR 眼镜 / 跨时间摄影',
     title: 'FrameTrace',
-    subtitle: '和另一个时间的人在同一空间共同摄影',
-    summary: '探索如何通过 MR 眼镜，把公共摄影机位、私人旧照和另一个时间的观看方式，变成真实地点中可再次进入的共同摄影体验。',
+    subtitle: '在现场看见别人站在哪里、怎么拍，并继续完成一组摄影',
+    summary: '通过 MR 眼镜显示他人的机位、镜头方向、姿势与拍摄顺序，并用手势框选画面、获得推荐焦距。',
     role: '独立完成概念研究、空间 UX、MR 交互与 Quest 3 原型 · 2025–2026',
     nav: [['概念', '#concept'], ['调查', '#research'], ['下一步方向', '#direction'], ['原型', '#prototype']],
     conceptKicker: '问题背景',
-    conceptTitle: '看到一张照片，并不等于进入了那个人当时所在的空间。',
-    conceptCopy: '用户能看到成片，却通常不知道摄影者站在哪里、看向哪里、为何这样构图。FrameTrace 探索能否把这些关系保存成 Photo Trace，让后来者或未来的自己在同一地点重新进入那次拍摄。',
-    insight: '把二维照片参考，转化为真实空间中跨时间的共同摄影体验。',
-    journey: [['寻找', '只查看附近少量摄影痕迹。'], ['到达', '用简单的方向和距离走到原机位。'], ['复现', '停止后对齐历史构图，完成新的拍摄。']],
+    conceptTitle: '到达一个值得拍摄的场景，只在入口拍一张全景，浪费了手机和场景本身的可能性。',
+    conceptCopy: '人们很少继续调整位置、角度、构图和焦段，也看不到别人为了那张照片站在哪里、摆了什么姿势。FrameTrace 把这些摄影经验放回真实空间。',
+    insight: '不是把旧照片贴在眼前，而是把机位、动作、顺序和焦距变成可以跟随的摄影体验。',
+    journey: [['看见拍摄者', '在现场看到他人的机位、镜头方向和姿势虚影。'], ['跟随拍摄顺序', '沿着一组拍摄点继续寻找角度，而不是停在入口全景。'], ['手势决定画面', '用双手框选取景范围，系统据此推荐镜头焦距。']],
     researchKicker: '概念印象调查',
     researchTitle: '调查能提示方向，但还不能替代行为验证',
     researchCopy: '调查针对概念图文收集了 106 份回答，排除高风险回答后的主分析为 N=82。它用于确定下一版原型的优先级，但还不能代表头显中的真实可用性和用户行为。',
     metrics: [['5.65/7', '整体概念', '第一印象积极'], ['5.81/7', '私人旧照回访', '评价最高的想法'], ['28.0%', '公共机位复现', '单一首选最多'], ['69.5%', '隐私顾虑', '最大采用门槛']],
     directionKicker: '下一步设计假设',
-    directionTitle: '下一版需要进一步验证什么',
+    directionTitle: '调查后需要进一步验证什么',
     directions: [['一个主要任务', '把公共机位复现整理为寻找、行走、对齐、拍摄的一条主线。'], ['一个情感支线', '把私人旧照回访与公共痕迹分开，保留为个人记忆体验。'], ['一个空间共创', '让用户理解自己正在和另一个时间的观看方式共同完成拍摄。'], ['增加用户控制', '解释推荐原因；新痕迹默认私密；分享必须主动选择。']],
     directionNote: '这些是调查结果提出的下一步设计假设，目前还没有在新版原型中完成实现和验证。',
     experienceKicker: '下一版拟验证流程',
-    experienceTitle: '发现痕迹、到达机位、对齐构图',
-    experience: [['01 · 发现', '只浏览附近少量相关摄影痕迹。'], ['02 · 导航', '用低干扰的方式走到过去的机位。'], ['03 · 对齐', '把摄影建议转化成移动、机位高度与焦距。']],
+    experienceTitle: '发现机位、跟随顺序、手势取景',
+    experience: [['01 · 发现', '在现场看到附近拍摄者的机位与方向。'], ['02 · 跟随', '沿着推荐顺序继续寻找角度和姿势。'], ['03 · 取景', '用手势框选画面，并获得相机焦距建议。']],
     memoryKicker: '私人记忆支线',
     memoryTitle: '回到一张私人旧照，但不把它变成公共数据。',
     memoryCopy: '自己或家人的旧照只对本人显示。回到附近后，只有用户主动选择时才打开过去的构图，并完成一次新的拍摄。',
@@ -140,7 +140,7 @@ export default function FrameTraceCasePage() {
   return (
     <main className="bg-[#f4f8f7] text-[#102a33] dark:bg-[#07161c] dark:text-white">
       <section className="relative min-h-[72vh] overflow-hidden border-b border-cyan-300/25 bg-[#06171d] text-white">
-        <img src={hero} alt="" className="absolute inset-0 size-full object-cover opacity-75" />
+        <img src={hero} alt="FrameTrace 跨时间摄影的四个关键场景" className="absolute inset-0 size-full object-contain opacity-78" />
         <div className="absolute inset-0 bg-gradient-to-r from-[#06171d] via-[#06171d]/62 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#06171d] via-transparent to-[#06171d]/20" />
         <div className="relative mx-auto flex min-h-[72vh] max-w-6xl flex-col justify-between px-5 py-10 md:px-8 md:py-14">
