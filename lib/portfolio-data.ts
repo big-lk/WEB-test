@@ -50,7 +50,7 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
         'Adjusts proposal detail, explanation, follow-up questions, and conclusion strength to the chosen responsibility split.',
         'Uses eye tracking and comparative UI to observe whether the cue changes attention and judgment.',
       ],
-      image: '/works/portfolio/ai-judgement-value-flow-original.png',
+      image: '/works/portfolio/generated/ai-cocreation-chat-v2.png',
       href: '/works/ai-judgement',
     },
     {
@@ -170,7 +170,7 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
       question: '整ったAI回答に覆われず、ユーザー自身の判断を共創の中にどう残すか。',
       process: [['意図を表す', '目標、価値観、制約を先に言葉にし、自分が重視する点を明確にする。'], ['判断を分担する', 'AI提案、共同判断、ユーザー決定から責任関係を選ぶ。'], ['フィードバックから学ぶ', '確認と再調整を、個人の判断傾向を示す構造化データとして蓄積する。']],
       outcomes: ['共創を「AIの回答待ち」から、分担選択、応答調整、フィードバックの循環へ変える。', '分担に応じて提案の粒度、説明、問い返し、結論の強さを変える。', '比較UIとアイトラッキングで注意と判断の変化を観察する。'],
-      image: '/works/portfolio/ai-judgement-value-flow-original.png',
+      image: '/works/portfolio/generated/ai-cocreation-chat-v2.png',
       href: '/works/ai-judgement',
     },
     {
@@ -261,7 +261,7 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
       question: '怎样在 AI 对模糊词的常规解释旁，引导用户判断“这是不是我的意思”，并补充自己的理解？',
       process: [['模糊输入', '用户先输入“高级感”等尚未说清楚的目标词。'], ['显示 AI 理解', '界面把 AI 对该词的常规理解摆在回答旁，让潜在分歧可以被看见。'], ['判断与补充', '确认和调整入口提示用户判断“这是不是我的意思”，并补充自己的理解。'], ['调整回应', 'AI 根据补充内容改变提案、解释与追问方式，再由用户确认。']],
       outcomes: ['把用户从等待 AI 输出，转为参与解释和判断。', '方案让 AI 的常规理解与用户自己的价值判断同时可见。', '比较界面与眼动方案用于检查提示是否真正进入用户的注意路径。'],
-      image: '/works/portfolio/ai-judgement-value-flow-original.png',
+      image: '/works/portfolio/generated/ai-cocreation-chat-v2.png',
       href: '/works/ai-judgement',
     },
     {

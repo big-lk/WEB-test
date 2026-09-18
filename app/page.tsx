@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useMemo, useState, type WheelEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type WheelEvent } from 'react'
 import { useLanguage } from '../components/language-context'
 import { portfolioWorks } from '../lib/portfolio-data'
 
@@ -160,23 +160,44 @@ export default function Home() {
   const t = copy[language]
   const works = portfolioWorks[language]
   const [heroIndex, setHeroIndex] = useState(0)
+  const [isHeroPaused, setIsHeroPaused] = useState(false)
+  const heroResumeTimer = useRef<number | null>(null)
   const heroWorks = useMemo(() => works, [works])
   const heroWork = heroWorks[heroIndex % heroWorks.length]
 
   useEffect(() => {
     setHeroIndex(0)
+    setIsHeroPaused(false)
   }, [language])
 
   useEffect(() => {
+    return () => {
+      if (heroResumeTimer.current !== null) window.clearTimeout(heroResumeTimer.current)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (isHeroPaused) return
+
     const timer = window.setInterval(() => {
       setHeroIndex((current) => (current + 1) % heroWorks.length)
     }, 4200)
 
     return () => window.clearInterval(timer)
-  }, [heroWorks.length])
+  }, [heroWorks.length, isHeroPaused])
+
+  const pauseHero = () => {
+    setIsHeroPaused(true)
+    if (heroResumeTimer.current !== null) window.clearTimeout(heroResumeTimer.current)
+    heroResumeTimer.current = window.setTimeout(() => {
+      setIsHeroPaused(false)
+      heroResumeTimer.current = null
+    }, 6500)
+  }
 
   const shiftHero = (direction: -1 | 1) => {
     setHeroIndex((current) => (current + direction + heroWorks.length) % heroWorks.length)
+    pauseHero()
   }
 
   const handleWorksWheel = (event: WheelEvent<HTMLDivElement>) => {
@@ -230,15 +251,20 @@ export default function Home() {
               <p className="text-sm font-medium text-[#f7b718]">{heroWork.status}</p>
               <p className="mt-3 max-w-md text-2xl font-medium leading-snug">{heroWork.title}</p>
               <p className="mt-3 max-w-lg text-sm leading-6 text-white/78">{heroWork.description}</p>
-              <div className="pointer-events-auto mt-6 flex gap-2">
+              <div className="pointer-events-auto relative z-30 mt-6 flex gap-2">
                 {heroWorks.map((work, index) => (
                   <button
                     key={work.href}
                     type="button"
                     aria-label={work.title}
-                    onClick={() => setHeroIndex(index)}
-                    className={`h-2 rounded-full transition-all ${index === heroIndex ? 'w-10 bg-[#f7b718]' : 'w-4 bg-white/45 hover:bg-white/75'}`}
-                  />
+                    onClick={() => {
+                      setHeroIndex(index)
+                      pauseHero()
+                    }}
+                    className="group relative z-30 grid size-8 touch-manipulation place-items-center rounded-full"
+                  >
+                    <span className={`block h-2 rounded-full transition-all ${index === heroIndex ? 'w-10 bg-[#f7b718]' : 'w-4 bg-white/45 group-hover:bg-white/75'}`} />
+                  </button>
                 ))}
               </div>
             </div>
