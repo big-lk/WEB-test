@@ -15,3 +15,9 @@ pnpm-workspace.yaml
 
 __pycache__/
 *.py[cod]
+
+# generated artifacts (kept locally, not tracked)
+tmp/
+output/
+*.tsbuildinfo
+~$*

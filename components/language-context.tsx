@@ -61,9 +61,11 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('system')
 
   useEffect(() => {
-    const browserLanguage = resolveBrowserLanguage()
-    setLanguageState(browserLanguage)
-    document.documentElement.lang = documentLanguage(browserLanguage)
+    const savedLanguage = readStorage('lkd-language')
+    const initialLanguage: Language =
+      savedLanguage === 'en' || savedLanguage === 'ja' || savedLanguage === 'zh' ? savedLanguage : resolveBrowserLanguage()
+    setLanguageState(initialLanguage)
+    document.documentElement.lang = documentLanguage(initialLanguage)
 
     const savedTheme = readStorage('lkd-theme')
     const nextTheme = savedTheme === 'light' || savedTheme === 'dark' || savedTheme === 'system' ? savedTheme : 'system'
