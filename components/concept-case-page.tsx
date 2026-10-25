@@ -62,9 +62,9 @@ const labels = {
 
 const visualNotes: Record<CaseId, Record<'en' | 'ja' | 'zh', string>> = {
   'co-creative-ai-training': {
-    en: 'The interface shows the AI’s usual interpretation of a vague term, then uses confirmation and adjustment controls to ask whether it matches the user’s meaning.',
-    ja: '曖昧な言葉に対するAIの一般的な解釈を示し、確認・調整の入口で「自分の意味と合っているか」を判断するよう促す。',
-    zh: '界面先把 AI 对模糊词的常规理解摆出来，再用确认和调整入口引导用户判断“这是不是我的意思”。',
+    en: 'The dinner example is an illustrative scenario. The side panel lists the AI’s reading item by item; users can add a sentence to correct it, or change who decides an item.',
+    ja: '夕食の例は説明用の想定場面。右側パネルがAIの読み取りを項目ごとに示し、ユーザーは一文を補って直すか、項目ごとに誰が判断するかを変えられる。',
+    zh: '晚餐示例为说明用的设想场景。右侧面板逐项列出 AI 的理解，用户可以补一句话修正，或改某一项由谁判断。',
   },
   'transparent-driving-hud': {
     en: 'Only the most important risk is shown. A short emotional cue makes the AI’s concern immediately understandable without filling the windshield with alerts.',
