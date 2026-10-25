@@ -51,7 +51,7 @@ const copy: Record<Language, { eyebrow: string; title: string; intro: string; hi
         works: ['fridge-timeline', 'corporate-vi'],
       },
       {
-        period: '2023.07 – 2023.09',
+        period: '2023.01 – 2023.02',
         kind: 'project',
         title: '鑫丰科技 实习',
         subtitle: '企业实习',
@@ -136,7 +136,7 @@ const copy: Record<Language, { eyebrow: string; title: string; intro: string; hi
         works: ['fridge-timeline', 'corporate-vi'],
       },
       {
-        period: '2023.07 – 2023.09',
+        period: '2023.01 – 2023.02',
         kind: 'project',
         title: '鑫豊科技 インターン',
         subtitle: '企業インターン',
@@ -221,7 +221,7 @@ const copy: Record<Language, { eyebrow: string; title: string; intro: string; hi
         works: ['fridge-timeline', 'corporate-vi'],
       },
       {
-        period: '2023.07 – 2023.09',
+        period: '2023.01 – 2023.02',
         kind: 'project',
         title: 'Internship at Xinfeng Technology',
         subtitle: 'Company internship',

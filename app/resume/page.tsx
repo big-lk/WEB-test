@@ -22,8 +22,8 @@ const resumeCopy = {
     graduation: 'Master’s student in Japan | Expected graduation: Apr 2027',
     download: 'Resume versions',
     downloadVariants: [['General', '/resume/kong-weipeng-resume-cn.pdf'], ['Smart hardware', '/resume/kong-weipeng-resume-shenzhen-smart-hardware-cn.pdf'], ['Automotive HMI', '/resume/kong-weipeng-resume-shenzhen-automotive-hmi-cn.pdf']],
-    collaborationTitle: 'Awards and University-Community Collaboration',
-    collaboration: ['Second Prize, Sapporo streetcar new-vehicle design proposal competition (2025.12).', 'Advertising value project with the Sapporo City Transportation Promotion Bureau (university–city collaboration): compared the old and new streetcars and proposed a promotion plan for each.'],
+    collaborationTitle: 'Awards, Conference Presentation, and Collaboration',
+    collaboration: ['Second Prize, Sapporo streetcar new-vehicle design proposal competition (2025.12).', 'Presentation at the Japan Society of Kansei Engineering: a user evaluation of cooking with AI-predicted food images (with Koichiro Kakiyama).', 'Advertising value project with the Sapporo City Transportation Promotion Bureau (university–city collaboration): compared the old and new streetcars and proposed a promotion plan for each.'],
     summary: [
       'Industrial design degree, now doing kansei engineering research in an HCI master’s program. Experience in product form, CMF, hardware interaction, and 3D renders. Work includes a refrigerator system, a power strip that shows power use and helps find the right plug, factory planning and a logo from an internship at Xinfeng Technology, and a corporate VI course project.',
       'With new technology, I first work out how it works, then where it gets used. I prototype with Codex and other AI tools, built and released a WeChat mini program with AI, and am building MR prototypes on Quest 3.',
@@ -58,8 +58,8 @@ const resumeCopy = {
     graduation: '日本の修士前期課程在学中 | 2027年4月修了予定',
     download: '履歴書バージョン',
     downloadVariants: [['総合版', '/resume/kong-weipeng-resume-cn.pdf'], ['スマートハードウェア', '/resume/kong-weipeng-resume-shenzhen-smart-hardware-cn.pdf'], ['自動車HMI', '/resume/kong-weipeng-resume-shenzhen-automotive-hmi-cn.pdf']],
-    collaborationTitle: '受賞と地域連携',
-    collaboration: ['札幌市の路面電車新車両デザイン提案募集で二等賞（2025.12）。', '札幌市交通振興局との広告価値向上プロジェクト（地域連携）：新旧の路面電車の特徴を比べ、プロモーション案を作成。'],
+    collaborationTitle: '受賞・学会発表・地域連携',
+    collaboration: ['札幌市の路面電車新車両デザイン提案募集で二等賞（2025.12）。', '日本感性工学会で発表：「AIによる料理予測画像を活用した操作体験に関するユーザー評価調査」（柿山浩一郎と共著）。', '札幌市交通振興局との広告価値向上プロジェクト（地域連携）：新旧の路面電車の特徴を比べ、プロモーション案を作成。'],
     summary: [
       '工業デザインを学び、現在はHCIの修士課程で感性工学の研究をしています。製品造形、CMF、ハードウェア操作、3Dレンダリングの経験があり、冷蔵庫の製品システム、消費電力が見えて差込口を探しやすい電源タップ、鑫豊科技インターンでの工場計画とロゴ、企業VIの授業課題などを制作しました。',
       '新しい技術は、まず仕組みを理解し、次にどこで使われるかを見ます。CodexなどのAIツールで試作し、AIを使ってWeChatミニプログラムを開発・公開しました。Quest 3でMRの試作も進めています。',
@@ -94,8 +94,8 @@ const resumeCopy = {
     graduation: '硕士研究生在读（日本）｜预计 2027.04 毕业',
     download: '按岗位查看简历',
     downloadVariants: [['科技产品通用版', '/resume/kong-weipeng-resume-cn.pdf'], ['智能硬件版', '/resume/kong-weipeng-resume-shenzhen-smart-hardware-cn.pdf'], ['智能汽车 HMI 版', '/resume/kong-weipeng-resume-shenzhen-automotive-hmi-cn.pdf']],
-    collaborationTitle: '奖项与校地合作',
-    collaboration: ['日本札幌市路面电车新车设计方案征集二等奖（2025.12）。', '日本札幌市交通振兴局广告价值提升项目（校地合作）：对比新旧两款电车的特点，做推广方案。'],
+    collaborationTitle: '奖项、学会发表与校地合作',
+    collaboration: ['日本札幌市路面电车新车设计方案征集二等奖（2025.12）。', '日本感性工学会发表：「AIによる料理予測画像を活用した操作体験に関するユーザー評価調査」（与柿山浩一郎合著）。', '日本札幌市交通振兴局广告价值提升项目（校地合作）：对比新旧两款电车的特点，做推广方案。'],
     summary: [
       '工业设计本科，硕士读人机交互、做感性工学研究。做过产品造型、CMF、硬件交互和三维效果图；代表作品有冰箱产品系统、能看出功耗和找到插头的智能插排、鑫丰科技实习中的厂区规划与 Logo，以及企业 VI 课程作业。',
       '看新技术产品时，先弄清原理，再看它用在什么场景。用 Codex 等 AI 工具做原型，借助 AI 开发并上线了一个微信小程序，也在用 Quest 3 做 MR 原型。',
