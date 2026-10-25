@@ -3,14 +3,14 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState, type WheelEvent } from 'react'
 import { useLanguage } from '../components/language-context'
-import { portfolioWorks } from '../lib/portfolio-data'
+import { getOrderedPortfolioWorks } from '../lib/portfolio-data'
 
 const copy = {
   en: {
     eyebrow: 'Kansei Product Design / HCI',
     title: 'KONG WEIPENG',
     role: 'I use human-centered research to turn subjective experience into product decisions.',
-    intro: 'With a background in kansei engineering and industrial design, I connect user evaluation, behavioral and physiological signals, interaction definition, and working prototypes.',
+    intro: 'With a background in kansei engineering and industrial design, I connect product form, hardware interaction, user evaluation, and working prototypes.',
     primary: 'View Works',
     secondary: 'Research Focus',
     status: 'Sapporo City University · Human Information Design',
@@ -20,11 +20,10 @@ const copy = {
     valueTitle: 'How I Turn a Problem into Design',
     valueText: 'I locate the specific break in use, decide whether the interface should prompt, explain, record, or return the decision, then compare how attention and judgment change.',
     selectedWorks: 'Selected Work',
-    selectedWorksText: 'Five projects across AI co-creation, driving attention, personal food cycles, MR photography, and refrigerator date-and-location management.',
-    researchFocus: 'Research Focus',
-    researchText: 'My work sits between design practice, human-centered research, AI interaction, spatial experience, and product-service systems.',
+    selectedWorksText: 'From a live eating-record mini program, AI co-creation, an AI predictive-image oven, and a fridge system to MR photography and driving HMI.',
+    researchLink: 'See five research topics',
     about: 'Background and Skills',
-    aboutText: 'Industrial Design B.Eng. from Harbin University of Science and Technology; currently in the Human Information Design (HCI) master’s program at Sapporo City University in Japan. Japanese JLPT N1. I use Figma, Photoshop, Illustrator, Blender, After Effects, and Codex to build concepts, experiment simulations, and working prototypes.',
+    aboutText: 'Industrial Design B.Eng.; currently studying Human Information Design (HCI) at Sapporo City University. My work spans appliance systems, factory planning (internship) and corporate VI, AI interaction, mobility HMI, and MR. I use Figma, Adobe tools, Blender, After Effects, and Codex to make concepts and prototypes.',
     contact: 'Contact',
     previousWork: 'Previous work',
     nextWork: 'Next work',
@@ -36,30 +35,17 @@ const copy = {
       ['Direction', 'Human-computer interaction and product experience design', '/works'],
       ['Contact', 'Mobile and WeChat: +86 18475264028', '#contact'],
     ],
-    focus: [
-      ['Kansei Engineering', 'Translating emotional impressions into design variables.'],
-      ['Human-AI Interaction', 'Preserving personal judgment instead of hiding it behind a polished AI answer.'],
-      ['Product-Service Systems', 'Connecting physical products, interface layers, timing, location, and everyday behavior.'],
-    ],
     process: [
       ['Question', 'How can vague preferences become concrete design material?'],
       ['Method', 'Combine interviews, scenario design, system mapping, interface prototypes, and visual storytelling.'],
       ['Observe', 'Use comparative prototypes, choice tasks, or eye tracking to see whether attention and judgment change.'],
-    ],
-    methods: [
-      ['Interview', 'I use interviews to catch the words, pauses, and contradictions that reveal what people actually value.'],
-      ['Kansei Evaluation', 'I translate emotional impressions into comparable design variables instead of leaving them as vague adjectives.'],
-      ['Prototyping', 'I make early forms and flows quickly so ideas can be discussed, tested, and corrected.'],
-      ['UI/UX Design', 'I connect interface structure with user goals, so the screen supports a clear decision path.'],
-      ['Data Visualization', 'I turn research findings into visible patterns that can guide design choices.'],
-      ['Scenario Design', 'I write use situations to keep products connected to real moments, not isolated features.'],
     ],
   },
   ja: {
     eyebrow: 'インダストリアルデザイン / HCI / 感性工学',
     title: '孔 維鵬',
     role: 'AIとインターフェースが、人の判断・注意・行動をどう残せるかを研究しています。',
-    intro: '迷い、分心、忘却、自信のなさが生まれる瞬間から、比較できるUIとプロトタイプを作ります。',
+    intro: '感性工学と工業デザインを背景に、製品の造形、ハードウェア操作、ユーザー評価を動くプロトタイプへつなげます。',
     primary: '作品を見る',
     secondary: '研究を見る',
     status: '札幌市立大学 · 人間情報デザイン',
@@ -69,11 +55,10 @@ const copy = {
     valueTitle: '課題をデザインへ変える方法',
     valueText: '具体的な利用の断点を見つけ、UIが提示・説明・記録・本人の判断のどれを担うか決め、注意と判断の変化を比較します。',
     selectedWorks: '作品',
-    selectedWorksText: 'AI共創の判断、知能運転の注意、個人の食周期、時間を越える写真体験、冷蔵庫内の期限・位置管理を扱う5つのプロジェクトです。',
-    researchFocus: '研究の焦点',
-    researchText: 'デザイン実践、人間中心研究、AIインタラクション、空間体験、プロダクトサービスシステムを横断しています。',
+    selectedWorksText: '公開中の食事記録ミニプログラム、AI 共創、AI 予測画像オーブン、冷蔵庫システムから、MR 撮影と運転 HMI まで。',
+    researchLink: '五つの研究テーマを見る',
     about: '背景とスキル',
-    aboutText: 'ハルビン理工大学工業デザイン学科（工学）卒業。現在は日本・札幌市立大学人間情報デザイン（HCI）修士前期課程に在籍。日本語能力試験N1。Figma、Photoshop、Illustrator、Blender、After Effects、Codexでコンセプト、実験シミュレーション、動くプロトタイプを制作します。',
+    aboutText: 'ハルビン理工大学で工業デザインを専攻し、現在は札幌市立大学で人間情報デザイン（HCI）を学んでいます。製品システム、工場計画（インターン）と企業VI、AI・モビリティ・MRの体験を設計。Figma、Adobe製品、Blender、After Effects、Codexでコンセプトやプロトタイプを制作します。',
     contact: '連絡',
     previousWork: '前の作品',
     nextWork: '次の作品',
@@ -85,44 +70,30 @@ const copy = {
       ['専門方向', 'HCIとプロダクト体験デザイン', '/works'],
       ['連絡', '携帯 / WeChat：+86 18475264028', '#contact'],
     ],
-    focus: [
-      ['感性工学', '感情的な印象をデザイン要素へ翻訳する。'],
-      ['人とAIのインタラクション', '整ったAI回答に隠されず、個人の判断を残す体験を考える。'],
-      ['プロダクトサービスシステム', '物理プロダクト、UI、時間、場所、日常行動を結びつける。'],
-    ],
     process: [
       ['問い', '曖昧な好みを、どのように具体的なデザイン材料へ変換できるか。'],
       ['方法', 'インタビュー、シナリオ設計、システムマッピング、UIプロトタイプ、ビジュアル表現を組み合わせる。'],
       ['観察', '比較UI、選択課題、アイトラッキングで注意と判断の変化を見る。'],
     ],
-    methods: [
-      ['インタビュー', '発言だけでなく、迷い、沈黙、矛盾からユーザーが本当に重視している価値を読み取ります。'],
-      ['感性評価', '曖昧な形容詞として残さず、感情的な印象を比較できるデザイン変数へ翻訳します。'],
-      ['プロトタイピング', '早い段階で形や流れを作り、議論、検証、修正ができる状態にします。'],
-      ['UI/UXデザイン', '画面構成をユーザーの目的と結びつけ、判断しやすい体験へ整理します。'],
-      ['データ可視化', '調査結果を見えるパターンへ変換し、デザイン判断の根拠にします。'],
-      ['シナリオ設計', '製品を機能単体ではなく、実際の利用場面と結びつけて考えます。'],
-    ],
   },
   zh: {
     eyebrow: '感性工学产品设计 / HCI',
     title: '孔维鹏',
-    role: '我把用户的主观感受、行为与生理信号，转成可以讨论和验证的产品判断。',
-    intro: '感性工学与工业设计背景，关注 AI 产品、智能硬件和汽车 HMI；从真实场景出发，完成交互定义、实验模拟和可运行原型。',
+    role: '从用户研究出发定义需求，并把方案做成可体验原型的产品体验设计者。',
+    intro: '工业设计本科，札幌市立大学人机交互硕士在读。做过已上线的微信小程序、带电控的冰箱模型，以及 AI 交互研究。',
     primary: '看作品',
-    secondary: '看问题',
+    secondary: '看研究课题',
     status: '札幌市立大学 · 人间情报设计（人机交互 HCI 方向）',
-    heroNote: '先把问题说清楚，再决定界面应该提示、记录、解释，还是让用户自己判断。',
+    heroNote: '前期做产品系统，后期研究人的判断与感受。',
     exploreTitle: '求职信息',
     exploreText: '工业设计（工科）本科，人间情报设计（人机交互 HCI 方向）硕士研究生在读。专业方向为人机交互与产品体验设计。',
     valueTitle: '我怎么把问题变成设计',
-    valueText: '先找具体使用断点，再确定界面该提示、解释、记录还是把决定权留给用户，最后用比较任务观察注意和判断是否改变。',
-    selectedWorks: '五个具体问题',
-    selectedWorksText: '这 5 个项目分别讨论：AI 共创中的个人判断、智能驾驶中的路面关注、个人饮食周期、MR 摄影引导，以及冰箱物品的日期与位置管理。',
-    researchFocus: '我的问题意识',
-    researchText: '感性工学对我来说不是把界面形容得更感性，而是把“有把握、想继续、该自己决定”这类话拆成可以比较的界面差异。',
+    valueText: '先在具体场景里找到用户卡住的那一刻，再定义要解决的需求，最后做成能被体验和比较的原型。',
+    selectedWorks: '代表项目',
+    selectedWorksText: '从已上线的饮食记录小程序、AI 共创、AI 预测图像烤箱和冰箱系统，到 MR 摄影与驾驶 HMI。',
+    researchLink: '看五个研究课题',
     about: '背景与能力',
-    aboutText: '哈尔滨理工大学工业设计（工科）本科，现为日本札幌市立大学人间情报设计（人机交互 HCI 方向）硕士研究生在读。日语 N1。使用 Figma、Photoshop、Illustrator、Blender、After Effects 与 Codex 构建概念、实验模拟和可运行原型。',
+    aboutText: '工业设计本科，现读札幌市立大学人间情报设计（HCI）。作品涵盖冰箱完整系统、智能插座、厂区规划（实习）与企业 VI 课程设计，以及 AI、驾驶和 MR 交互。使用 Figma、Adobe 工具、C4D、Blender、After Effects 与 Codex 制作概念和原型。',
     contact: '聊一聊',
     previousWork: '上一个作品',
     nextWork: '下一个作品',
@@ -134,23 +105,10 @@ const copy = {
       ['专业方向', '人机交互与产品体验设计', '/works'],
       ['联系', '手机 / 微信同号：+86 18475264028', '#contact'],
     ],
-    focus: [
-      ['用户卡点', '先找用户在哪一刻开始犹豫、分心、忘记或没把握。'],
-      ['界面取舍', '判断什么时候该提示、解释、记录，什么时候应该把决定权留给用户。'],
-      ['验证边界', '把已经观察到的结果和下一步要验证的事分开说清楚。'],
-    ],
     process: [
       ['先问人', '这个场景里，用户为什么没有继续行动。'],
       ['再做界面', '把提示、记录、回看和决定权放到合适的位置。'],
       ['最后看行为', '用比较原型、选择任务或眼动追踪，看注意和判断有没有变化。'],
-    ],
-    methods: [
-      ['访谈', '听用户怎么解释自己的犹豫、懒、嘴馋、没自信和想继续。'],
-      ['主观体验测试', '把模糊感受拆成能比较的词，而不是停在“高级”“方便”这种空话。'],
-      ['原型设计', '先做能让人判断的界面，不急着把功能堆完整。'],
-      ['UI/UX 设计', '界面要告诉用户：现在是系统帮你、陪你想，还是你自己决定。'],
-      ['行为观察', '用选择、视线和操作路径看设计有没有真的改变注意力。'],
-      ['场景设计', '把产品放回一顿饭、一段驾驶、一张经典照片或一次开冰箱的动作里看。'],
     ],
   },
 }
@@ -158,11 +116,11 @@ const copy = {
 export default function Home() {
   const { language } = useLanguage()
   const t = copy[language]
-  const works = portfolioWorks[language]
+  const works = useMemo(() => getOrderedPortfolioWorks(language), [language])
   const [heroIndex, setHeroIndex] = useState(0)
   const [isHeroPaused, setIsHeroPaused] = useState(false)
   const heroResumeTimer = useRef<number | null>(null)
-  const heroWorks = useMemo(() => works, [works])
+  const heroWorks = works
   const heroWork = heroWorks[heroIndex % heroWorks.length]
 
   useEffect(() => {
@@ -310,6 +268,7 @@ export default function Home() {
           <div>
             <h2 className="text-3xl font-semibold tracking-normal">{t.valueTitle}</h2>
             <p className="mt-4 leading-8 text-neutral-600 dark:text-neutral-300">{t.valueText}</p>
+            <Link href="/research" className="mt-4 inline-block text-sm font-medium text-[#b57900] no-underline hover:text-neutral-950 dark:text-[#f7b718] dark:hover:text-white">{t.researchLink} →</Link>
           </div>
           <div className="grid gap-3">
             {t.process.map(([title, description]) => (
@@ -353,6 +312,7 @@ export default function Home() {
                   <span>{work.year}</span>
                 </div>
                 <p className="mb-3 text-sm font-medium text-[#b57900] dark:text-[#f7b718]">{work.status}</p>
+                <p className="mb-3 text-xs leading-6 text-neutral-500 dark:text-neutral-400">{work.period}</p>
                 <h3 className="text-xl font-semibold">{work.title}</h3>
                 <p className="mt-3 leading-7 text-neutral-600 dark:text-neutral-300">{work.description}</p>
               </div>
@@ -362,40 +322,10 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="border-y border-[#f7b718]/28 bg-white dark:border-[#f7b718]/25 dark:bg-neutral-900/40">
-        <div className="mx-auto grid max-w-6xl gap-10 px-5 py-14 md:grid-cols-[0.85fr_1.15fr] md:px-8">
-          <div>
-            <h2 className="text-3xl font-semibold tracking-normal">{t.researchFocus}</h2>
-            <p className="mt-3 leading-7 text-neutral-600 dark:text-neutral-400">{t.researchText}</p>
-          </div>
-          <div className="grid gap-4">
-            {t.focus.map(([title, description], index) => (
-              <div key={title} className="grid gap-3 border-t border-[#f7b718]/35 pt-4 md:grid-cols-[7rem_1fr] dark:border-[#f7b718]/25">
-                <span className="text-sm font-semibold text-[#b57900] dark:text-[#f7b718]">0{index + 1}</span>
-                <div>
-                  <h3 className="font-semibold">{title}</h3>
-                  <p className="mt-1 leading-7 text-neutral-600 dark:text-neutral-400">{description}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       <section className="mx-auto grid max-w-6xl gap-10 px-5 py-14 md:grid-cols-[1fr_1fr] md:px-8">
         <div>
           <h2 className="text-3xl font-semibold tracking-normal">{t.about}</h2>
           <p className="mt-4 leading-8 text-neutral-600 dark:text-neutral-300">{t.aboutText}</p>
-          <div className="mt-6 flex flex-wrap gap-2">
-            {t.methods.map(([method, detail]) => (
-              <span key={method} tabIndex={0} className="group relative rounded-md border border-[#f7b718]/45 bg-[#fff4cf]/55 px-3 py-2 text-sm text-neutral-800 outline-none transition hover:border-[#b57900] hover:bg-[#fff4cf] focus:border-[#b57900] focus:bg-[#fff4cf] dark:border-[#f7b718]/30 dark:bg-neutral-900 dark:text-neutral-300">
-                {method}
-                <span className="pointer-events-none absolute bottom-full left-0 z-20 mb-3 hidden w-64 rounded-md border border-[#f7b718]/35 bg-white p-3 text-sm leading-6 text-neutral-700 shadow-xl shadow-[#f7b718]/15 group-hover:block group-focus:block group-focus-within:block dark:border-[#f7b718]/25 dark:bg-neutral-950 dark:text-neutral-200">
-                  {detail}
-                </span>
-              </span>
-            ))}
-          </div>
         </div>
         <div id="contact" className="rounded-lg border border-[#f7b718]/45 bg-neutral-950 p-6 text-white shadow-xl shadow-[#f7b718]/10 dark:border-[#f7b718]/35">
           <h2 className="text-3xl font-semibold tracking-normal">{t.contact}</h2>

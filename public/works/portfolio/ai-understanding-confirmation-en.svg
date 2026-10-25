@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" role="img" aria-labelledby="title desc" xml:lang="en">
+  <title id="title">Make AI’s understanding visible</title>
+  <desc id="desc">Interaction concept: a user wants a home photo frame that feels premium. AI shows its conventional reading alongside the request: simple proportions, refined materials, and restrained decoration. The user can confirm or add context. After the user prioritizes warmth, durability, and details that fit everyday life, AI revises material, edges, and proportions and explains the trade-offs.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#929292"/></marker>
+  </defs>
+  <rect width="1600" height="1000" fill="#ffffff"/>
+  <g font-family="Arial, 'Noto Sans CJK SC', 'Noto Sans CJK JP', 'Microsoft YaHei', 'Yu Gothic', sans-serif">
+    <text x="64" y="73" font-size="40" font-weight="700" fill="#0a0a0a" >Make AI’s understanding visible</text>
+    <text x="64" y="114" font-size="20" font-weight="400" fill="#656565" >Home photo frame: turn “premium” into design criteria the user can confirm or refine.</text>
+    <rect x="1244" y="34" width="292" height="48" rx="24" fill="#f7b718"/>
+    <text x="1390" y="64" font-size="19" font-weight="650" fill="#0a0a0a" text-anchor="middle">Interaction concept</text>
+    <path d="M 64 139 H 1536" stroke="#dddddd"/>
+
+    <rect x="64" y="164" width="446" height="292" rx="18" fill="#f4f4f4" stroke="#dddddd"/>
+    <rect x="64" y="188" width="5" height="40" rx="2.5" fill="#f7b718"/>
+    <text x="100" y="214" font-size="18" font-weight="650" fill="#656565" >User input</text>
+    <text x="100" y="272" font-size="29" font-weight="550" fill="#0a0a0a" >I want to design a home</text>
+    <text x="100" y="315" font-size="29" font-weight="550" fill="#0a0a0a" >photo frame that feels</text>
+    <text x="100" y="358" font-size="29" font-weight="550" fill="#0a0a0a" >“premium.”</text>
+    <path d="M 516 310 H 539" stroke="#929292" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+    <rect x="548" y="164" width="988" height="292" rx="18" fill="#ffffff" stroke="#0a0a0a" stroke-width="1.5"/>
+    <text x="584" y="214" font-size="26" font-weight="650" fill="#0a0a0a" >AI’s conventional reading</text>
+    <text x="1500" y="214" font-size="18" font-weight="400" fill="#656565" text-anchor="end">Does this match what you mean?</text>
+    <circle cx="591" cy="255" r="5" fill="#f7b718"/>
+    <text x="584" y="289" font-size="23" font-weight="650" fill="#0a0a0a" >Simple proportions</text>
+    <text x="584" y="320" font-size="18" font-weight="400" fill="#656565" >Clear structure</text>
+    <text x="584" y="346" font-size="18" font-weight="400" fill="#656565" >and a clean silhouette</text>
+    <circle cx="898" cy="255" r="5" fill="#f7b718"/>
+    <text x="891" y="289" font-size="23" font-weight="650" fill="#0a0a0a" >Refined materials</text>
+    <text x="891" y="320" font-size="18" font-weight="400" fill="#656565" >Attention to texture</text>
+    <text x="891" y="346" font-size="18" font-weight="400" fill="#656565" >and finishing details</text>
+    <circle cx="1205" cy="255" r="5" fill="#f7b718"/>
+    <text x="1198" y="289" font-size="23" font-weight="650" fill="#0a0a0a" >Restrained decoration</text>
+    <text x="1198" y="320" font-size="18" font-weight="400" fill="#656565" >Fewer added accents</text>
+    <text x="1198" y="346" font-size="18" font-weight="400" fill="#656565" >and essential details</text>
+    <rect x="584" y="370" width="412" height="58" rx="10" fill="#0a0a0a"/>
+    <text x="790" y="406" font-size="22" font-weight="600" fill="#ffffff" text-anchor="middle">This matches what I mean</text>
+    <rect x="1016" y="370" width="484" height="58" rx="10" fill="#f7b718"/>
+    <text x="1258" y="406" font-size="22" font-weight="600" fill="#0a0a0a" text-anchor="middle">Add my understanding</text>
+    <path d="M 1258 456 V 479 H 287 V 499" fill="none" stroke="#929292" stroke-width="2" stroke-dasharray="6 6" marker-end="url(#arrow)"/>
+
+    <rect x="64" y="508" width="446" height="302" rx="18" fill="#fffaf0" stroke="#e7d5ab"/>
+    <rect x="64" y="531" width="5" height="40" rx="2.5" fill="#f7b718"/>
+    <text x="100" y="558" font-size="21" font-weight="650" fill="#0a0a0a" >User adds context</text>
+    <text x="100" y="625" font-size="25" font-weight="500" fill="#0a0a0a" >What matters more to me:</text>
+    <text x="100" y="668" font-size="25" font-weight="500" fill="#0a0a0a" >warmth, durability, and</text>
+    <text x="100" y="711" font-size="25" font-weight="500" fill="#0a0a0a" >details that fit everyday life.</text>
+    <path d="M 516 661 H 539" stroke="#929292" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+    <rect x="548" y="508" width="988" height="302" rx="18" fill="#ffffff" stroke="#dddddd"/>
+    <text x="584" y="554" font-size="25" font-weight="650" fill="#0a0a0a" >AI revises the design using the added context</text>
+    <g aria-hidden="true">
+      <rect x="584" y="582" width="264" height="170" rx="24" fill="#d1d1d1" stroke="#a6a6a6" stroke-width="1.5"/>
+      <rect x="604" y="602" width="224" height="130" rx="9" fill="#fafafa" stroke="#b6b6b6"/>
+      <circle cx="754" cy="641" r="17" fill="#dcdcdc"/>
+      <path d="M 615 721 L 673 656 L 718 697 L 744 674 L 817 721 Z" fill="#b8b8b8"/>
+      <path d="M 615 721 L 681 695 L 725 715 L 763 690 L 817 721 Z" fill="#909090"/>
+    </g>
+    <text x="716" y="776" font-size="17" font-weight="400" fill="#656565" text-anchor="middle">Revised frame concept</text>
+    <text x="884" y="591" font-size="21" font-weight="650" fill="#0a0a0a" >Material</text>
+    <text x="884" y="618" font-size="19" font-weight="400" fill="#555555" >Prioritize a warm feel and durability.</text>
+    <text x="884" y="651" font-size="21" font-weight="650" fill="#0a0a0a" >Edges</text>
+    <text x="884" y="678" font-size="19" font-weight="400" fill="#555555" >Use softer edges for everyday contact.</text>
+    <text x="884" y="711" font-size="21" font-weight="650" fill="#0a0a0a" >Proportions</text>
+    <text x="884" y="738" font-size="19" font-weight="400" fill="#555555" >Keep a simple structure that fits the home.</text>
+    <path d="M 884 751 H 1500" stroke="#e4e4e4"/>
+    <text x="884" y="781" font-size="17" font-weight="400" fill="#555555" >Trade-off: fewer accents; prioritize feel, durability, and everyday fit.</text>
+
+    <path d="M 208 887 H 1363" stroke="#dedede" stroke-width="3"/>
+    <circle cx="208" cy="887" r="25" fill="#0a0a0a"/>
+    <text x="208" y="894" font-size="21" font-weight="650" fill="#ffffff" text-anchor="middle">1</text>
+    <text x="208" y="938" font-size="20" font-weight="500" fill="#0a0a0a" text-anchor="middle">Vague input</text>
+    <circle cx="593" cy="887" r="25" fill="#f7b718"/>
+    <text x="593" y="894" font-size="21" font-weight="650" fill="#0a0a0a" text-anchor="middle">2</text>
+    <text x="593" y="938" font-size="20" font-weight="500" fill="#0a0a0a" text-anchor="middle">Show AI’s understanding</text>
+    <circle cx="978" cy="887" r="25" fill="#f7b718"/>
+    <text x="978" y="894" font-size="21" font-weight="650" fill="#0a0a0a" text-anchor="middle">3</text>
+    <text x="978" y="938" font-size="20" font-weight="500" fill="#0a0a0a" text-anchor="middle">Confirm or add context</text>
+    <circle cx="1363" cy="887" r="25" fill="#f7b718"/>
+    <text x="1363" y="894" font-size="21" font-weight="650" fill="#0a0a0a" text-anchor="middle">4</text>
+    <text x="1363" y="938" font-size="20" font-weight="500" fill="#0a0a0a" text-anchor="middle">Revise and explain</text>
+    <text x="1363" y="965" font-size="20" font-weight="500" fill="#0a0a0a" text-anchor="middle">the trade-offs</text>
+  </g>
+</svg>
+

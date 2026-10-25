@@ -6,6 +6,7 @@ import { LanguageProvider, useLanguage } from './language-context'
 const navCopy = {
   en: {
     brandAlt: 'LKD logo',
+    timeline: 'Timeline',
     resume: 'Resume',
     works: 'Works',
     research: 'Research',
@@ -18,6 +19,7 @@ const navCopy = {
   },
   ja: {
     brandAlt: 'LKD ロゴ',
+    timeline: '歩み',
     resume: '履歴書',
     works: '作品',
     research: '研究',
@@ -30,6 +32,7 @@ const navCopy = {
   },
   zh: {
     brandAlt: 'LKD 标志',
+    timeline: '时间线',
     resume: '简历',
     works: '作品',
     research: '研究',
@@ -63,6 +66,7 @@ function SiteHeader() {
   const { language, setLanguage, theme, setTheme } = useLanguage()
   const copy = navCopy[language]
   const navLinks = [
+    { href: '/timeline', label: copy.timeline },
     { href: '/resume', label: copy.resume },
     { href: '/works', label: copy.works },
     { href: '/research', label: copy.research },
@@ -150,12 +154,12 @@ function SiteHeader() {
         </div>
       </div>
       <div className="border-t border-[#f7b718]/20 px-4 py-2 sm:hidden">
-        <div className="mx-auto grid max-w-6xl grid-cols-4 gap-2 text-center text-sm font-medium">
+        <div className="mx-auto grid max-w-6xl grid-cols-5 gap-1.5 text-center text-xs font-medium">
           {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="rounded-md border border-[#f7b718]/35 bg-white/60 px-3 py-2 text-neutral-800 no-underline shadow-sm shadow-[#f7b718]/5 dark:bg-neutral-900 dark:text-neutral-200"
+              className="rounded-md border border-[#f7b718]/35 bg-white/60 px-1 py-2 text-neutral-800 no-underline shadow-sm shadow-[#f7b718]/5 dark:bg-neutral-900 dark:text-neutral-200"
             >
               {link.label}
             </Link>

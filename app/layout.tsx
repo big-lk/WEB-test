@@ -2,15 +2,17 @@ import '../styles/globals.css'
 import type { Metadata } from 'next'
 import SiteChrome from '../components/site-chrome'
 
+const portfolioDescription = '孔维鹏的产品体验作品集：饮食记录小程序、AI 共创、AI 预测图像烤箱、冰箱产品系统、MR 摄影与驾驶 HMI。'
+
 export const metadata: Metadata = {
   title: {
     default: '孔维鹏｜人机交互与产品体验设计',
     template: '%s ｜ LKD',
   },
-  description: '孔维鹏的产品体验作品集：AI 共创、智能硬件、智能汽车 HMI、个人饮食周期与 MR 摄影引导。',
+  description: portfolioDescription,
   openGraph: {
     title: '孔维鹏｜产品设计作品集',
-    description: '人机交互、AI 产品体验、智能硬件、智能汽车 HMI 与感性工学产品设计。',
+    description: portfolioDescription,
     images: ['/og-generated.png'],
     type: 'website',
     url: '/',
@@ -29,7 +31,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: '孔维鹏｜产品设计作品集',
-    description: '人机交互、AI 产品体验、智能硬件、智能汽车 HMI 与感性工学产品设计。',
+    description: portfolioDescription,
     images: ['/og-generated.png'],
   },
 }

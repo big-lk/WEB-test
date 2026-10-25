@@ -2,14 +2,16 @@
 
 import Link from 'next/link'
 import { useLanguage } from '../../components/language-context'
-import { portfolioWorks } from '../../lib/portfolio-data'
+import { getOrderedPortfolioWorks, workGroups } from '../../lib/portfolio-data'
 
 const copy = {
   en: {
     eyebrow: 'Portfolio',
     title: 'Selected Works',
-    intro: 'Five projects about personal judgment in AI, attention in intelligent driving, personal food cycles, MR photography guidance, and refrigerator date-and-location management.',
-    detailLabels: { role: 'Role', method: 'Methods', next: 'Next step' },
+    intro: 'Nine projects, ordered by relevance to product-experience roles: main cases in product experience and AI first, then explorations and early industrial design, then internship and coursework. Each one states how far it has gone.',
+    groups: [['Main cases', 'Product experience and AI: from defining the need to a prototype people can try.'], ['Explorations and early concepts', 'MR photography, driving HMI, and an early appliance system.'], ['Internship and coursework', 'B2B communication, brand, and identity.']],
+    timelineLink: 'View everything by date',
+    detailLabels: { role: 'My contribution', method: 'Methods and tools', next: 'Current scope and next step' },
     processTitle: 'Process',
     valueTitle: 'Value',
     researchTitle: 'Research evidence',
@@ -22,8 +24,10 @@ const copy = {
   ja: {
     eyebrow: 'ポートフォリオ',
     title: '作品',
-    intro: 'AI共創における個人判断、知能運転での注意、個人の食周期、MR写真ガイド、冷蔵庫内の期限・位置管理を扱う5つのプロジェクトです。',
-    detailLabels: { role: '担当', method: '方法', next: '次のステップ' },
+    intro: '9作品を志望職種との関連順に掲載：製品体験と AI の主な事例、探索的なコンセプトと初期の工業デザイン、インターンと課題の順です。各作品でどこまで進んだかを明記しています。',
+    groups: [['主な事例', '製品体験と AI：ニーズの判断から体験できる試作まで。'], ['探索と初期コンセプト', 'MR 撮影、運転 HMI、初期の家電システム。'], ['企業インターンと課題', 'BtoB のコミュニケーション、ブランドと VI。']],
+    timelineLink: '時系列で見る',
+    detailLabels: { role: '担当', method: '方法・ツール', next: '現在の範囲と次のステップ' },
     processTitle: 'プロセス',
     valueTitle: '価値',
     researchTitle: '調査エビデンス',
@@ -34,10 +38,12 @@ const copy = {
     viewCase: '詳しいケーススタディを見る',
   },
   zh: {
-    eyebrow: '作品不是分类，是问题',
+    eyebrow: '作品集',
     title: '作品',
-    intro: '这 5 个项目分别从真实场景展开：AI 共创中怎样引导个人判断，智能驾驶中怎样维持路面关注，饮食周期怎样帮助再次选择，MR 怎样引导摄影，以及冰箱物品怎样管理日期并快速找寻。',
-    detailLabels: { role: '我负责的部分', method: '判断依据', next: '验证方式' },
+    intro: '九个项目按求职方向排序：先是产品体验与 AI 的主案例，再是探索性概念和早期工业设计，最后是实习与课程。每个项目都写明做到了哪一步。',
+    groups: [['主案例', '产品体验与 AI：从需求判断到可体验的原型。'], ['探索与早期概念', 'MR 摄影、驾驶 HMI，以及早期的家电系统。'], ['企业实习与课程', 'B 端沟通、品牌与 VI。']],
+    timelineLink: '按时间看全部作品',
+    detailLabels: { role: '我的角色', method: '方法', next: '当前阶段' },
     processTitle: '我怎么推进',
     valueTitle: '核心发现',
     researchTitle: '先听人怎么想',
@@ -52,21 +58,43 @@ const copy = {
 export default function WorksPage() {
   const { language } = useLanguage()
   const t = copy[language]
-  const works = portfolioWorks[language]
+  const works = getOrderedPortfolioWorks(language)
 
   return (
     <main className="mx-auto max-w-6xl px-5 py-14 md:px-8 md:py-18">
       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#b57900] dark:text-[#f7b718]">{t.eyebrow}</p>
       <h1 className="mt-4 text-4xl font-semibold tracking-normal md:text-6xl">{t.title}</h1>
       <p className="mt-5 max-w-3xl text-lg leading-8 text-neutral-600 dark:text-neutral-300">{t.intro}</p>
+      <Link href="/timeline" className="mt-5 inline-block text-sm font-medium text-[#b57900] no-underline hover:text-neutral-950 dark:text-[#f7b718] dark:hover:text-white">{t.timelineLink} →</Link>
 
-      <div className="mt-12 grid gap-10">
-        {works.map((work) => (
-          <article id={work.id} key={work.title} className="scroll-mt-24 overflow-hidden rounded-lg border border-[#f7b718]/32 bg-white dark:border-[#f7b718]/25 dark:bg-neutral-900">
+      {workGroups.map((group, groupIndex) => {
+        const groupWorks = works.filter((work) => (group.ids as readonly string[]).includes(work.id))
+        return (
+        <section key={group.key} className="mt-14">
+          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 border-b border-[#f7b718]/35 pb-3">
+            <h2 className="text-2xl font-semibold tracking-normal">{t.groups[groupIndex][0]}</h2>
+            <p className="text-sm text-neutral-600 dark:text-neutral-400">{t.groups[groupIndex][1]}</p>
+          </div>
+
+      <div className="relative mt-8 space-y-10 before:absolute before:bottom-3 before:left-3 before:top-3 before:w-px before:bg-[#f7b718]/45 md:before:left-[12.25rem]">
+        {groupWorks.map((work) => (
+          <div key={work.id} className="grid grid-cols-[1.5rem_minmax(0,1fr)] gap-x-4 md:grid-cols-[10rem_1.5rem_minmax(0,1fr)] md:gap-x-6">
+            <div className="hidden pt-5 text-right md:block">
+              <p className="text-lg font-semibold text-[#b57900] dark:text-[#f7b718]">{work.year}</p>
+              <p className="mt-2 text-sm leading-6 text-neutral-500 dark:text-neutral-400">{work.period}</p>
+            </div>
+            <div aria-hidden="true" className="relative col-start-1 row-start-1 flex justify-center md:col-start-2">
+              <span className="relative z-10 mt-6 size-3 rounded-full border-2 border-[#b57900] bg-[#fffaf0] dark:border-[#f7b718] dark:bg-neutral-950" />
+            </div>
+            <article id={work.id} className="scroll-mt-24 col-start-2 row-start-1 overflow-hidden rounded-lg border border-[#f7b718]/32 bg-white dark:border-[#f7b718]/25 dark:bg-neutral-900 md:col-start-3">
+            <div className="border-b border-[#f7b718]/25 px-6 py-4 md:hidden">
+              <p className="text-lg font-semibold text-[#b57900] dark:text-[#f7b718]">{work.year}</p>
+              <p className="mt-1 text-sm leading-6 text-neutral-500 dark:text-neutral-400">{work.period}</p>
+            </div>
             <div>
               {'image' in work && work.image ? (
                 <div className="grid place-items-center border-b border-[#f7b718]/25 bg-neutral-950 p-2 md:p-4">
-                  <img src={work.image} alt={work.title} className="max-h-[760px] w-full object-contain" />
+                  <img src={work.image} alt={work.title} loading="lazy" decoding="async" className="max-h-[360px] w-full object-contain md:max-h-[520px]" />
                 </div>
               ) : (
                 <div className="grid min-h-[320px] place-items-center bg-[#fff4cf] px-8 text-center dark:bg-neutral-950">
@@ -80,15 +108,13 @@ export default function WorksPage() {
               )}
               <div className="p-6 md:p-8">
                 <div className="mb-4 flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.16em] text-neutral-500">
-                  <span>{work.category}</span><span>·</span><span>{work.year}</span>
+                  <span>{work.category}</span>
                 </div>
                 <p className="mb-3 text-sm font-medium text-[#b57900] dark:text-[#f7b718]">{work.status}</p>
-                <h2 className="text-3xl font-semibold tracking-normal">{work.title}</h2>
+                <h3 className="text-3xl font-semibold tracking-normal">{work.title}</h3>
                 <p className="mt-4 leading-8 text-neutral-600 dark:text-neutral-300">{work.description}</p>
-                <p className="mt-6 leading-8 text-neutral-700 dark:text-neutral-200">{work.question}</p>
                 <dl className="mt-8 grid gap-4 text-sm">
                   <div className="grid gap-1 border-t border-[#f7b718]/35 pt-4 dark:border-[#f7b718]/25"><dt className="font-semibold text-neutral-950 dark:text-white">{t.detailLabels.role}</dt><dd className="text-neutral-600 dark:text-neutral-400">{work.role}</dd></div>
-                  <div className="grid gap-1 border-t border-[#f7b718]/35 pt-4 dark:border-[#f7b718]/25"><dt className="font-semibold text-neutral-950 dark:text-white">{t.detailLabels.method}</dt><dd className="text-neutral-600 dark:text-neutral-400">{work.methods}</dd></div>
                   <div className="grid gap-1 border-t border-[#f7b718]/35 pt-4 dark:border-[#f7b718]/25"><dt className="font-semibold text-neutral-950 dark:text-white">{t.detailLabels.next}</dt><dd className="text-neutral-600 dark:text-neutral-400">{work.next}</dd></div>
                 </dl>
                 {work.href.startsWith('/works/') ? (
@@ -188,9 +214,13 @@ export default function WorksPage() {
               </div>
             </div>
             ) : null}
-          </article>
+            </article>
+          </div>
         ))}
       </div>
+        </section>
+        )
+      })}
     </main>
   )
 }

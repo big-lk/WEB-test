@@ -1,55 +1,87 @@
 'use client'
 
+import Link from 'next/link'
 import { useLanguage } from '../../components/language-context'
 
-const copy = {
+type Topic = { project: string; href: string; question: string; text: string; methods: string[]; stage: string }
+
+const copy: Record<'en' | 'ja' | 'zh', {
+  eyebrow: string
+  title: string
+  intro: string
+  topicsTitle: string
+  methodLabel: string
+  stageLabel: string
+  viewCase: string
+  topics: Topic[]
+  boundaryTitle: string
+  boundary: string
+  earlyTitle: string
+  early: string
+  timelineLink: string
+}> = {
   en: {
-    eyebrow: 'Research',
-    title: 'Kansei Engineering, HCI, AI Interaction, and Product Systems',
-    intro: 'My research explores how people understand, trust, remember, and act through products, interfaces, AI systems, and spatial experiences.',
-    questionsTitle: 'Research Questions',
-    interestsTitle: 'Research Interests',
-    methodsTitle: 'Methods',
-    currentTitle: 'Current Work',
-    publicationsTitle: 'Project Studies / Presentations',
-    stepLabel: 'Step',
-    questions: ['How can emotional impressions become design variables across products, mobility, learning, food, and AR experiences?', 'How can AI interfaces show human agency, uncertainty, and system reasoning without becoming a black box?', 'How can everyday product systems make hidden time, place, memory, and effort visible through interaction?'],
-    interests: [['Kansei Evaluation', 'Translating subjective impressions into design variables and evaluation language.'], ['Human-AI Co-creation', 'Designing AI systems that preserve user agency, correction, trust, and authorship.'], ['Spatial and Product Systems', 'Connecting physical objects, interface layers, timing, location, and service behavior.']],
-    methods: ['Semantic differential method', 'Interview and observation', 'Scenario design', 'Prototype testing', 'System mapping', 'UX journey mapping'],
-    current: [['Building a vocabulary', 'Organizing emotional descriptors such as trust, effort, timing, confidence, freshness, and control.'], ['Connecting system and behavior', 'Exploring how UI, hardware, AR overlays, light guidance, and data records can change everyday actions.'], ['Testing through prototypes', 'Using interface boards, concept renders, and small flows to test whether the framing supports real design decisions.']],
-    publications: [{ title: 'Five Concrete Design Questions', venue: 'Portfolio', year: '2022-2026', note: 'AI co-creation, driving attention, personal food cycles, MR photography guidance, and refrigerator date-and-location management.' }],
+    eyebrow: 'Research topics',
+    title: 'Turning feelings people can’t quite explain into variables I can design and compare',
+    intro: 'For me, kansei engineering means finding the designable difference inside a vague feeling: where people feel unsure, where a cue is too intrusive, where a reminder helps, and where the decision should stay with the user. Each topic below sits inside a real project and states how far it has gone.',
+    topicsTitle: 'Five topics',
+    methodLabel: 'Methods',
+    stageLabel: 'Stage',
+    viewCase: 'View case',
+    topics: [
+      { project: 'Long Time No Taste', href: '/works/taste-again', question: 'Why do foods we like get forgotten?', text: 'When deciding what to eat, people only recall the last few meals. How often someone wants a food differs from person to person, so a long-term record builds a personal eating cycle that can also be searched at any time.', methods: ['57-person concept survey', 'Behavior-loop design', 'WeChat mini program'], stage: 'MVP live · no usage data yet' },
+      { project: 'AI co-creation', href: '/works/ai-judgement', question: 'How to narrow the gap between a person’s own reading and the AI’s common one', text: 'People read “premium” or “cozy” differently, yet AI generates from the common reading, so results turn ordinary and users cannot see how they were understood. The interface shows the AI’s reading first and prompts users to enter their own judgment for the AI to adjust to.', methods: ['AI conversation text analysis', 'Comparative interfaces', 'Subjective evaluation', 'Eye tracking (planned)'], stage: 'Master’s research in progress · preparing the comparison and eye-tracking study' },
+      { project: 'AI predictive-image oven', href: '/works/oven-state-timing', question: 'People think in results; the machine asks for parameters', text: 'A predicted image of the finished dish replaces time and temperature, so users judge by eye while the oven gets the parameters it needs.', methods: ['Visualizing sensations (color / shape / firmness)', 'AI image generation', 'Interface prototype', '66-person concept survey'], stage: 'Concept + survey · not tested on a real oven' },
+      { project: 'FrameTrace', href: '/works/frametrace', question: 'At a good spot, where should I stand and which way should I shoot?', text: 'Other photographers’ positions, directions, and focal lengths are placed back in the scene, and a two-hand gesture works as a viewfinder.', methods: ['106-response concept survey (main analysis N=82)', 'Scenario design', 'Quest 3 prototype'], stage: 'Quest 3 prototype · no field test yet' },
+      { project: 'Driving HMI', href: '/works/driving-attention', question: 'The steadier driver assistance gets, the less drivers watch the road', text: 'The system shows distance and speed, but not what it is worried about. The topic is how graded cues keep attention on the road while fitting Chinese regulations.', methods: ['Driving-scenario breakdown', 'Cue-intensity comparison', 'Regulation and standards review', 'Subjective evaluation (planned)'], stage: 'HMI concept · regulatory trade-offs mapped' },
+    ],
+    boundaryTitle: 'What has and hasn’t been tested',
+    boundary: 'Most topics are still at the prototype or concept stage. The pages only describe what has been done; interface comparisons, eye tracking, and field tests are the next steps.',
+    earlyTitle: 'Earlier work',
+    early: 'The fridge system, ALIVE, and the internship come from an industrial-design lens: product systems, structure, and spatial identity. They are the base these topics grew from.',
+    timelineLink: 'See the timeline',
   },
   ja: {
-    eyebrow: '研究',
-    title: '感性工学、HCI、AIインタラクション、プロダクトシステム',
-    intro: '人がプロダクト、インターフェース、AIシステム、空間体験をどのように理解し、信頼し、記憶し、行動へ移すのかを探っています。',
-    questionsTitle: '研究の問い',
-    interestsTitle: '研究関心',
-    methodsTitle: '方法',
-    currentTitle: '現在の取り組み',
-    publicationsTitle: 'プロジェクト研究・プレゼンテーション',
-    stepLabel: 'ステップ',
-    questions: ['信頼、努力、時間、記憶、新鮮さ、安心感のような印象を、どのようにデザイン変数へ変換できるか。', 'AIインターフェースは、主導権、不確実性、判断理由をどのように見せればブラックボックスにならないか。', '日常のプロダクトシステムは、隠れた時間、場所、記憶、努力をどのようにインタラクションで可視化できるか。'],
-    interests: [['感性評価', '主観的な印象をデザイン変数と評価言語へ翻訳する。'], ['人とAIの共創', 'ユーザーの主導権、修正、信頼、作者性を残すAIシステムを考える。'], ['空間とプロダクトシステム', '物理オブジェクト、UIレイヤー、時間、場所、サービス行動を接続する。']],
-    methods: ['SD法', 'インタビューと観察', 'シナリオ設計', 'プロトタイプ評価', 'システムマッピング', 'UXジャーニーマッピング'],
-    current: [['語彙をつくる', '信頼、努力、タイミング、自信、新鮮さ、制御感などの感性語を整理する。'], ['システムと行動をつなぐ', 'UI、ハードウェア、AR表示、ライトガイド、記録データが日常行動をどう変えるかを探る。'], ['プロトタイプで検証する', 'インターフェースボード、コンセプトレンダリング、小さな操作フローを用いて、設計判断を検証する。']],
-    publications: [{ title: '5つの具体的なデザイン課題', venue: 'Portfolio', year: '2022-2026', note: 'AI共創、運転への注意、個人の食周期、MR写真ガイド、冷蔵庫内の期限・位置管理。' }],
+    eyebrow: '研究テーマ',
+    title: 'うまく言えない感覚を、デザインし比較できる変数に分ける',
+    intro: '私にとって感性工学とは、言葉にしにくい感覚の中からデザインできる違いを見つけることです。どこで自信をなくすか、どこが邪魔になるか、どこで知らせるべきか、どこを本人の判断に残すか。以下の五つのテーマはすべて実際の作品の中にあり、どこまで進んだかを明記しています。',
+    topicsTitle: '五つのテーマ',
+    methodLabel: '方法',
+    stageLabel: '段階',
+    viewCase: '事例を見る',
+    topics: [
+      { project: '好久没吃', href: '/works/taste-again', question: '好きな味はなぜ忘れられてしまうのか', text: '何を食べるか決める時、人は最近食べたものしか思い出せない。食べたくなる周期は人それぞれなので、長期の記録から個人の食の周期をつくり、いつでも探せるようにする。', methods: ['57名のコンセプト調査', '行動ループ設計', 'WeChat ミニプログラム開発'], stage: 'MVP 公開済み・利用データはまだない' },
+      { project: 'AI 共創', href: '/works/ai-judgement', question: '個人の理解と AI の一般的な理解のずれをどう縮めるか', text: '「高級感」「温かみ」の受け取り方は人それぞれだが、AI は一般的な解釈で生成し、結果はありきたりになる。画面でまず AI の解釈を見せ、ユーザー独自の判断を入力するよう促し、AI がそれに合わせて調整する。', methods: ['AI 対話テキスト分析', '比較 UI', '主観評価', 'アイトラッキング（計画）'], stage: '修士研究進行中・比較 UI とアイトラッキング実験を準備中' },
+      { project: 'AI 予測画像オーブン', href: '/works/oven-state-timing', question: '人は結果で考え、機械はパラメータを求める', text: '時間と温度の代わりに焼き上がりの予測画像を見せ、ユーザーは見た目で判断し、機械は必要な設定値を得る。', methods: ['感覚の可視化（色・形・硬さ）', 'AI 画像生成', '画面プロトタイプ', '66名のコンセプト調査'], stage: 'コンセプト＋調査・実機では未検証' },
+      { project: 'FrameTrace', href: '/works/frametrace', question: '良い場所に着いても、どこに立ちどちらを撮ればいいか分からない', text: '他の撮影者の位置・向き・焦点距離を現地に戻し、両手のジェスチャーを取景器として使う。', methods: ['106件のコンセプト調査（主分析 N=82）', 'シナリオ設計', 'Quest 3 プロトタイプ'], stage: 'Quest 3 プロトタイプ・現地テストは未実施' },
+      { project: '運転 HMI', href: '/works/driving-attention', question: '運転支援が安定するほど、人は道路を見なくなる', text: 'システムは距離や速度を示すが、何を気にしているかは伝えない。段階的な提示で路面への注意を保ちつつ、中国の法規にも合わせる方法を考える。', methods: ['運転場面の分解', '提示強度の比較', '法規・規格の整理', '主観評価（計画）'], stage: 'HMI コンセプト・法規との取捨選択を整理済み' },
+    ],
+    boundaryTitle: '検証できていること・いないこと',
+    boundary: '多くのテーマはまだ試作やコンセプトの段階です。ページには実際に行ったことだけを書き、比較 UI、アイトラッキング、現地テストは次のステップとしています。',
+    earlyTitle: '初期の作品',
+    early: '冷蔵庫システム、ALIVE、企業インターンは工業デザインの視点（製品システム、構造、空間の識別）による作品で、これらのテーマの土台になっています。',
+    timelineLink: '歩みを見る',
   },
   zh: {
-    eyebrow: '我在追的不是学科名',
-    title: '我关心用户为什么在某一刻停住',
-    intro: '感性工学对我来说，不是先给产品贴上情绪词，而是从用户说不清的感受里找到可设计的差异：哪里没把握，哪里太打扰，哪里需要被提醒，哪里应该让用户自己决定。',
-    questionsTitle: '我反复问的事',
-    interestsTitle: '三个问题入口',
-    methodsTitle: '我常用的办法',
-    currentTitle: '我怎样验证判断',
-    publicationsTitle: '这些问题落在哪些项目里',
-    stepLabel: '步骤',
-    questions: ['用户说“我不想完全交给 AI”时，他真正担心失去的是效率、责任感，还是自己的想法？', '用户不自信、分心、卡顿、想不起来的时候，产品应该帮助到哪里就停下？', '一次记录、一次提示、一次回看，能不能让用户下一次更容易行动？'],
-    interests: [['主观体验测试', '把“安心、有把握、想继续”这些话，变成能比较的界面版本。'], ['人-AI 共创', '不只看 AI 输出好不好，也看用户在哪一步还需要参与判断。'], ['产品系统', '把界面、硬件、空间和时间提示连起来，观察它能否进入日常行为。']],
-    methods: ['语义差异法', '访谈与观察', '场景设计', '比较原型', '眼动追踪', '系统映射', 'UX 旅程图'],
-    current: [['把问题说准', '先说明用户在哪个场景、哪一步、因为什么停住，而不是直接套一个大概念。'], ['把界面做成比较', '同一个问题做不同程度的提示，看用户更容易理解、继续行动，还是被打扰。'], ['把行为看出来', '用选择任务、眼动追踪和小流程，检查注意力和判断有没有真的变化。']],
-    publications: [{ title: '五个具体问题', venue: 'Portfolio', year: '2022-2026', note: 'AI 共创中的个人判断、驾驶关注价值、个人饮食周期、MR 摄影引导、冰箱物品日期与位置管理。' }],
+    eyebrow: '研究课题',
+    title: '把说不清的感受，拆成能设计、能比较的变量',
+    intro: '感性工学对我来说，是从用户说不清的感受里找到可设计的差异：哪里没把握，哪里太打扰，哪里该提醒，哪里该让用户自己决定。下面五个课题都落在具体作品里，并写明做到了哪一步。',
+    topicsTitle: '五个课题',
+    methodLabel: '方法',
+    stageLabel: '阶段',
+    viewCase: '看案例',
+    topics: [
+      { project: '好久没吃', href: '/works/taste-again', question: '喜欢的味道为什么会被忘掉', text: '决定吃什么时，人往往只想得起最近吃过的几样。每种食物多久想吃一次因人而异，所以用长期记录形成个人的饮食周期，也方便随时查找。', methods: ['57 人概念问卷', '行为流程设计', '微信小程序开发'], stage: 'MVP 已上线 · 还没有使用数据' },
+      { project: 'AI 共创', href: '/works/ai-judgement', question: '个人的理解和 AI 的通用理解，隔阂怎么缩小', text: '每个人对“高级感”“温馨”的理解不同，AI 却按大众理解生成，结果趋于平庸，用户也看不到 AI 是怎么理解的。界面先显示 AI 的理解，引导用户输入自己独特的判断，AI 再据此调整。', methods: ['AI 对话文本分析', '比较界面', '主观评价', '眼动追踪（计划）'], stage: '硕士研究进行中 · 准备界面比较与眼动实验' },
+      { project: 'AI 预测图像烤箱', href: '/works/oven-state-timing', question: '人想的是结果，机器要的是参数', text: '用烤制成品的预测图代替时间和温度，用户凭眼睛判断，机器由此得到需要的参数。', methods: ['感觉的视觉化（颜色 / 形状 / 软硬）', 'AI 图像生成', '界面原型', '66 人概念调研'], stage: '概念 + 问卷 · 未用真实设备测试' },
+      { project: 'FrameTrace', href: '/works/frametrace', question: '到了值得拍的地方，却不知道站哪、朝哪拍', text: '把他人的机位、朝向和焦距放回现场，并用双手手势当取景器。', methods: ['106 份概念问卷（主分析 N=82）', '场景设计', 'Quest 3 原型'], stage: 'Quest 3 原型 · 尚未实地测试' },
+      { project: '驾驶 HMI', href: '/works/driving-attention', question: '辅助驾驶越稳定，人越容易放松观察', text: '系统只显示距离、速度，人不知道它“在担心什么”。研究分级提示怎样维持路面关注，同时符合国内法规。', methods: ['驾驶场景拆解', '提示强度比较', '法规与标准梳理', '主观评价（计划）'], stage: 'HMI 概念 · 已梳理法规取舍' },
+    ],
+    boundaryTitle: '验证到哪一步',
+    boundary: '多数课题还在雏形或概念阶段。页面只写已经做到的部分；界面比较、眼动和实地测试是下一步。',
+    earlyTitle: '前期作品',
+    early: '冰箱系统、ALIVE 和企业实习来自工业设计视角：产品系统、结构与空间识别。它们是这些课题的出发点。',
+    timelineLink: '看时间线',
   },
 }
 
@@ -63,43 +95,47 @@ export default function ResearchPage() {
       <h1 className="mt-4 max-w-4xl text-4xl font-semibold tracking-normal md:text-6xl">{t.title}</h1>
       <p className="mt-5 max-w-3xl text-lg leading-8 text-neutral-600 dark:text-neutral-300">{t.intro}</p>
 
-      {[
-        [t.questionsTitle, t.questions.map((q, i) => [`Q${i + 1}`, q])],
-        [t.interestsTitle, t.interests.map((item, i) => [`0${i + 1} · ${item[0]}`, item[1]])],
-        [t.currentTitle, t.current.map((item, i) => [`${t.stepLabel} ${i + 1} · ${item[0]}`, item[1]])],
-      ].map(([title, items]) => (
-        <section key={title as string} className="mt-14 grid gap-8 md:grid-cols-[0.8fr_1.2fr]">
-          <h2 className="text-2xl font-semibold tracking-normal">{title as string}</h2>
-          <div className="grid gap-4">
-            {(items as string[][]).map(([label, text]) => (
-              <article key={label} className="rounded-lg border border-[#f7b718]/32 bg-white p-5 dark:border-[#f7b718]/25 dark:bg-neutral-900">
-                <span className="text-sm font-semibold text-[#b57900] dark:text-[#f7b718]">{label}</span>
-                <p className="mt-3 leading-7 text-neutral-600 dark:text-neutral-300">{text}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-      ))}
-
-      <section className="mt-14 grid gap-8 md:grid-cols-[0.8fr_1.2fr]">
-        <h2 className="text-2xl font-semibold tracking-normal">{t.methodsTitle}</h2>
-        <div className="flex flex-wrap gap-2">
-          {t.methods.map((method) => (
-            <span key={method} className="rounded-md border border-[#f7b718]/45 bg-[#fff4cf]/55 px-3 py-2 text-sm text-neutral-800 dark:border-[#f7b718]/30 dark:bg-neutral-900 dark:text-neutral-300">{method}</span>
+      <section className="mt-14">
+        <h2 className="text-2xl font-semibold tracking-normal">{t.topicsTitle}</h2>
+        <div className="mt-6 grid gap-4">
+          {t.topics.map((topic, index) => (
+            <article key={topic.href} className="grid gap-5 rounded-lg border border-[#f7b718]/32 bg-white p-5 md:grid-cols-[0.9fr_1.1fr] md:p-6 dark:border-[#f7b718]/25 dark:bg-neutral-900">
+              <div>
+                <span className="text-sm font-semibold text-[#b57900] dark:text-[#f7b718]">0{index + 1} · {topic.project}</span>
+                <h3 className="mt-3 text-xl font-semibold leading-snug">{topic.question}</h3>
+                <Link href={topic.href} className="mt-4 inline-block text-sm font-medium text-[#b57900] no-underline hover:text-neutral-950 dark:text-[#f7b718] dark:hover:text-white">{t.viewCase} →</Link>
+              </div>
+              <div>
+                <p className="leading-7 text-neutral-600 dark:text-neutral-300">{topic.text}</p>
+                <dl className="mt-4 grid gap-3 text-sm">
+                  <div className="grid gap-2 border-t border-[#f7b718]/30 pt-3 md:grid-cols-[4rem_1fr]">
+                    <dt className="font-semibold">{t.methodLabel}</dt>
+                    <dd className="flex flex-wrap gap-1.5">
+                      {topic.methods.map((method) => (
+                        <span key={method} className="rounded border border-[#f7b718]/40 bg-[#fff4cf]/55 px-2 py-0.5 text-neutral-700 dark:border-[#f7b718]/25 dark:bg-neutral-950 dark:text-neutral-300">{method}</span>
+                      ))}
+                    </dd>
+                  </div>
+                  <div className="grid gap-2 border-t border-[#f7b718]/30 pt-3 md:grid-cols-[4rem_1fr]">
+                    <dt className="font-semibold">{t.stageLabel}</dt>
+                    <dd className="text-neutral-600 dark:text-neutral-400">{topic.stage}</dd>
+                  </div>
+                </dl>
+              </div>
+            </article>
           ))}
         </div>
       </section>
 
-      <section className="mt-14 grid gap-8 md:grid-cols-[0.8fr_1.2fr]">
-        <h2 className="text-2xl font-semibold tracking-normal">{t.publicationsTitle}</h2>
-        <div className="grid gap-4">
-          {t.publications.map((publication) => (
-            <article key={publication.title} className="border-t border-[#f7b718]/35 pt-5 dark:border-[#f7b718]/25">
-              <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.16em] text-neutral-500"><span>{publication.venue}</span><span>·</span><span>{publication.year}</span></div>
-              <h3 className="mt-3 text-xl font-semibold">{publication.title}</h3>
-              <p className="mt-2 leading-7 text-neutral-600 dark:text-neutral-300">{publication.note}</p>
-            </article>
-          ))}
+      <section className="mt-14 grid gap-4 md:grid-cols-2">
+        <div className="rounded-lg border border-[#f7b718]/40 bg-[#fff4cf]/45 p-5 dark:border-[#f7b718]/25 dark:bg-neutral-900">
+          <h2 className="text-lg font-semibold">{t.boundaryTitle}</h2>
+          <p className="mt-2 leading-7 text-neutral-600 dark:text-neutral-300">{t.boundary}</p>
+        </div>
+        <div className="rounded-lg border border-[#f7b718]/32 bg-white p-5 dark:border-[#f7b718]/25 dark:bg-neutral-900">
+          <h2 className="text-lg font-semibold">{t.earlyTitle}</h2>
+          <p className="mt-2 leading-7 text-neutral-600 dark:text-neutral-300">{t.early}</p>
+          <Link href="/timeline" className="mt-3 inline-block text-sm font-medium text-[#b57900] no-underline hover:text-neutral-950 dark:text-[#f7b718] dark:hover:text-white">{t.timelineLink} →</Link>
         </div>
       </section>
     </main>

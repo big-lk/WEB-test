@@ -1,30 +1,33 @@
 'use client'
 
 import { useLanguage } from '../../components/language-context'
-import { portfolioWorks } from '../../lib/portfolio-data'
+import { getOrderedPortfolioWorks } from '../../lib/portfolio-data'
 
-const resumeProjectIds = ['co-creative-ai-training', 'transparent-driving-hud', 'fridge-timeline']
+const resumeProjectIds = ['fridge-timeline', 'alive-energy-link', 'smart-oven-timing', 'co-creative-ai-training', 'transparent-driving-hud']
 
 const resumeProjectVisuals: Record<string, string> = {
-  'co-creative-ai-training': '/works/portfolio/generated/ai-cocreation-chat-v2.png',
   'transparent-driving-hud': '/works/portfolio/generated/hmi-risk-overlay.png',
-  'fridge-timeline': '/works/portfolio/generated/fridge-system-explained-v2.png',
+  'fridge-timeline': '/works/portfolio/fridge-system/exterior.jpg',
+  'alive-energy-link': '/works/portfolio/alive-energy-link/cover-three-appliances.jpg',
+  'smart-oven-timing': '/works/portfolio/oven-state-timing/cover-ai-oven.jpg',
+  'factory-planning': '/works/portfolio/factory-safety-vi/factory-first-floor.jpg',
+  'corporate-vi': '/works/portfolio/factory-safety-vi/vi-cover.jpg',
 }
 
 const resumeCopy = {
   en: {
     eyebrow: 'Resume',
     name: 'KONG WEIPENG',
-    headline: 'Direction: Human-computer interaction and product experience design',
+    headline: 'Direction: Industrial design, HCI, and product experience design',
     graduation: 'Master’s student in Japan | Expected graduation: Apr 2027',
     download: 'Resume versions',
     downloadVariants: [['General', '/resume/kong-weipeng-resume-cn.pdf'], ['Smart hardware', '/resume/kong-weipeng-resume-shenzhen-smart-hardware-cn.pdf'], ['Automotive HMI', '/resume/kong-weipeng-resume-shenzhen-automotive-hmi-cn.pdf']],
     collaborationTitle: 'Awards and University-Community Collaboration',
-    collaboration: ['Second Prize, Sapporo streetcar new-vehicle design proposal competition (2025.12).', 'Advertising value enhancement project with Sapporo City Transportation Promotion Bureau (university-industry collaboration): designed a marketing and promotion proposal based on the characteristics of old and new streetcars.'],
+    collaboration: ['Second Prize, Sapporo streetcar new-vehicle design proposal competition (2025.12).', 'Advertising value project with the Sapporo City Transportation Promotion Bureau (university–city collaboration): compared the old and new streetcars and proposed a promotion plan for each.'],
     summary: [
-      'Kansei engineering and industrial design background. I combine subjective user evaluations with physiological and behavioral data, including heart rate and eye tracking, to analyze experience differences and inform design decisions.',
-      'I analyze new technology through its mechanisms and use cases, use Codex and other AI tools for prototyping workflows and WeChat mini-program development, and explore VR/MR applications in experiments and everyday life.',
-      'I explain technical principles and research findings to engineering, product, design, and content colleagues, and turn research findings and user feedback into interaction flows and design explanations.',
+      'Industrial design degree, now doing kansei engineering research in an HCI master’s program. Experience in product form, CMF, hardware interaction, and 3D renders. Work includes a refrigerator system, a power strip that shows power use and helps find the right plug, factory planning and a logo from an internship at Xinfeng Technology, and a corporate VI course project.',
+      'With new technology, I first work out how it works, then where it gets used. I prototype with Codex and other AI tools, built and released a WeChat mini program with AI, and am building MR prototypes on Quest 3.',
+      'I can explain technical principles and research results to engineering, product, design, and content colleagues, and turn research findings and user feedback into interaction flows and design notes.',
     ],
     contact: ['Sapporo, Japan', 'Mobile / WeChat: +86 18475264028', 'Japanese JLPT N1', 'littlekeen@outlook.com', 'lkdesigner.top'],
     sections: {
@@ -39,28 +42,28 @@ const resumeCopy = {
       { school: 'Sapporo City University', detail: 'Human Information Design (HCI research focus) / Master’s student', meta: 'Apr 2025 - Expected Apr 2027' },
       { school: 'Harbin University of Science and Technology', detail: 'Industrial Design / Bachelor of Engineering', meta: 'Graduated Jul 2023' },
     ],
-    skills: ['User research', 'AI product experience', 'UI/UX design', 'Mobility HMI', 'VR/MR experience prototyping', 'AI-assisted WeChat mini-program development', 'Codex-assisted workflows', 'Cross-disciplinary communication', 'Figma / Photoshop / Illustrator', 'Blender / After Effects'],
-    methods: ['Interview and observation', 'Semantic differential method', 'Subjective experience evaluation', 'Eye-tracking and heart-rate data', 'Scenario design', 'Prototype comparison', 'System mapping', 'UX journey mapping'],
+    skills: ['Industrial product concept design', 'Product system design', 'Factory spatial planning', 'Safety wayfinding and signage', 'Corporate VI and identity standards', 'Smart-appliance interaction', 'Cable identification and power monitoring', 'CMF exploration', '3D modeling and visualization', 'User research', 'AI product experience', 'UI/UX design', 'Mobility HMI', 'VR/MR experience prototyping', 'AI-assisted WeChat mini-program development', 'Codex-assisted workflows', 'Figma / Photoshop / Illustrator', 'Blender / C4D / After Effects'],
+    methods: ['Interview and observation', 'Semantic differential method', 'Subjective experience evaluation', 'Eye-tracking and heart-rate data', 'Scenario design', 'Factory zone and safety-sign mapping', 'Logo grid and application standards', 'Cable and outlet mapping', 'Power and appliance-state visualization', 'Prototype comparison', 'Product-system mapping', 'UX journey mapping'],
     focus: [
-      'Translating emotional impressions into comparable design variables.',
-      'Designing AI interfaces that preserve agency, transparency, trust, and authorship.',
-      'Connecting physical products, UI layers, timing, location, and everyday behavior.',
+      'Breaking vague impressions like “premium” or “reassuring” into variables I can design and compare.',
+      'With AI, sorting out which judgments the system can take and which the user should add.',
+      'Looking at one record, one photo, or one trip to the fridge, and turning it into a flow that can repeat.',
     ],
     labels: { role: 'Role', methods: 'Methods', value: 'Value' },
   },
   ja: {
     eyebrow: '履歴書',
     name: '孔 維鵬',
-    headline: '専門方向：HCIとプロダクト体験デザイン',
+    headline: '専門方向：工業デザイン、HCI、プロダクト体験',
     graduation: '日本の修士前期課程在学中 | 2027年4月修了予定',
     download: '履歴書バージョン',
     downloadVariants: [['総合版', '/resume/kong-weipeng-resume-cn.pdf'], ['スマートハードウェア', '/resume/kong-weipeng-resume-shenzhen-smart-hardware-cn.pdf'], ['自動車HMI', '/resume/kong-weipeng-resume-shenzhen-automotive-hmi-cn.pdf']],
     collaborationTitle: '受賞と地域連携',
-    collaboration: ['札幌市の路面電車新車両デザイン提案募集で二等賞（2025.12）。', '札幌市交通振興局との広告価値向上プロジェクト（地域連携）：新旧の路面電車の特徴を生かしたマーケティング・プロモーション案を作成。'],
+    collaboration: ['札幌市の路面電車新車両デザイン提案募集で二等賞（2025.12）。', '札幌市交通振興局との広告価値向上プロジェクト（地域連携）：新旧の路面電車の特徴を比べ、プロモーション案を作成。'],
     summary: [
-      '感性工学と工業デザインを背景に、主観評価と心拍・視線などの生理・行動データで体験の違いを分析し、デザイン判断の根拠にします。',
-      '新しい技術製品を仕組みと利用場面から分析します。CodexなどのAIツールで試作ワークフローを構築し、WeChatミニプログラムを開発するとともに、実験と日常場面でのVR/MR活用を探究しています。',
-      '技術の原理と研究結果を異なる専門領域の担当者に説明し、調査結果とユーザーフィードバックをインタラクションフローや設計説明に整理します。',
+      '工業デザインを学び、現在はHCIの修士課程で感性工学の研究をしています。製品造形、CMF、ハードウェア操作、3Dレンダリングの経験があり、冷蔵庫の製品システム、消費電力が見えて差込口を探しやすい電源タップ、鑫豊科技インターンでの工場計画とロゴ、企業VIの授業課題などを制作しました。',
+      '新しい技術は、まず仕組みを理解し、次にどこで使われるかを見ます。CodexなどのAIツールで試作し、AIを使ってWeChatミニプログラムを開発・公開しました。Quest 3でMRの試作も進めています。',
+      '技術の原理や研究結果をエンジニア、企画、デザイン、コンテンツの担当者に説明でき、調査結果やユーザーの声をインタラクションフローと設計メモにまとめられます。',
     ],
     contact: ['札幌、日本', '携帯 / WeChat：+86 18475264028', '日本語能力試験 N1', 'littlekeen@outlook.com', 'lkdesigner.top'],
     sections: {
@@ -75,28 +78,28 @@ const resumeCopy = {
       { school: '札幌市立大学', detail: '人間情報デザイン（HCI研究）/ 修士課程在学中', meta: '2025.04 入学 - 2027.04 修了予定' },
       { school: 'ハルビン理工大学', detail: '工業デザイン（工学）/ 学士', meta: '2023.07 卒業' },
     ],
-    skills: ['ユーザーリサーチ', 'AIプロダクト体験', 'UI/UXデザイン', 'モビリティHMI', 'VR/MR体験プロトタイプ', 'AI支援によるWeChatミニプログラム開発', 'Codexによるワークフロー構築', '専門領域間の情報整理', 'Figma / Photoshop / Illustrator', 'Blender / After Effects'],
-    methods: ['インタビューと観察', 'SD法', '主観的な体験評価', '視線・心拍データ', 'シナリオ設計', '比較プロトタイプ', 'システムマッピング', 'UXジャーニーマッピング'],
+    skills: ['工業製品のコンセプトデザイン', 'プロダクトシステム設計', '工場空間計画', '安全誘導・サイン', '企業VIと識別規定', 'スマート家電の操作設計', '配線識別と電力監視', 'CMF検討', '3Dモデリングとビジュアル表現', 'ユーザーリサーチ', 'AIプロダクト体験', 'UI/UXデザイン', 'モビリティHMI', 'VR/MR体験プロトタイプ', 'AI支援によるWeChatミニプログラム開発', 'Codexによるワークフロー構築', 'Figma / Photoshop / Illustrator', 'Blender / C4D / After Effects'],
+    methods: ['インタビューと観察', 'SD法', '主観的な体験評価', '視線・心拍データ', 'シナリオ設計', '工場ゾーン・安全サインの整理', 'ロゴグリッド・応用規定', '配線・差込口のマッピング', '電力と家電状態の可視化', '比較プロトタイプ', '製品システムマッピング', 'UXジャーニーマッピング'],
     focus: [
-      '感情的な印象を比較可能なデザイン変数へ翻訳する。',
-      '主体性、透明性、信頼、作者性を残すAIインターフェースを設計する。',
-      '物理プロダクト、UI、時間、場所、日常行動を接続する。',
+      '「高級感」「安心感」のような曖昧な印象を、デザインして比べられる変数に分ける。',
+      'AIと一緒に作るとき、どの判断をシステムに任せ、どこをユーザーが補うかを整理する。',
+      '一回の記録、一枚の撮影、一回の取り出しを分解し、繰り返せる行動の流れにする。',
     ],
     labels: { role: '担当', methods: '方法', value: '価値' },
   },
   zh: {
     eyebrow: '简历',
     name: '孔维鹏',
-    headline: '专业方向：人机交互与产品体验设计',
+    headline: '专业方向：工业设计、人机交互与产品体验设计',
     graduation: '硕士研究生在读（日本）｜预计 2027.04 毕业',
     download: '按岗位查看简历',
     downloadVariants: [['科技产品通用版', '/resume/kong-weipeng-resume-cn.pdf'], ['智能硬件版', '/resume/kong-weipeng-resume-shenzhen-smart-hardware-cn.pdf'], ['智能汽车 HMI 版', '/resume/kong-weipeng-resume-shenzhen-automotive-hmi-cn.pdf']],
     collaborationTitle: '奖项与校地合作',
-    collaboration: ['日本札幌市路面电车新车设计方案征集二等奖（2025.12）。', '日本札幌市交通振兴局广告价值提升项目（校地合作）：结合新旧电车特点设计营销推广方案。'],
+    collaboration: ['日本札幌市路面电车新车设计方案征集二等奖（2025.12）。', '日本札幌市交通振兴局广告价值提升项目（校地合作）：对比新旧两款电车的特点，做推广方案。'],
     summary: [
-      '感性工学与工业设计背景，结合用户主观评价、心率和眼动等生理与行为数据分析体验差异，为设计判断提供依据。',
-      '从原理和使用场景分析新技术产品。使用 Codex 等 AI 工具搭建原型开发工作流，借助 AI 开发微信小程序，探索 VR/MR 在实验与日常场景中的应用。',
-      '能向工程、产品、设计与内容人员解释技术原理和研究结果，将调研发现与用户反馈整理成交互流程和设计说明。',
+      '工业设计本科，硕士读人机交互、做感性工学研究。做过产品造型、CMF、硬件交互和三维效果图；代表作品有冰箱产品系统、能看出功耗和找到插头的智能插排、鑫丰科技实习中的厂区规划与 Logo，以及企业 VI 课程作业。',
+      '看新技术产品时，先弄清原理，再看它用在什么场景。用 Codex 等 AI 工具做原型，借助 AI 开发并上线了一个微信小程序，也在用 Quest 3 做 MR 原型。',
+      '能把技术原理和研究结果讲给工程、产品、设计和内容同事听，也能把调研发现和用户反馈整理成交互流程和设计说明。',
     ],
     contact: ['日本札幌', '手机 / 微信（同号）：+86 18475264028', '日语 JLPT N1', 'littlekeen@outlook.com', 'lkdesigner.top'],
     sections: {
@@ -111,12 +114,12 @@ const resumeCopy = {
       { school: '札幌市立大学（日本）', detail: '人间情报设计（人机交互 HCI 方向）/ 硕士研究生在读', meta: '2025.04 入学 - 预计 2027.04 毕业' },
       { school: '哈尔滨理工大学', detail: '工业设计（工科）/ 本科', meta: '2023.07 毕业' },
     ],
-    skills: ['用户研究', 'AI 产品体验', 'UI/UX 设计', '智能驾驶 HMI', 'VR/MR 体验原型', 'AI 辅助微信小程序开发', 'Codex 工作流', '跨专业信息整理', 'Figma / Photoshop / Illustrator', 'Blender / After Effects'],
-    methods: ['访谈与观察', '语义差异法', '主观体验评价', '眼动与心率数据', '比较原型', '场景设计', '系统映射', 'UX 旅程图'],
+    skills: ['工业产品概念设计', '产品系统设计', '厂区空间规划', '安全导视与标识', '企业 VI 与识别规范', '智能家电交互', '线材识别与功率监管', '产品造型与 CMF', 'C4D 三维建模与渲染', '用户研究', 'AI 产品体验', 'UI/UX 设计', '智能驾驶 HMI', 'VR/MR 体验原型', 'AI 辅助微信小程序开发', 'Codex 工作流', 'Figma / Photoshop / Illustrator', 'Blender / After Effects'],
+    methods: ['访谈与观察', '语义差异法', '主观体验评价', '眼动与心率数据', '场景设计', '厂区功能分区与安全标识梳理', 'Logo 标准制图与应用规范', '线材与插孔关系梳理', '功率和家电状态可视化', '比较原型', '产品系统映射', 'UX 旅程图'],
     focus: [
-      '面对 AI 或自动化系统，我会先拆清楚哪些判断可以交给系统，哪些需要用户继续参与。',
-      '面对提醒和辅助界面，我更关心帮助出现的时机、程度和退出方式。',
-      '面对日常产品，我会把一次记录、一次驾驶、一次拍摄或一次取物，整理成能反复发生的行为流程。',
+      '和 AI 一起做事时，先分清哪些判断可以交给系统，哪些要用户自己补上。',
+      '做提醒和辅助界面，最在意帮助什么时候出现、出现到什么程度、怎么关掉。',
+      '看日常产品，习惯把一次记录、一次拍摄或一次取物拆开来看，整理成能反复发生的行为流程。',
     ],
     labels: { role: '个人工作', methods: '研究方法', value: '设计方案' },
   },
@@ -125,7 +128,7 @@ const resumeCopy = {
 export default function ResumePage() {
   const { language } = useLanguage()
   const t = resumeCopy[language]
-  const works = portfolioWorks[language]
+  const works = getOrderedPortfolioWorks(language)
   const selectedWorks = works.filter((work) => resumeProjectIds.includes(work.id))
 
   return (
@@ -226,7 +229,7 @@ export default function ResumePage() {
                         <img
                           src={resumeProjectVisuals[work.id] ?? work.image}
                           alt={work.title}
-                          className="aspect-video h-full w-full object-cover transition duration-500 hover:scale-[1.02]"
+                          className="aspect-video h-full w-full object-contain transition duration-500 hover:scale-[1.02]"
                           loading="lazy"
                         />
                       </a>
@@ -235,6 +238,7 @@ export default function ResumePage() {
                         <span>{work.category}</span>
                         <span>{work.year}</span>
                       </div>
+                      <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">{work.period}</p>
                       <h3 className="mt-2 text-2xl font-semibold tracking-normal">
                         <a href={work.href} className="text-inherit no-underline transition hover:text-[#b57900]">{work.title}</a>
                       </h3>
