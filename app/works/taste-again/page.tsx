@@ -38,6 +38,14 @@ type CaseCopy = {
   loopTitle: string
   loopCopy: string
   loop: [string, string][]
+  iterKicker: string
+  iterTitle: string
+  iterCopy: string
+  iterCaption: string
+  versions: [string, string, string][]
+  fixesTitle: string
+  fixes: [string, string][]
+  pending: string
   resultKicker: string
   resultTitle: string
   resultCopy: string
@@ -53,7 +61,7 @@ const copy: Record<Language, CaseCopy> = {
     back: '返回作品列表',
     eyebrow: '微信小程序 / 个人饮食周期',
     summary: '记下每种食物距上次吃过了多少天，给不同的味道设一个自己的周期；记录攒久了，随时能查。',
-    nav: [['问题', '#problem'], ['体验场景', '#story'], ['界面设计', '#ui'], ['行为闭环', '#loop'], ['当前结果', '#result']],
+    nav: [['问题', '#problem'], ['体验场景', '#story'], ['界面设计', '#ui'], ['行为闭环', '#loop'], ['版本迭代', '#iteration'], ['当前结果', '#result']],
     problemKicker: '问题背景',
     problemTitle: '“好久没吃”是一种周期判断，却很难立刻说清多久没吃、现在值不值得吃',
     problemCopy: '有些味道适合一周吃一次，也有人每天都想喝一杯。用户想到“今天吃点好久没吃的吧”时，需要同时回忆吃过什么、距上次多久，以及现在是否到了再次选择的时间。',
@@ -109,12 +117,20 @@ const copy: Record<Language, CaseCopy> = {
     loopTitle: '一次记录怎样帮到下一次',
     loopCopy: '产品不要求连续打卡。每次吃过之后更新日期，周期表才会逐渐接近用户真实的生活节奏；长期积累的记录也能随时查找，回答“上次是什么时候吃的”。',
     loop: [['记录', '保存食物与日期'], ['计算', '显示距上次食用天数'], ['设定', '给出个人参考周期'], ['判断', '决定现在是否再吃'], ['更新', '吃过后刷新日期'], ['积累', '逐渐形成个人周期']],
+    iterKicker: '版本迭代',
+    iterTitle: '上线后按“第一次用的人”重走两轮，改出 1.1 版',
+    iterCopy: '1.0 上线后，我让两个模拟新人（一个按引导填、一个跳过引导）用真实页面代码走完整流程，再按“完全不知道这个软件的人”重走一轮，把卡住的地方逐条改掉。这还不是真人测试，真人测试是下一步。',
+    iterCaption: '1.1 的新手流程：欢迎 → 1 分钟填好口味 → 确认 → 首页吃饭时间线（开发者工具渲染截图）',
+    versions: [['1.0', '上线版本', '记一笔、距上次天数、个人周期、“该吃了”列表、隐私说明与删除数据。'], ['1.1', '界面整体改版', '首页加入吃饭时间线（周 / 月）和吃饭日历，可以补记过去的饭；1 分钟快速填好口味；凭感觉挑或挑最久没吃的；三档评价；导出备份与恢复；照片按用户分开保存。']],
+    fixesTitle: '走查发现的问题，和怎么改的',
+    fixes: [['同一个名字记两次，会出现两条“拉面”，刚吃过的那条还显示“该吃了”', '同名自动并进原来那条，算又吃了一次，并提示“之前记过”'], ['刚开始只有几条记录时，“凭感觉挑”点了什么都没有', '没有可推荐的就先隐藏，指引改为先看时间线'], ['几天前定的方案一直挂着“今天的方案”，每天还自动弹一次', '写明是哪天定的，只有今天定的才会弹出'], ['“吃过的”页用另一套颜色和图例，和首页“紫 = 过去、橙 = 今天”冲突', '去掉旧时间轴，全站统一成一套颜色'], ['饮品也写“该吃了”，今天已经吃过的还出现“今天吃它”', '饮品改成“该喝了”，今天吃过的不再提示']],
+    pending: '还没解决：“凭感觉挑”效果偏弱（“很久没吃”的分数压过了感觉）；快速填空的确认页偏密；“方案”这个词偏抽象。',
     resultKicker: '当前结果',
     resultTitle: '57 人概念调研后，完成真实可用并上线的微信小程序',
     resultCopy: '当前版本已经覆盖食物记录、距上次天数、个人周期设置、周期查看与再次记录的主要流程。',
     result: [['核心流程', '食物记录、日期更新、周期设置、周期列表与再次记录。'], ['个人节奏', '不同食物分别设置参考周期，并保留修改与忽略的权利。'], ['真实实现', '借助 AI 开发工具完成微信小程序，实现可实际操作的主要流程。']],
     nextTitle: '接下来要看什么',
-    next: ['用 5–8 人任务测试验证首次记录、查找旧味道与处理再会卡片是否无需解释。', '计划进行 7 天使用观察，查看首条记录完成率、回访与再次品尝行为。'],
+    next: ['找 5–8 位真实用户做任务测试：第一次记录、找回旧味道、处理“该吃了”，看是否不用解释。', '7 天使用观察：首条记录完成率、回访和再次品尝。', '加大“凭感觉挑”里感觉的权重，再看推荐会不会跟着变。'],
     closing: '“好久没吃”不替用户决定吃什么。它把多久没吃和个人周期摆在一起，让用户更容易判断今天是否值得再吃。',
     otherWorks: '查看其他作品',
   },
@@ -122,7 +138,7 @@ const copy: Record<Language, CaseCopy> = {
     back: 'Back to works',
     eyebrow: 'WeChat mini program / Personal food cycles',
     summary: 'Records how many days since each food was last eaten and lets you set your own interval for each flavor; the log builds up over time and can be searched any time.',
-    nav: [['Problem', '#problem'], ['Story', '#story'], ['Real UI', '#ui'], ['Behavior loop', '#loop'], ['Outcome', '#result']],
+    nav: [['Problem', '#problem'], ['Story', '#story'], ['Real UI', '#ui'], ['Behavior loop', '#loop'], ['Iteration', '#iteration'], ['Outcome', '#result']],
     problemKicker: 'Opportunity',
     problemTitle: '“I have not eaten this in a while” leaves two questions: how long, and is today the right time?',
     problemCopy: 'Some flavors suit a weekly rhythm; others are wanted every day. Choosing something familiar means recalling what was eaten, how long it has been, and whether it is time to choose it again.',
@@ -149,12 +165,20 @@ const copy: Record<Language, CaseCopy> = {
     loopTitle: 'How one record becomes the next cycle reference',
     loopCopy: 'Updating the date after each meal gradually brings the cycle table closer to the user’s real routine, and the accumulated log answers “when did I last have this?” at any time.',
     loop: [['Record', 'Save the food and date'], ['Calculate', 'Show days since it was last eaten'], ['Set', 'Choose a personal reference interval'], ['Judge', 'Decide whether to eat it now'], ['Update', 'Refresh the date after eating'], ['Accumulate', 'Build a personal cycle']],
+    iterKicker: 'Iteration',
+    iterTitle: 'After launch, two walkthroughs as a first-time user led to version 1.1',
+    iterCopy: 'After 1.0 went live, two simulated newcomers (one following the onboarding, one skipping it) ran the full flow on the real page code; then I walked it again as someone who knows nothing about the app, and fixed each place people would get stuck. This is not yet a test with real users; that comes next.',
+    iterCaption: 'The 1.1 onboarding: welcome → fill in your tastes in a minute → confirm → home meal timeline (rendered in the developer tools)',
+    versions: [['1.0', 'Launch version', 'Quick record, days since last eaten, personal intervals, a “due” list, privacy notes, and data deletion.'], ['1.1', 'Full redesign', 'A meal timeline (week / month) and meal calendar on the home screen, with past meals addable; a one-minute taste setup; pick by feeling or by longest gap; three-level ratings; backup export and restore; photos stored per user.']],
+    fixesTitle: 'What the walkthroughs found, and the fix',
+    fixes: [['Recording the same name twice created two “ramen” entries, and the one just eaten still showed as due', 'Same names merge into the existing entry as one more time eaten, with a note saying so'], ['With only a few records, “pick by feeling” returned nothing', 'It stays hidden until there is something to suggest; the guide points to the timeline first'], ['A plan made days ago stayed labeled “today’s plan” and popped up every day', 'It shows the day it was made, and only today’s plan pops up'], ['The history page used its own colors and legend, clashing with “purple = past, orange = today”', 'The old timeline was removed and one color scheme used throughout'], ['Drinks also said “time to eat”, and items already eaten today still offered “eat it today”', 'Drinks say “time to drink”, and items eaten today are no longer suggested']],
+    pending: 'Still open: “pick by feeling” has little effect (the long-gap score outweighs feelings); the quick-setup confirmation page is dense; the word “plan” feels abstract.',
     resultKicker: 'Outcome',
     resultTitle: 'From concept research to a working, released WeChat mini program',
     resultCopy: 'The current version covers food records, elapsed days, personal interval settings, cycle review, and repeat recording.',
     result: [['Core flow', 'Food records, date updates, interval settings, cycle lists, and repeat recording.'], ['Personal rhythm', 'Separate intervals for different foods, with options to adjust or ignore them.'], ['Working implementation', 'AI development tools helped build the WeChat mini program and its usable core flows.']],
     nextTitle: 'Next validation',
-    next: ['Test first recording, finding an old flavor, and handling a reunion card with 5–8 participants.', 'Run a seven-day field test to observe first-record completion, return, and repeat tasting.'],
+    next: ['Task tests with 5–8 real users: first record, finding an old flavor, handling the due list, without explanation.', 'A seven-day field test: first-record completion, return visits, and repeat tasting.', 'Raise the weight of feelings in “pick by feeling”, then check whether suggestions change.'],
     closing: 'The app places days since a food was last eaten beside its personal interval, helping users judge whether to choose it again today.',
     otherWorks: 'View other works',
   },
@@ -162,7 +186,7 @@ const copy: Record<Language, CaseCopy> = {
     back: '作品一覧へ戻る',
     eyebrow: 'WeChatミニプログラム / 個人の食事周期',
     summary: '食べ物ごとに前回からの日数を記録し、味ごとに自分の目安周期を決める。記録はたまっていき、いつでも探せる。',
-    nav: [['課題', '#problem'], ['体験物語', '#story'], ['実UI', '#ui'], ['行動ループ', '#loop'], ['成果', '#result']],
+    nav: [['課題', '#problem'], ['体験物語', '#story'], ['実UI', '#ui'], ['行動ループ', '#loop'], ['改版', '#iteration'], ['成果', '#result']],
     problemKicker: 'Opportunity',
     problemTitle: '「しばらく食べていない」を、日数と今日また食べたいかで判断する',
     problemCopy: '週に一度食べたい味も、毎日飲みたいものもある。久しぶりのものを選ぶ時は、何を食べたか、前回からどれくらい経ったか、また選びたい時期かを合わせて思い出す必要がある。',
@@ -189,12 +213,20 @@ const copy: Record<Language, CaseCopy> = {
     loopTitle: '一回の記録を次の周期の参考にする',
     loopCopy: '食べた後に日付を更新し、周期表を本人の実際の生活リズムへ近づけていく。蓄積した記録で「前回いつ食べたか」もすぐ探せる。',
     loop: [['記録', '食べ物と日付を保存'], ['計算', '前回からの日数を表示'], ['設定', '個人の目安周期を決める'], ['判断', '今また食べるかを選ぶ'], ['更新', '食後に日付を更新'], ['蓄積', '個人の周期ができる']],
+    iterKicker: '改版',
+    iterTitle: '公開後、「初めて使う人」として2回たどり直し、1.1版に改めた',
+    iterCopy: '1.0の公開後、模擬の新規ユーザー2人（ガイドどおりに入力する人、ガイドを飛ばす人）に実際の画面コードで全体の流れをたどらせ、さらに「アプリを何も知らない人」としてもう一度たどり、つまずく箇所を一つずつ直した。まだ実ユーザーによるテストではなく、それが次のステップ。',
+    iterCaption: '1.1の初回フロー：ようこそ → 1分で好みを入力 → 確認 → ホームの食事タイムライン（開発者ツールでの描画）',
+    versions: [['1.0', '公開版', '記録、前回からの日数、個人の周期、「そろそろ」一覧、プライバシー説明とデータ削除。'], ['1.1', '全面改版', 'ホームに食事タイムライン（週／月）と食事カレンダーを追加し、過去の食事も記録可能に。1分で好みを入力、気分で選ぶ／一番久しぶりから選ぶ、3段階の評価、バックアップの書き出しと復元、写真をユーザーごとに保存。']],
+    fixesTitle: 'たどり直しで見つかった問題と直し方',
+    fixes: [['同じ名前を2回記録すると「ラーメン」が2件になり、食べたばかりの方も「そろそろ」と表示された', '同じ名前は元の記録にまとめ、もう一度食べたことにして「前にも記録あり」と表示'], ['記録が少ないうちは「気分で選ぶ」を押しても何も出なかった', '候補がないときは隠し、ガイドはまずタイムラインを示す'], ['数日前に決めたプランが「今日のプラン」のまま毎日表示された', '決めた日を明記し、今日決めたものだけを表示'], ['「食べたもの」画面だけ別の配色と凡例で、「紫＝過去、橙＝今日」と食い違った', '古いタイムラインを外し、配色を全体で統一'], ['飲み物にも「そろそろ食べよう」、今日食べたものにも「今日食べる」が出た', '飲み物は「そろそろ飲もう」に、今日食べたものには出さない']],
+    pending: '未解決：「気分で選ぶ」の効きが弱い（久しぶり度が気分より強く効く）、初回入力の確認画面が詰まっている、「プラン」という言葉が抽象的。',
     resultKicker: 'Outcome',
     resultTitle: '概念調査から、実際に使える公開済みWeChatミニプログラムへ',
     resultCopy: '現在の版は、食事記録、前回からの日数、個人の周期設定、周期の確認、再記録をカバーする。',
     result: [['主要フロー', '食事記録、日付更新、周期設定、周期一覧、再記録。'], ['個人のリズム', '食べ物ごとに目安周期を設定し、変更や見送りを本人が選べる。'], ['実装', 'AI開発ツールを使ってWeChatミニプログラムを制作し、主要フローを操作できるようにした。']],
     nextTitle: '次の検証',
-    next: ['5〜8名で初回記録、古い味の検索、再会カード処理を検証する。', '7日間の実使用で初回記録、再訪、再食行動を観察する。'],
+    next: ['実ユーザー5〜8名で、初回記録・久しぶりの味の検索・「そろそろ」一覧の扱いを説明なしでできるか確かめる。', '7日間の利用観察で、初回記録の完了率、再訪、再食を見る。', '「気分で選ぶ」で気分の重みを上げ、推薦が変わるかを確かめる。'],
     closing: '前回からの日数と個人の周期を並べ、今日もう一度食べたいかを本人が判断しやすくする。',
     otherWorks: '他の作品を見る',
   },
@@ -355,6 +387,39 @@ export default function TasteAgainCasePage() {
             ))}
           </div>
         </div>
+      </section>
+
+      <section id="iteration" className="scroll-mt-28 mx-auto max-w-6xl px-5 py-14 md:px-8 md:py-20">
+        <div className="grid gap-8 md:grid-cols-[0.72fr_1.28fr]">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#b57900] dark:text-[#f7b718]">{t.iterKicker}</p>
+            <h2 className="mt-4 text-3xl font-semibold md:text-5xl">{t.iterTitle}</h2>
+          </div>
+          <p className="text-lg leading-8 text-neutral-600 dark:text-neutral-300">{t.iterCopy}</p>
+        </div>
+        <div className="mt-10 grid gap-4 md:grid-cols-2">
+          {t.versions.map(([version, label, description]) => (
+            <article key={version} className="rounded-lg border border-[#f7b718]/35 bg-white p-5 dark:border-[#f7b718]/25 dark:bg-neutral-900">
+              <div className="flex items-baseline gap-3"><span className="text-3xl font-semibold text-[#b57900] dark:text-[#f7b718]">{version}</span><span className="text-sm font-semibold">{label}</span></div>
+              <p className="mt-3 text-sm leading-7 text-neutral-600 dark:text-neutral-300">{description}</p>
+            </article>
+          ))}
+        </div>
+        <figure className="mt-8 overflow-hidden rounded-lg border border-[#f7b718]/30 bg-[#fffaf0] dark:border-[#f7b718]/20 dark:bg-neutral-900">
+          <img src="/works/haojiu-meichi/ui/flow-v1-1.jpg" alt={t.iterCaption} loading="lazy" className="block h-auto w-full" />
+          <figcaption className="px-4 py-3 text-xs leading-5 text-neutral-500 dark:text-neutral-400">{t.iterCaption}</figcaption>
+        </figure>
+        <h3 className="mt-12 text-xl font-semibold">{t.fixesTitle}</h3>
+        <div className="mt-5 grid gap-0">
+          {t.fixes.map(([problem, fix], index) => (
+            <div key={problem} className="grid gap-2 border-t border-[#f7b718]/35 py-4 md:grid-cols-[3rem_1fr_1fr] md:gap-6">
+              <span className="text-sm font-semibold text-[#b57900] dark:text-[#f7b718]">0{index + 1}</span>
+              <p className="text-sm leading-7 text-neutral-700 dark:text-neutral-300">{problem}</p>
+              <p className="text-sm leading-7 text-neutral-950 dark:text-white"><span aria-hidden="true" className="mr-2 text-[#b57900] dark:text-[#f7b718]">→</span>{fix}</p>
+            </div>
+          ))}
+        </div>
+        <p className="mt-4 rounded-lg border border-[#f7b718]/40 bg-[#fff4cf]/55 p-4 text-sm leading-7 text-neutral-700 dark:bg-[#f7b718]/10 dark:text-neutral-300">{t.pending}</p>
       </section>
 
       <section id="result" className="scroll-mt-28 mx-auto max-w-6xl px-5 py-14 md:px-8 md:py-20">
