@@ -114,47 +114,77 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
     {
       id: 'transparent-driving-hud',
       title: 'Driving HMI That Keeps Eyes on the Road',
-      type: 'Intelligent driving / Attention-value HMI',
-      category: 'Intelligent driving / Attention-value HMI',
+      type: 'Intelligent driving / AR-HUD risk cues',
+      category: 'Intelligent driving / AR-HUD risk cues',
       year: '2025-2026',
       period: 'Graduate study · Driving HMI',
-      status: 'Research concept',
-      role: 'HMI research, driving-attention design, safety boundaries, and subjective-experience test plan',
-      methods: 'Driving-scenario analysis, cue-intensity comparison, review of Chinese regulations and standards, subjective evaluation (planned)',
-      next: 'HMI concept · Chinese regulations and resulting trade-offs reviewed (from published notices and commentary); subjective-evaluation survey in preparation.',
-      description: 'During assisted driving, only the one road user the AI is worried about is marked, with one line on why. Drivers don’t have to read a pile of data, and they keep watching the road.',
-      question: 'How can intelligent driving retain human attention and the desire to drive, rather than quietly turning the driver into a passenger?',
+      status: 'Blender concept prototype',
+      role: 'Solo: scenarios and risk levels, HUD display language, Blender prototype, regulatory zone check, VR test plan',
+      methods: 'Driver-view simulation in Blender (generated with Python), three scenarios × three schemes, display-zone pixel check, Quest 3 + eye tracking (planned)',
+      next: 'Blender concept prototype done (three scenarios × three schemes), with an approximate display-zone check; the long-drive VR study has not started.',
+      description: 'In L2 assisted driving, risk cues stay at the lower edge of the HUD and use shape, color and position to tell the driver what it is, how urgent, and which side. The only words are “L2” and “Take over”, so eyes stay on the road.',
+      question: 'The steadier driver assistance gets, the more drivers drift off, yet at L2 the driver is still responsible. Too many cues block the view and distract; showing only distance and speed leaves the driver unsure where the risk is and how urgent it is.',
       process: [
-        ['Desire to drive', 'If people only sit while automation drives, high-value driving can collapse into basic transport utility.'],
-        ['Show AI attention', 'Trust is only the baseline; the AI should clearly show which possible problem it is watching.'],
-        ['Emotional warning', 'A child may run out or a nearby car may move over; short emotional language makes the risk immediately legible.'],
-        ['Regulatory trade-offs', 'Review China’s current regulations and standards for driver assistance, then decide which cues are allowed and where standardized warnings must take over.'],
+        ['Lower edge only', 'All cues sit below the core line of sight, never covering the road the car will cross in the next 2–4 s or the hazard itself.'],
+        ['Shape · color · position · motion', 'One capsule badge holds everything: the icon gives the category, cyan / amber / red the urgency, horizontal position the direction; only red blinks.'],
+        ['Fade, don’t jump', 'Calm → detect → escalate → respond → step down. Cues fade in and out over 0.5 s and adjacent levels cross-fade, so nothing pops in or vanishes.'],
+        ['HUD never warns alone', '“Take over” is repeated on the instrument cluster and the steering-wheel light strip. Text is limited to “L2” and “Take over”; no “autonomous” wording.'],
       ],
-      processIcons: ['target', 'message', 'alert', 'check'],
+      processIcons: ['eye', 'layers', 'refresh', 'alert'],
       outcomes: [
-        'Drivers see which object the AI is worried about and why, not just distance and speed.',
-        'Cues follow a specific object and scale with risk, staying out of the way; the legally required monitoring and warnings stay in place, and these cues only add to them.',
+        'S1, the direction band, is the main scheme: it works with a production HUD, covers the least, and is not thrown off by tracking errors.',
+        'S2 ground rings are more direct but need a large-field HUD and cover more of the road; S3 is what many cars do today and stays as the control, to measure how much keeping cues ahead actually helps.',
+        'Next: a roughly 20-minute drive in Quest 3 with eye tracking, measuring every 5 minutes the share of gaze on the road ahead and reaction times.',
       ],
-      image: '/works/portfolio/generated/hmi-risk-overlay.png',
+      image: '/works/portfolio/hmi/hero.jpg',
+      videos: [
+        { src: '/works/portfolio/hmi/compare_ch1.mp4', poster: '/works/portfolio/hmi/compare_ch1_poster.jpg', caption: 'Scenario 1, a child runs out between parked cars (16 s): partly visible → runs toward the lane → automatic emergency braking to a stop → cues step down after the child passes. Top left S1, top right S2, bottom left S3, bottom right the risk-level timeline.' },
+        { src: '/works/portfolio/hmi/compare_ch2.mp4', poster: '/works/portfolio/hmi/compare_ch2_poster.jpg', caption: 'Scenario 2, a car cuts in (18 s): signals → crosses the line → cuts in close; the system slows to yield → cues clear once the gap recovers.' },
+        { src: '/works/portfolio/hmi/compare_ch3.mp4', poster: '/works/portfolio/hmi/compare_ch3_poster.jpg', caption: 'Scenario 3, roadworks ahead (18 s): cones detected far ahead → the system slows but cannot change lanes → take-over request on HUD, cluster and wheel light → the driver changes lanes to the right.' },
+      ],
+      modules: [
+        { kicker: 'Display language', title: 'One container × four icons × three colors', text: 'Every cue sits in the same hollow capsule badge: the icon only says what it is, and there are only three colors, following ISO 2575 meanings.', stacked: true, points: [
+            'L1 cyan: detected, “it is over there”.',
+            'L2 amber: the risk is closing in; the system starts slowing or yielding.',
+            'L3 red: danger or take over; the only state that moves.',
+            'When tracking confidence drops below 0.8, elements attached to the target are hidden and only the coarse direction band remains.',
+          ], images: [
+            { src: '/works/portfolio/hmi/attribute.jpg', alt: 'Display language legend: capsule badge, four icons, three colors', caption: 'Display language legend (labels in Chinese): pedestrian / vehicle / static obstacle / system × cyan / amber / red', wide: true },
+          ] },
+        { kicker: 'Three schemes', title: 'Split by display location, to compare which keeps eyes ahead best', text: 'All three share the “L2” status on the HUD, the scenario 3 “Take over”, the cluster and the wheel light strip; they differ only in how the risk itself is shown.', stacked: true, points: [
+            'S1 HUD direction band (main scheme): a colored bar along the lower edge whose horizontal position is the hazard’s direction, with a badge for the category; off-screen targets get an edge arrow. It does not follow the target, so tracking jitter does not matter and it covers the least.',
+            'S2 AR ground ring + predicted path: a ring under the target and its position 0.4–2 s ahead; roadworks get hatching over the closed lane. Most direct, but the rings sit on the lane, so it covers the most. With a production 13°×6° field most targets fall outside it, so S2 is designed for 24°×6.5°.',
+            'S3 center-screen top view (control): nothing on the HUD; a top-down card pops up on the driver side of the navigation screen. A driver who does not look down gets no direction at L3, which is the trade-off the test will measure.',
+          ], images: [
+            { src: '/works/portfolio/hmi/s1_child_l3.jpg', alt: 'S1 HUD direction band, scenario 1 L3', caption: 'S1: the red bar sits right below the child’s direction' },
+            { src: '/works/portfolio/hmi/s2_merge_l3.jpg', alt: 'S2 AR ground ring, scenario 2 L3', caption: 'S2: ring and predicted arrow under the cutting-in car' },
+            { src: '/works/portfolio/hmi/s3_child_l3.jpg', alt: 'S3 center-screen top view, scenario 1 L3', caption: 'S3: top-down risk card on the navigation screen' },
+          ] },
+        { kicker: 'Regulation check', title: 'Render the HUD alone and count pixels by zone', text: 'Zones follow the UN R176 draft and GB/T 46926—2025; each scenario is checked at its L1, L2 and L3 moments. This is an in-project approximation, not a type-approval test, and night, glare and eyebox offset were not assessed.', stacked: true, points: [
+            'Cue pixels in zone 1 are 0 everywhere; the largest opaque area in zone 2 is 11.4 deg² (limit 66 deg²).',
+            'Largest share of the core line of sight covered: about 2% for S1 and about 8% for S2; a user test must show whether that distracts.',
+          ], images: [
+            { src: '/works/portfolio/hmi/compliance.jpg', alt: 'Regulation and sight-line check board', caption: 'Regulation / sight-line check (labels in Chinese): three scenarios × S1 and S2; S3 shows risk on the center screen, and its HUD part matches S1', wide: true },
+          ] },
+      ],
       gallery: [
-        { image: '/works/portfolio/generated/hmi-story-triptych.png', alt: 'Cue intensity triptych', caption: 'Three intensities (AI-generated illustration): a light cue for low risk, a marked object for medium risk, a clear warning for high risk.', wide: true },
-        { image: '/works/portfolio/generated/hmi-attention-hero.png', alt: 'Driver view concept', caption: 'Driver view (AI-generated illustration): only the object the AI cares about most is marked, keeping the windshield clear.' },
+        { image: '/works/portfolio/generated/hmi-story-triptych.png', alt: 'Early concept triptych', caption: 'Early concept (AI-generated illustration): mark one object and add a short emotional line explaining why. After reviewing Chinese regulations, the emotional wording was dropped for a wordless visual language, and the scope was narrowed to L2.' },
       ],
-      comparison: { title: 'Chinese regulations and trade-offs', intro: 'For these cues to reach a car they must fit Chinese regulations. Three are relevant: they govern that the driver must keep watching the road, that the system must warn, and what may appear on the windshield. This concept only adds within those limits. Based on official announcements and published commentary; the full standard texts were not checked clause by clause.', columns: ['Requirement (summary)', 'Trade-off in this concept'], rows: [
+      comparison: { title: 'Chinese regulations and trade-offs', intro: 'Regulations govern that the driver must keep watching the road, that the system must warn, and what may appear on the windshield; this concept only adds within those limits. Zone calculations also follow the UN R176 draft (ECE/TRANS/WP.29/2024/155). Based on official announcements and published commentary; the full standard texts were not checked clause by clause.', columns: ['Requirement (summary)', 'Trade-off in this concept'], rows: [
           [
             'GB 47955—2026 Safety requirements for combined driver assistance (mandatory, from 1 Jan 2027)',
             'The driver must keep observing traffic and control the vehicle; the system must detect hands-off and eyes-off states, respond in steps from monitoring to warning to restriction, and inform users of its limits.',
-            'Cues only help maintain attention and never replace the required hands-off or eyes-off warnings; at high risk they give way to standardized warnings with no emotional wording.',
+            'Cues only help maintain attention and never replace the required hands-off or eyes-off warnings. “Take over” is repeated on the cluster and the wheel light strip so the HUD never warns alone. The emotional lines of the early concept were removed.',
           ],
           [
             'MIIT and SAMR notice on market access, recalls and OTA for intelligent connected vehicles (Apr 2025)',
             'Define functional limits and safety responses, fully inform users, and avoid exaggerated or false promotion.',
-            'Wording says what the AI is worried about, never “handled” or “relax”, and never implies the system can take over; the term “autonomous driving” is avoided.',
+            'The HUD always shows “L2” as a reminder that the driver is responsible. Text is limited to “L2” and “Take over”, with no “autonomous” wording and no hint that the system handles everything.',
           ],
           [
             'GB/T 46926—2025 Technical requirements and test methods for field-of-vision assistance systems of light vehicles',
             'Displays in the forward transparent area are zoned: the upper zone allows only non-static information with at most 50% opaque pixels, and AR overlays must align with the real scene.',
-            'Mark one object with an outline rather than a solid block; place short explanations in the lower zone briefly; hide the box if it cannot track the real target.',
+            'All cues sit in zone 2 at the lower edge, with 0 pixels in zone 1. Badges are hollow outlines with no dark backing. Elements attached to a target hide when tracking confidence falls below 0.8, leaving only the direction band.',
           ],
         ], sources: [
           [
@@ -725,42 +755,77 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
     {
       id: 'transparent-driving-hud',
       title: '道路を見続けるための運転支援HMI',
-      type: '知能運転 / 注意価値HMI',
-      category: '知能運転 / 注意価値HMI',
+      type: '知能運転 / AR-HUDのリスク提示',
+      category: '知能運転 / AR-HUDのリスク提示',
       year: '2025-2026',
       period: '大学院期・運転HMI',
-      status: '研究コンセプト',
-      role: 'HMIリサーチ、運転注意デザイン、安全境界、主観体験テスト計画',
-      methods: '運転場面の分解、表示強度の比較、中国国内の法規・規格の整理、主観評価（計画）',
-      next: 'HMIコンセプト段階 · 中国国内の関連法規と取捨選択を整理済み（公表資料と解説に基づく）。主観評価の質問紙を準備中。',
-      description: '運転支援中、AIが気にしている対象を一つだけ示し、理由を一文で添える。大量のデータを読む必要はなく、運転者は道路を見続ける。',
-      question: '知能運転が安定しても、人の注意と運転したい気持ちをどう残せるか。',
-      process: [['運転意欲', '人が座るだけになると、高価値な車の体験も移動手段へ縮小する。'], ['AIの注目を示す', '信頼は基礎にすぎず、AIがどの問題を見ているかを明示する。'], ['感情的な警告', '子どもの飛び出しや隣車線の接近を、表情と短文で直感的に伝える。'], ['法規との取捨', '中国国内の運転支援に関する現行法規・規格を整理し、どの提示が可能で、どこを標準化された警告に譲るべきかを決める。']],
-      processIcons: ['target', 'message', 'alert', 'check'],
+      status: 'Blenderコンセプト試作',
+      role: '個人制作：場面とリスク段階の設定、HUD表示言語、Blender試作、法規の区分チェック、VR検証計画',
+      methods: 'Blenderによる運転者視点シミュレーション（Pythonで生成）、3場面×3案の比較、表示区分の画素チェック、Quest 3＋視線計測（計画）',
+      next: 'Blenderのコンセプト試作は完成（3場面×3案）、表示区分は近似チェック済み。VRでの長時間行動テストは未実施。',
+      description: 'L2運転支援中、リスク提示はHUD視野の下端だけに置き、形・色・位置で「何が・どれほど急ぎで・どちら側に」を伝える。文字は「L2」と「運転を交代」の2つだけで、視線は道路から離れない。',
+      question: '運転支援が安定するほど運転者は気が緩むが、L2では責任は運転者にある。提示が多いと視界を遮って気が散り、距離や車速だけでは危険がどちらにあり、どれほど急ぐのかが分からない。',
+      process: [
+        ['視野の下端だけ', '提示はすべて中心視線より下に置き、2〜4秒後に通る路面も危険対象そのものも覆わない。'],
+        ['形・色・位置・動き', '入れ物はカプセル型バッジ一つ。図形で種類、青緑／琥珀／赤で緊急度、横位置で方向を示し、点滅するのは赤だけ。'],
+        ['跳ばずに移る', '平常 → 発見 → 上昇 → 対処 → 段階的に解除。0.5秒でフェードし、隣り合う段階はクロスフェードするので、急に出たり消えたりしない。'],
+        ['HUDだけで警告しない', '「運転を交代」はメーターとステアリングのライトにも同時に出す。文字は「L2」と「運転を交代」のみで、「自動運転」などの語は使わない。'],
+      ],
+      processIcons: ['eye', 'layers', 'refresh', 'alert'],
       outcomes: [
-        '距離や速度だけでなく、AIがどの対象をなぜ気にしているかが分かる。',
-        '表示は具体的な対象に付き、危険度で強弱を変えて邪魔をしない。法規が求める監視と警報はそのまま働き、この表示は補助にすぎない。',
+        '主案はS1の方位バー：量産級HUDで実現でき、遮る面積が最も小さく、対象追跡の誤差にも左右されない。',
+        'S2の路面リングはより直感的だが、大視野HUDが必要で遮る面積も大きい。S3は多くの車の現行方式で、対照として残し、「提示を前方に置く」効果がどれほどかを測る。',
+        '次はQuest 3に視線計測を加え、約20分の長時間運転で、5分ごとに前方への視線の割合と反応時間を集計する。',
       ],
-      image: '/works/portfolio/generated/hmi-risk-overlay.png',
+      image: '/works/portfolio/hmi/hero.jpg',
+      videos: [
+        { src: '/works/portfolio/hmi/compare_ch1.mp4', poster: '/works/portfolio/hmi/compare_ch1_poster.jpg', caption: '場面1 駐車車両の間から子どもが飛び出す（16秒）：半分見える → 車線へ走る → 自動緊急ブレーキで停止 → 通過後に段階的に解除。左上S1、右上S2、左下S3、右下はリスク段階のタイムライン。' },
+        { src: '/works/portfolio/hmi/compare_ch2.mp4', poster: '/works/portfolio/hmi/compare_ch2_poster.jpg', caption: '場面2 隣の車の割り込み（18秒）：ウインカー → 車線をまたぐ → 近距離で割り込み、システムが減速して譲る → 車間が戻ると解除。' },
+        { src: '/works/portfolio/hmi/compare_ch3.mp4', poster: '/works/portfolio/hmi/compare_ch3_poster.jpg', caption: '場面3 前方の工事（18秒）：遠くでコーンを認識 → 減速するが自分では車線変更できない → 運転交代の要求（HUD・メーター・ステアリングライト同時）→ 運転者が右へ車線変更して回避。' },
+      ],
+      modules: [
+        { kicker: '表示言語', title: '入れ物一つ × 図形4種 × 色3段階', text: 'すべての提示は輪郭だけの同じカプセル型バッジに入る。図形は「何か」だけを表し、色は3段階でISO 2575の意味に合わせる。', stacked: true, points: [
+            'L1 青緑：検知済み。「そこにいる」と知らせる。',
+            'L2 琥珀：危険が近づき、システムが減速・譲りを始める。',
+            'L3 赤：危険、または運転交代。唯一動く状態。',
+            '追跡の信頼度が0.8を下回ると、対象に重ねる要素は隠し、大まかな方位バーだけを残す。',
+          ], images: [
+            { src: '/works/portfolio/hmi/attribute.jpg', alt: '表示言語の凡例：カプセル型バッジ、図形4種、色3段階', caption: '表示言語の凡例（図中は中国語）：歩行者／車両／静止障害物／システム × 青緑／琥珀／赤', wide: true },
+          ] },
+        { kicker: '3つの案', title: '表示位置で分け、どれが最も視線を前方に保てるかを比べる', text: '3案ともHUDの「L2」表示、場面3の「運転を交代」、メーター、ステアリングライトは共通で、違うのはリスクそのものの見せ方だけ。', stacked: true, points: [
+            'S1 HUD方位バー（主案）：視野下端の色付きバーで、横位置がそのまま危険の方向、バッジが種類を示す。視野外の対象は端に寄せて矢印を付ける。対象を追いかけないので追跡の揺れに影響されず、遮る面積も最小。',
+            'S2 ARの路面リング＋軌跡予測：対象の足元にリングを描き、0.4〜2秒後の位置も示す。工事場面では閉鎖車線に斜線を描く。最も直感的だが、リングは車線上に描くため遮る割合が最も高い。量産の13°×6°視野では対象の多くが視野外になるため、24°×6.5°で設計した。',
+            'S3 センター画面の俯瞰（対照）：HUDにはリスクを出さず、ナビ画面の運転席側に俯瞰カードを出す。画面を見なければL3でも方向が分からない。これがテストで比べたい取捨選択。',
+          ], images: [
+            { src: '/works/portfolio/hmi/s1_child_l3.jpg', alt: 'S1 HUD方位バー、場面1のL3', caption: 'S1：赤いバーが子どもの方向の真下に出る' },
+            { src: '/works/portfolio/hmi/s2_merge_l3.jpg', alt: 'S2 ARの路面リング、場面2のL3', caption: 'S2：割り込み車の足元のリングと予測矢印' },
+            { src: '/works/portfolio/hmi/s3_child_l3.jpg', alt: 'S3 センター画面の俯瞰、場面1のL3', caption: 'S3：ナビ画面に出る俯瞰のリスクカード' },
+          ] },
+        { kicker: '法規チェック', title: 'HUDだけを描画し、区分ごとに画素を数える', text: '区分はUN R176草案とGB/T 46926—2025に従い、各場面のL1・L2・L3の3時点で確認した。プロジェクト内の近似計算で型式認証試験ではなく、夜間・グレア・アイボックスのずれは評価していない。', stacked: true, points: [
+            '領域1内の提示画素はすべて0、領域2の不透明面積は最大11.4°²（上限66°²）。',
+            '中心視線を覆う最大割合はS1が約2%、S2が約8%。気が散るかどうかは実験で確かめる。',
+          ], images: [
+            { src: '/works/portfolio/hmi/compliance.jpg', alt: '法規と視線のチェックボード', caption: '法規・視線チェック（図中は中国語）：3場面 × S1・S2。S3はリスクをセンター画面に出し、HUD部分はS1と同じ', wide: true },
+          ] },
+      ],
       gallery: [
-        { image: '/works/portfolio/generated/hmi-story-triptych.png', alt: '提示強度の三連図', caption: '三段階の強度（AI生成のイメージ）：低リスクは軽い提示、中リスクは対象表示、高リスクは明確な警告。', wide: true },
-        { image: '/works/portfolio/generated/hmi-attention-hero.png', alt: '運転視点の構想', caption: '運転視点（AI生成のイメージ）：AIが最も気にしている対象だけを示し、視界を情報で埋めない。' },
+        { image: '/works/portfolio/generated/hmi-story-triptych.png', alt: '初期案の三連図', caption: '初期案（AI生成のイメージ）：対象を一つだけ示し、理由を感情的な短文で添えていた。国内法規を確認したうえで感情的な文言をやめ、文字を使わない図形言語に変え、範囲もL2に絞った。' },
       ],
-      comparison: { title: '中国国内の法規と取捨選択', intro: 'この表示を車に載せるには、まず国内法規を満たす必要がある。関係する三つを整理した。法規が定めるのは「運転者は道路を見続ける」「システムは警告する」「フロントガラスに何を出せるか」であり、本案はその範囲内で補うだけにする。公表資料と解説に基づき、規格本文は逐条確認していない。', columns: ['法規の要求（要約）', '本案の取捨選択'], rows: [
+      comparison: { title: '中国国内の法規と取捨選択', intro: '法規が定めるのは「運転者は道路を見続ける」「システムは警告する」「フロントガラスに何を出せるか」であり、本案はその範囲内で補うだけにする。区分の計算はUN R176草案（ECE/TRANS/WP.29/2024/155）も参照した。公表資料と解説に基づき、規格本文は逐条確認していない。', columns: ['法規の要求（要約）', '本案の取捨選択'], rows: [
           [
             'GB 47955—2026 組合せ運転支援システムの安全要求（強制、2027年1月1日施行）',
             '運転者は交通状況を見続けて車両を操作する。システムは手放しと視線外れを検知し、「監視—警告—制限」の段階で対応し、機能の限界を利用者に知らせる。',
-            '表示は注意を保つための補助と位置づけ、法規が求める手放し・視線警報の代わりにはしない。高リスク時は標準化された警告に譲り、感情的な文言は加えない。',
+            '表示は注意を保つための補助で、法規が求める手放し・視線警報の代わりにはしない。「運転を交代」はメーターとステアリングライトにも出し、HUDだけに警告を任せない。初期案の感情的な短文はやめた。',
           ],
           [
             '工業情報化部・市場監督管理総局「スマートコネクテッドカーの型式認可・リコール・OTA管理の強化に関する通知」（2025年4月）',
             '機能の境界と安全対応を明確にし、告知義務を果たし、誇大・虚偽の宣伝をしない。',
-            '文言は「AIが何を気にしているか」だけを伝え、「対応済み」「安心して」とは言わず、システムが運転を引き受けると示唆しない。「自動運転」という表現も避ける。',
+            'HUDに常に「L2」を出し、責任が運転者にあることを示す。文字は「L2」と「運転を交代」だけで、「自動運転」などの語も、システムが何でも引き受けるという示唆も避ける。',
           ],
           [
             'GB/T 46926—2025 小型車の視界補助システムの技術要求と試験方法',
             '前方視界の透明領域の表示を区分して管理：上部領域は非静的情報のみ、不透明画素は50%以下。ARの重ね合わせは実環境と一致させる。',
-            '強調は一つの対象だけ、塗りつぶしでなく輪郭線で。説明文は下部領域に短時間だけ表示。実際の対象に追従できない場合は枠を出さない。',
+            '提示はすべて視野下端の領域2に置き、領域1は0画素。バッジは輪郭だけで暗い下地を敷かない。対象に重ねる要素は追跡の信頼度が0.8未満なら隠し、方位バーだけを残す。',
           ],
         ], sources: [
           [
@@ -1218,47 +1283,77 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
     {
       id: 'transparent-driving-hud',
       title: '让驾驶者继续看路的辅助驾驶 HMI',
-      type: '智能驾驶 / HMI 概念',
-      category: '智能驾驶 / HMI 概念',
+      type: '智能驾驶 / AR-HUD 风险提示',
+      category: '智能驾驶 / AR-HUD 风险提示',
       year: '2025-2026',
       period: '研究生阶段 · 智能驾驶 HMI',
-      status: 'HMI 概念方案',
-      role: '独立完成：驾驶场景分析、HMI 概念、提示分级与文案、评价方案设计',
-      methods: '驾驶场景拆解、提示强度比较、国内法规与标准梳理、主观评价（计划）',
-      next: 'HMI 概念阶段 · 已梳理国内相关法规与取舍（依据公开发布与解读）；主观评价问卷准备中。',
-      description: '辅助驾驶时，只标出 AI 正在担心的那一个对象，并用一句话说明原因：驾驶者不用读一堆数据，也会继续留意路面。',
-      question: '辅助驾驶越稳定，驾驶者越容易放松观察；系统只显示距离、速度等参数，人不知道它“在担心什么”，风险出现时难以及时理解。',
+      status: 'Blender 概念原型',
+      role: '独立完成：场景与风险分级、HUD 显示语言、Blender 原型、法规分区自检、VR 验证方案',
+      methods: 'Blender 驾驶视角模拟（Python 程序生成）、三场景 × 三方案对比、显示分区像素自检、Quest 3 + 眼动（计划）',
+      next: 'Blender 概念原型完成（三个场景 × 三个方案），法规分区做了近似自检；VR 长时间行为测试还没开始。',
+      description: 'L2 辅助驾驶时，风险提示只放在 HUD 视场下缘，用图形、颜色和位置告诉驾驶员“是什么、多急、在哪边”。全程只有「L2」「请接管」两处文字，视线不用离开路面。',
+      question: '辅助驾驶越稳定，驾驶员越容易走神，但 L2 下责任仍在驾驶员。提示多了会挡视线、让人分心；只显示距离和车速，又不知道风险在哪边、有多急。',
       process: [
-        ['只标一个对象', '按风险优先级，只高亮当前最需要注意的儿童、邻车等对象。'],
-        ['说明担心什么', '用简短语句说明原因，例如“小朋友可能突然冲出”。'],
-        ['按风险调强度', '低风险用轻提示维持注意，高风险只保留明确、标准化的警示。'],
-        ['对照法规取舍', '调查国内现行辅助驾驶相关法规与标准，判断哪些提示可以做、哪些必须让位给标准化警示。'],
+        ['只放在视场下缘', '提示都在核心视线以下，不压住本车 2–4 秒要经过的路面，也不压住风险目标本身。'],
+        ['形 · 色 · 位 · 动', '胶囊徽章是唯一的容器：图形表示类别，青 / 琥珀 / 红表示紧急度，横向位置表示方位，只有红色会闪。'],
+        ['渐变而不是跳变', '平静 → 发现 → 升级 → 处置 → 逐级解除。提示 0.5 秒渐入渐出，相邻两档交叉过渡，不会突然出现或消失。'],
+        ['HUD 不单独报警', '「请接管」同步到仪表屏和方向盘灯带；文字只留「L2」「请接管」，不出现“自动驾驶 / 智驾”。'],
       ],
-      processIcons: ['target', 'message', 'alert', 'check'],
+      processIcons: ['eye', 'layers', 'refresh', 'alert'],
       outcomes: [
-        '驾驶者看到的是 AI 在担心哪个对象、为什么，而不只是距离和车速。',
-        '提示跟着具体对象走，按风险分轻重，尽量不打扰；法规要求的监测和报警照常工作，这些提示只是补充。',
+        '主方案选 S1 方位光带：量产级 HUD 就能实现，遮挡最少，也不受目标跟踪误差影响。',
+        'S2 贴地光圈更直观，但要大视场 HUD、遮挡更多；S3 是很多车的现有做法，留作对照，用来测“把提示留在前方”到底差多少。',
+        '下一步在 Quest 3 里加眼动做约 20 分钟的长时间驾驶，每 5 分钟统计一次视线落在前方的比例和反应时间。',
       ],
-      image: '/works/portfolio/generated/hmi-risk-overlay.png',
+      image: '/works/portfolio/hmi/hero.jpg',
+      videos: [
+        { src: '/works/portfolio/hmi/compare_ch1.mp4', poster: '/works/portfolio/hmi/compare_ch1_poster.jpg', caption: '第 1 章 儿童从停放车辆间跑出（16 秒）：半露 → 跑向车道 → 自动紧急制动至停车 → 走过后逐级解除。左上 S1、右上 S2、左下 S3，右下是风险档时间轴。' },
+        { src: '/works/portfolio/hmi/compare_ch2.mp4', poster: '/works/portfolio/hmi/compare_ch2_poster.jpg', caption: '第 2 章 邻车加塞（18 秒）：打灯 → 压线并入 → 近距离切入，系统减速让行 → 车距恢复后解除。' },
+        { src: '/works/portfolio/hmi/compare_ch3.mp4', poster: '/works/portfolio/hmi/compare_ch3_poster.jpg', caption: '第 3 章 前方施工（18 秒）：远处识别锥桶 → 减速但无法自行变道 → 请接管（HUD、仪表屏、方向盘灯带同步）→ 驾驶员向右变道绕行。' },
+      ],
+      modules: [
+        { kicker: '显示语言', title: '一种容器 × 四类图形 × 三级颜色', text: '所有提示装在同一种描边中空的胶囊徽章里：图形只表示“是什么”，颜色只有三级，语义参照 ISO 2575。', stacked: true, points: [
+            'L1 青色：系统发现了，告诉你“它在那里”。',
+            'L2 琥珀：风险在靠近，系统开始减速或让行。',
+            'L3 红色：危险或请接管，唯一会动的状态。',
+            '跟踪置信度低于 0.8 时，贴合目标的元素直接隐藏，只保留粗粒度的方位光带。',
+          ], images: [
+            { src: '/works/portfolio/hmi/attribute.jpg', alt: '属性语言图例：胶囊徽章、四类图形与三级颜色', caption: '属性语言图例：行人 / 车辆 / 静态障碍 / 系统 × 青 / 琥珀 / 红', wide: true },
+          ] },
+        { kicker: '三个方案', title: '按显示位置区分，比较哪种最能把视线留在前方', text: '三个方案共用 HUD 上的「L2」状态、第 3 章的「请接管」、仪表屏和方向盘灯带，只在风险怎么显示上不同。', stacked: true, points: [
+            'S1 HUD 方位光带（主方案）：视场下缘一条彩色光条，横向位置就是风险方位，徽章表示类别；目标在视场外时贴边加箭头。不跟着目标移动，不受跟踪抖动影响，遮挡最少。',
+            'S2 AR 贴地光圈 + 轨迹预测：目标脚下画光圈，再画出它 0.4–2 秒后的位置；施工场景画封闭车道斜纹。最直观，但光圈本来就画在车道上，遮挡比例最高；按量产 13°×6° 视场，这些目标大多落在视场外，所以按 24°×6.5° 设计。',
+            'S3 中控屏鸟瞰（对照组）：HUD 不画风险，中控屏导航界面靠驾驶员一侧弹出俯视卡片。没看中控屏的话，L3 时不知道风险方向，这正是要测试比较的取舍。',
+          ], images: [
+            { src: '/works/portfolio/hmi/s1_child_l3.jpg', alt: 'S1 HUD 方位光带，第 1 章 L3', caption: 'S1：红色光条在儿童方位正下方' },
+            { src: '/works/portfolio/hmi/s2_merge_l3.jpg', alt: 'S2 AR 贴地光圈，第 2 章 L3', caption: 'S2：切入车辆脚下的光圈与预测箭头' },
+            { src: '/works/portfolio/hmi/s3_child_l3.jpg', alt: 'S3 中控屏鸟瞰，第 1 章 L3', caption: 'S3：导航界面上弹出的俯视风险卡片' },
+          ] },
+        { kicker: '法规自检', title: '把 HUD 单独渲染，按分区规则统计像素', text: '按 UN R176 草案与 GB/T 46926—2025 的分区，三章各取 L1 / L2 / L3 三个时刻检测。这是项目内的近似算法，不是认证测试，也没评估夜间、眩光和眼盒偏移。', stacked: true, points: [
+            '区域 1 内的提示像素都是 0；区域 2 不透明面积最大 11.4°²（限值 66°²）。',
+            '遮挡核心视线的最大比例：S1 约 2%，S2 约 8%，需要真人测试确认会不会分心。',
+          ], images: [
+            { src: '/works/portfolio/hmi/compliance.jpg', alt: '法规与视线自检图板', caption: '法规 / 视线自检：三章 × S1、S2，S3 的风险提示在中控屏上，HUD 部分同 S1', wide: true },
+          ] },
+      ],
       gallery: [
-        { image: '/works/portfolio/generated/hmi-story-triptych.png', alt: '提示强度三连图', caption: '三种强度（AI 生成示意）：低风险轻提示、中风险标出对象、高风险明确警示。', wide: true },
-        { image: '/works/portfolio/generated/hmi-attention-hero.png', alt: '驾驶视角示意', caption: '驾驶视角（AI 生成示意）：只标出 AI 当前最在意的对象，不让风挡被信息占满。' },
+        { image: '/works/portfolio/generated/hmi-story-triptych.png', alt: '早期方案三连图', caption: '早期方案（AI 生成示意）：只标出一个对象，并配一句情感化短句说明原因。对照国内法规后去掉了情感化文案，改为不用文字的图形语言，并把方案收窄到 L2。' },
       ],
-      comparison: { title: '国内法规与取舍', intro: '这类提示要上车，先要过国内法规这一关。下面按与本方案相关的三项整理：法规管的是“驾驶员必须盯路、系统必须提醒、风挡上能放什么”，本方案只在这些边界之内做补充。依据为公开发布与解读，未逐条核对标准原文。', columns: ['法规要求（摘要）', '本方案的取舍'], rows: [
+      comparison: { title: '国内法规与取舍', intro: '法规管的是“驾驶员必须盯路、系统必须提醒、风挡上能放什么”，本方案只在这些边界之内做补充。分区计算另参照 UN R176 草案（ECE/TRANS/WP.29/2024/155）。依据为公开发布与解读，未逐条核对标准原文。', columns: ['法规要求（摘要）', '本方案的取舍'], rows: [
           [
             'GB 47955—2026 组合驾驶辅助系统安全要求（强制，2027.1.1 实施）',
             '驾驶员须持续观察交通并控制车辆；系统须检测脱手和视线脱离，按“监测—提醒—限制”逐级响应，并对功能边界做用户告知。',
-            '提示定位为“维持注意”的补充，不替代法规要求的脱手、视线报警；进入高风险时让位给标准化警示，不加情感化文案。',
+            '提示定位为维持注意的补充，不替代法规要求的脱手、视线报警；「请接管」同步到仪表屏和方向盘灯带，不让 HUD 单独承担警告；早期方案里的情感化短句已去掉。',
           ],
           [
             '工信部、市场监管总局《关于进一步加强智能网联汽车产品准入、召回及软件在线升级管理的通知》（2025.4）',
             '明确系统功能边界和安全响应措施，严格履行告知义务，不得夸大和虚假宣传。',
-            '文案只说“AI 在担心什么”，不说“已处理”“请放心”，也不暗示系统能接管；措辞避免“自动驾驶”。',
+            'HUD 常显「L2」，提醒驾驶员仍要负责；文字只保留「L2」「请接管」，不出现“自动驾驶 / 智驾”，也不暗示系统能接管一切。',
           ],
           [
             'GB/T 46926—2025 轻型汽车视野辅助系统技术要求及试验方法',
             '前方视野透明区域内的显示分区管理：上部区域只允许非静态信息，不透明像素占比不超过 50%；AR 叠加须与真实环境对准。',
-            '只标一个对象，用描边而不是实心色块；说明文字放在下部区域、短暂出现；对象框必须跟准真实目标，否则不显示。',
+            '所有提示放在区域 2（视场下缘），区域 1 为 0 像素；徽章描边中空，不画深色底板；贴合目标的元素在跟踪置信度低于 0.8 时隐藏，只保留方位光带。',
           ],
         ], sources: [
           [

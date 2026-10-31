@@ -67,9 +67,9 @@ const visualNotes: Record<CaseId, Record<'en' | 'ja' | 'zh', string>> = {
     zh: '晚餐示例为说明用的设想场景。右侧面板逐项列出 AI 的理解，用户可以补一句话修正，或改某一项由谁判断。',
   },
   'transparent-driving-hud': {
-    en: 'Only the most important risk is shown. A short emotional cue makes the AI’s concern immediately understandable without filling the windshield with alerts.',
-    ja: '最も重要な危険だけを表示する。短い感情的な言葉でAIの懸念を直感的に伝え、視界を警告で埋めない。',
-    zh: '图中对比邻车与儿童两类风险提示。实际交互需按风险优先级控制显示数量，避免同时出现过多内容；表情、短句与风险程度的对应关系仍需验证。',
+    en: 'Blender render of the driver view (scenario 1, S1): a child steps out from between parked cars on the right. The pedestrian badge and arrow at the lower edge of the HUD point to the child; “L2” on the left is the system status. Cars, people and the city are untextured models, and the navigation screen is a mock-up.',
+    ja: 'Blenderで描画した運転者視点（場面1、S1）：右側の駐車車両の間から子どもが出てくる。HUD下端の歩行者バッジと矢印が子どもの方向を指し、左の「L2」はシステムの状態。車両・人・街は簡易モデルで、ナビ画面はイメージ。',
+    zh: 'Blender 渲染的驾驶员视角（第 1 章，S1）：儿童从右侧停放车辆间走出，HUD 下缘的行人徽章和箭头指向儿童所在方位，左侧「L2」是系统状态。车辆、行人和城市都是白模，导航界面为示意。',
   },
   'fridge-timeline': {
     en: 'This board is a 2026 AI-assisted reinterpretation of the concept, not the original 2023 design. In the original, the door cue was an angled light strip beside the handle (see the 2023 renders and animation below).',
@@ -280,9 +280,9 @@ export function ConceptCasePage({ id }: { id: CaseId }) {
         <section className="border-b border-[#f7b718]/25 bg-neutral-950 text-white">
           <div className="mx-auto max-w-6xl px-5 py-12 md:px-8 md:py-16">
             <h2 className="text-3xl font-semibold">{t.videos}</h2>
-            <div className={`mt-8 grid gap-6 ${work.videos.length > 1 ? 'md:grid-cols-[1.6fr_1fr]' : 'max-w-4xl'}`}>
-              {work.videos.map((video) => (
-                <figure key={video.src} className="overflow-hidden rounded-lg border border-white/15 bg-black">
+            <div className={`mt-8 grid gap-6 ${work.videos.length === 3 ? 'md:grid-cols-2' : work.videos.length > 1 ? 'md:grid-cols-[1.6fr_1fr]' : 'max-w-4xl'}`}>
+              {work.videos.map((video, videoIndex) => (
+                <figure key={video.src} className={`overflow-hidden rounded-lg border border-white/15 bg-black ${work.videos?.length === 3 && videoIndex === 0 ? 'md:col-span-2' : ''}`}>
                   <video src={video.src} poster={video.poster} controls muted playsInline preload="none" className="aspect-video w-full bg-black object-contain" />
                   <figcaption className="px-5 py-4 text-sm leading-6 text-neutral-300">{video.caption}</figcaption>
                 </figure>
@@ -357,7 +357,18 @@ export function ConceptCasePage({ id }: { id: CaseId }) {
           <div className="mx-auto max-w-6xl px-5 py-12 md:px-8 md:py-16">
             <h2 className="text-3xl font-semibold">{work.comparison.title}</h2>
             <p className="mt-4 max-w-4xl leading-7 text-neutral-600 dark:text-neutral-300">{work.comparison.intro}</p>
-            <div className="mt-8 overflow-x-auto">
+            <div className="mt-8 grid gap-4 md:hidden">
+              {work.comparison.rows.map(([dimension, ours, theirs]) => (
+                <div key={dimension} className="rounded-lg border border-[#f7b718]/30 p-4">
+                  <h3 className="text-sm font-semibold leading-6">{dimension}</h3>
+                  <p className="mt-3 text-xs font-semibold text-[#b57900] dark:text-[#f7b718]">{work.comparison?.columns[0]}</p>
+                  <p className="mt-1 text-sm leading-6 text-neutral-800 dark:text-neutral-100">{ours}</p>
+                  <p className="mt-3 text-xs font-semibold text-neutral-500">{work.comparison?.columns[1]}</p>
+                  <p className="mt-1 text-sm leading-6 text-neutral-600 dark:text-neutral-300">{theirs}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-8 hidden overflow-x-auto md:block">
               <table className="w-full min-w-[640px] border-collapse text-left text-sm">
                 <thead>
                   <tr className="border-b-2 border-[#f7b718]">

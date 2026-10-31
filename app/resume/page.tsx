@@ -6,7 +6,7 @@ import { getOrderedPortfolioWorks } from '../../lib/portfolio-data'
 const resumeProjectIds = ['fridge-timeline', 'alive-energy-link', 'smart-oven-timing', 'co-creative-ai-training', 'transparent-driving-hud']
 
 const resumeProjectVisuals: Record<string, string> = {
-  'transparent-driving-hud': '/works/portfolio/generated/hmi-risk-overlay.png',
+  'transparent-driving-hud': '/works/portfolio/hmi/hero.jpg',
   'fridge-timeline': '/works/portfolio/fridge-system/exterior.jpg',
   'alive-energy-link': '/works/portfolio/alive-energy-link/cover-three-appliances.jpg',
   'smart-oven-timing': '/works/portfolio/oven-state-timing/cover-ai-oven.jpg',
