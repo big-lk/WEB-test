@@ -256,7 +256,7 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
         'Coffee can be daily and a favorite restaurant weekly; each interval is set by the user, with no one-size reminder.',
         'After a 57-person concept survey, built and released the WeChat mini program with AI development tools.',
       ],
-      image: '/works/portfolio/haojiu-meichi-cover-upscaled.png',
+      image: '/works/haojiu-meichi/ui/cover-v11.jpg',
       href: '/works/taste-again',
     },
     {
@@ -884,7 +884,7 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
       ],
       processIcons: ['edit', 'calendar', 'list', 'check'],
       outcomes: ['前回からの日数と個人の目安周期を一つの判断で見られ、長期の記録もいつでも探せる。', '食べ物ごとに異なるリズムと目安周期を設定できる。', '57人の概念調査後、AI開発ツールでWeChatミニプログラムを完成・公開した。'],
-      image: '/works/portfolio/haojiu-meichi-cover-upscaled.png',
+      image: '/works/haojiu-meichi/ui/cover-v11.jpg',
       href: '/works/taste-again',
     },
     {
@@ -1425,7 +1425,7 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
         '咖啡可以天天喝，有的店一周去一次，周期各自设定，不用统一提醒。',
         '57 人概念问卷后，借助 AI 开发工具完成小程序并上线。',
       ],
-      image: '/works/portfolio/haojiu-meichi-cover-upscaled.png',
+      image: '/works/haojiu-meichi/ui/cover-v11.jpg',
       href: '/works/taste-again',
     },
     {

@@ -85,24 +85,24 @@ const copy: Record<Language, CaseCopy> = {
     uiCopy: '界面围绕三个判断组织：多久没吃、个人通常多久想吃一次、这次是否要重新记录。其他信息不抢占主流程。',
     uiPoints: [
       {
-        title: '先看到哪些味道已经接近个人周期',
-        copy: '首页把距上次食用天数与个人参考周期放在一起，帮助用户从自己的记录中缩小候选。',
-        image: '/works/haojiu-meichi/ui/home.jpg',
-        alt: '好久没吃小程序首页真实界面',
-        attraction: '为什么这样做：系统提供时间参考，不替用户决定今天必须吃什么。',
+        title: '首页先看吃饭时间线和很久没尝的味道',
+        copy: '上方是吃饭时间线（周 / 月），一眼看出最近吃了什么；下面按多久没吃排出候选，可以凭感觉挑，也可以挑最久没吃的。',
+        image: '/works/haojiu-meichi/ui/v11-home.jpg',
+        alt: '好久没吃 1.1 首页：吃饭时间线与很久没尝的味道',
+        attraction: '为什么这样做：系统只给时间参考，不替用户决定今天必须吃什么。',
       },
       {
-        title: '吃过之后，用最少信息更新这一次',
-        copy: '记录按钮固定在中间；名称和日期优先，照片、地点和感受都能跳过，记起来不费事。',
-        image: '/works/haojiu-meichi/ui/record.jpg',
-        alt: '好久没吃小程序记录页真实界面',
-        attraction: '为什么这样做：颜色层级和主动作要一眼看见，减少第一次记录的犹豫。',
+        title: '吃饭日历：漏记的饭也能补回来',
+        copy: '日历按天显示吃过的东西，点某一天就能补记或改日期。不要求天天打卡，漏了也能补上。',
+        image: '/works/haojiu-meichi/ui/v11-calendar.jpg',
+        alt: '好久没吃 1.1 吃饭日历',
+        attraction: '为什么这样做：记录越完整，周期越准；补记比每天提醒更不打扰。',
       },
       {
-        title: '周期表让不同食物拥有不同节奏',
-        copy: '日期、次数、距上次天数与参考周期共同呈现；咖啡可以每天，某家餐厅可以每周，不使用统一规则。',
-        image: '/works/haojiu-meichi/ui/memories.jpg',
-        alt: '好久没吃小程序回忆页真实界面',
+        title: '该吃了：按自己的周期排好顺序',
+        copy: '超过自己设定周期的味道排在前面，饮品写“该喝了”；不想吃就点“晚 7 天再出现”，记录不会删。',
+        image: '/works/haojiu-meichi/ui/v11-due.jpg',
+        alt: '好久没吃 1.1 该吃了页面',
         attraction: '为什么这样做：用户看到的是自己的生活规律，而不是平台规定的提醒周期。',
       },
     ],
@@ -118,16 +118,16 @@ const copy: Record<Language, CaseCopy> = {
     loopCopy: '产品不要求连续打卡。每次吃过之后更新日期，周期表才会逐渐接近用户真实的生活节奏；长期积累的记录也能随时查找，回答“上次是什么时候吃的”。',
     loop: [['记录', '保存食物与日期'], ['计算', '显示距上次食用天数'], ['设定', '给出个人参考周期'], ['判断', '决定现在是否再吃'], ['更新', '吃过后刷新日期'], ['积累', '逐渐形成个人周期']],
     iterKicker: '版本迭代',
-    iterTitle: '上线后按“第一次用的人”重走两轮，改出 1.1 版',
-    iterCopy: '1.0 上线后，我让两个模拟新人（一个按引导填、一个跳过引导）用真实页面代码走完整流程，再按“完全不知道这个软件的人”重走一轮，把卡住的地方逐条改掉。这还不是真人测试，真人测试是下一步。',
+    iterTitle: '按“第一次用的人”重走两轮，改出现在的 1.1 版',
+    iterCopy: '现在的 1.1 版，是按“第一次用的人”重走两轮后改出来的：两个模拟新人（一个按引导填、一个跳过引导）用真实页面代码走完整流程，再按“完全不知道这个软件的人”重走一轮，把卡住的地方逐条改掉。这还不是真人测试，真人测试是下一步。',
     iterCaption: '1.1 的新手流程：欢迎 → 1 分钟填好口味 → 确认 → 首页吃饭时间线（开发者工具渲染截图）',
-    versions: [['1.0', '上线版本', '记一笔、距上次天数、个人周期、“该吃了”列表、隐私说明与删除数据。'], ['1.1', '界面整体改版', '首页加入吃饭时间线（周 / 月）和吃饭日历，可以补记过去的饭；1 分钟快速填好口味；凭感觉挑或挑最久没吃的；三档评价；导出备份与恢复；照片按用户分开保存。']],
+    versions: [['1.1', '当前版本', '首页吃饭时间线（周 / 月）和吃饭日历，可以补记过去的饭；1 分钟快速填好口味；凭感觉挑或挑最久没吃的；三档评价；导出备份与恢复；照片按用户分开保存。']],
     fixesTitle: '走查发现的问题，和怎么改的',
     fixes: [['同一个名字记两次，会出现两条“拉面”，刚吃过的那条还显示“该吃了”', '同名自动并进原来那条，算又吃了一次，并提示“之前记过”'], ['刚开始只有几条记录时，“凭感觉挑”点了什么都没有', '没有可推荐的就先隐藏，指引改为先看时间线'], ['几天前定的方案一直挂着“今天的方案”，每天还自动弹一次', '写明是哪天定的，只有今天定的才会弹出'], ['“吃过的”页用另一套颜色和图例，和首页“紫 = 过去、橙 = 今天”冲突', '去掉旧时间轴，全站统一成一套颜色'], ['饮品也写“该吃了”，今天已经吃过的还出现“今天吃它”', '饮品改成“该喝了”，今天吃过的不再提示']],
     pending: '还没解决：“凭感觉挑”效果偏弱（“很久没吃”的分数压过了感觉）；快速填空的确认页偏密；“方案”这个词偏抽象。',
     resultKicker: '当前结果',
     resultTitle: '57 人概念调研后，完成真实可用并上线的微信小程序',
-    resultCopy: '当前版本已经覆盖食物记录、距上次天数、个人周期设置、周期查看与再次记录的主要流程。',
+    resultCopy: '当前是 1.1 版：吃饭时间线与日历、记一笔、个人周期、该吃了、凭感觉挑，以及备份与恢复。',
     result: [['核心流程', '食物记录、日期更新、周期设置、周期列表与再次记录。'], ['个人节奏', '不同食物分别设置参考周期，并保留修改与忽略的权利。'], ['真实实现', '借助 AI 开发工具完成微信小程序，实现可实际操作的主要流程。']],
     nextTitle: '接下来要看什么',
     next: ['找 5–8 位真实用户做任务测试：第一次记录、找回旧味道、处理“该吃了”，看是否不用解释。', '7 天使用观察：首条记录完成率、回访和再次品尝。', '加大“凭感觉挑”里感觉的权重，再看推荐会不会跟着变。'],
@@ -154,9 +154,27 @@ const copy: Record<Language, CaseCopy> = {
     uiTitle: 'Make days, intervals, and repeat recording visible at a glance',
     uiCopy: 'The interface supports three judgments: how long it has been, how often the user usually wants that food, and whether to record it again.',
     uiPoints: [
-      { title: 'See which flavors are near their personal interval', copy: 'The home screen pairs days since each food was last eaten with its personal interval to narrow candidates from the user’s records.', image: '/works/haojiu-meichi/ui/home.jpg', alt: 'Real home screen', attraction: 'Design reason: provide a time reference and leave the choice to the user.' },
-      { title: 'Update a meal with minimal information', copy: 'The central record button anchors the main action. Name and date come first; photos, places, and feelings can be skipped.', image: '/works/haojiu-meichi/ui/record.jpg', alt: 'Real recording screen', attraction: 'Design reason: a visible hierarchy and main action reduce hesitation on the first record.' },
-      { title: 'Give different foods different rhythms', copy: 'Dates, counts, days elapsed, and reference intervals appear together. Coffee can be daily; a restaurant can be weekly.', image: '/works/haojiu-meichi/ui/memories.jpg', alt: 'Real food-cycle reference screen', attraction: 'Design reason: reflect the user’s own routines through personal intervals.' },
+      {
+        title: 'The home screen starts with a meal timeline and long-missed flavors',
+        copy: 'A meal timeline (week / month) shows what you have eaten lately; below, candidates are ordered by how long it has been. Pick by feeling, or pick the one you have gone longest without.',
+        image: '/works/haojiu-meichi/ui/v11-home.jpg',
+        alt: 'Long Time No Taste 1.1 home: meal timeline and long-missed flavors',
+        attraction: 'Why: the app offers a time reference, not an order to eat something today.',
+      },
+      {
+        title: 'Meal calendar: add the meals you forgot to log',
+        copy: 'The calendar shows what you ate each day; tap a day to add a meal or change a date. No daily check-in needed, and gaps can be filled later.',
+        image: '/works/haojiu-meichi/ui/v11-calendar.jpg',
+        alt: 'Long Time No Taste 1.1 meal calendar',
+        attraction: 'Why: the more complete the log, the more accurate the cycle; filling gaps is less intrusive than daily reminders.',
+      },
+      {
+        title: 'Due list: ordered by your own intervals',
+        copy: 'Flavors past your own interval come first, and drinks say “time to drink”. Not in the mood? “Show again in 7 days” postpones it without deleting the record.',
+        image: '/works/haojiu-meichi/ui/v11-due.jpg',
+        alt: 'Long Time No Taste 1.1 due list',
+        attraction: 'Why: users see their own rhythm, not a reminder schedule set by the platform.',
+      },
     ],
     decisionsKicker: 'Design decisions',
     decisionsTitle: 'Research changed three core decisions',
@@ -166,16 +184,16 @@ const copy: Record<Language, CaseCopy> = {
     loopCopy: 'Updating the date after each meal gradually brings the cycle table closer to the user’s real routine, and the accumulated log answers “when did I last have this?” at any time.',
     loop: [['Record', 'Save the food and date'], ['Calculate', 'Show days since it was last eaten'], ['Set', 'Choose a personal reference interval'], ['Judge', 'Decide whether to eat it now'], ['Update', 'Refresh the date after eating'], ['Accumulate', 'Build a personal cycle']],
     iterKicker: 'Iteration',
-    iterTitle: 'After launch, two walkthroughs as a first-time user led to version 1.1',
-    iterCopy: 'After 1.0 went live, two simulated newcomers (one following the onboarding, one skipping it) ran the full flow on the real page code; then I walked it again as someone who knows nothing about the app, and fixed each place people would get stuck. This is not yet a test with real users; that comes next.',
+    iterTitle: 'Two walkthroughs as a first-time user shaped the current version 1.1',
+    iterCopy: 'Version 1.1 came out of two walkthroughs as a first-time user: two simulated newcomers (one following the onboarding, one skipping it) ran the full flow on the real page code, then I walked it again as someone who knows nothing about the app and fixed each place they got stuck. This is not yet a test with real users; that comes next.',
     iterCaption: 'The 1.1 onboarding: welcome → fill in your tastes in a minute → confirm → home meal timeline (rendered in the developer tools)',
-    versions: [['1.0', 'Launch version', 'Quick record, days since last eaten, personal intervals, a “due” list, privacy notes, and data deletion.'], ['1.1', 'Full redesign', 'A meal timeline (week / month) and meal calendar on the home screen, with past meals addable; a one-minute taste setup; pick by feeling or by longest gap; three-level ratings; backup export and restore; photos stored per user.']],
+    versions: [['1.1', 'Current version', 'A meal timeline (week / month) and meal calendar on the home screen, with past meals addable; a one-minute taste setup; pick by feeling or by longest gap; three-level ratings; backup export and restore; photos stored per user.']],
     fixesTitle: 'What the walkthroughs found, and the fix',
     fixes: [['Recording the same name twice created two “ramen” entries, and the one just eaten still showed as due', 'Same names merge into the existing entry as one more time eaten, with a note saying so'], ['With only a few records, “pick by feeling” returned nothing', 'It stays hidden until there is something to suggest; the guide points to the timeline first'], ['A plan made days ago stayed labeled “today’s plan” and popped up every day', 'It shows the day it was made, and only today’s plan pops up'], ['The history page used its own colors and legend, clashing with “purple = past, orange = today”', 'The old timeline was removed and one color scheme used throughout'], ['Drinks also said “time to eat”, and items already eaten today still offered “eat it today”', 'Drinks say “time to drink”, and items eaten today are no longer suggested']],
     pending: 'Still open: “pick by feeling” has little effect (the long-gap score outweighs feelings); the quick-setup confirmation page is dense; the word “plan” feels abstract.',
     resultKicker: 'Outcome',
     resultTitle: 'From concept research to a working, released WeChat mini program',
-    resultCopy: 'The current version covers food records, elapsed days, personal interval settings, cycle review, and repeat recording.',
+    resultCopy: 'The current version 1.1 covers the meal timeline and calendar, quick records, personal intervals, the due list, picking by feeling, and backup and restore.',
     result: [['Core flow', 'Food records, date updates, interval settings, cycle lists, and repeat recording.'], ['Personal rhythm', 'Separate intervals for different foods, with options to adjust or ignore them.'], ['Working implementation', 'AI development tools helped build the WeChat mini program and its usable core flows.']],
     nextTitle: 'Next validation',
     next: ['Task tests with 5–8 real users: first record, finding an old flavor, handling the due list, without explanation.', 'A seven-day field test: first-record completion, return visits, and repeat tasting.', 'Raise the weight of feelings in “pick by feeling”, then check whether suggestions change.'],
@@ -202,9 +220,27 @@ const copy: Record<Language, CaseCopy> = {
     uiTitle: '日数、周期、再記録を一目で分かるようにする',
     uiCopy: '前回からの日数、普段どの頻度で食べたいか、今回もう一度記録するかという三つの判断を中心に構成する。',
     uiPoints: [
-      { title: '個人の周期に近づいた味を見る', copy: 'ホームで前回からの日数と目安周期を並べ、本人の記録から候補を絞れるようにする。', image: '/works/haojiu-meichi/ui/home.jpg', alt: '実際のホーム画面', attraction: '設計理由：時間の参考を示し、選択は本人に委ねる。' },
-      { title: '食後は少ない情報で更新する', copy: '中央の記録ボタンを主操作とし、名前と日付を優先する。写真、場所、感想は省略できる。', image: '/works/haojiu-meichi/ui/record.jpg', alt: '実際の記録画面', attraction: '設計理由：視覚的な優先順位と主操作を明確にし、初回記録の迷いを減らす。' },
-      { title: '食べ物ごとに異なるリズムを持つ', copy: '日付、回数、前回からの日数、目安周期を一緒に示す。コーヒーは毎日、ある店は毎週など、個別に設定する。', image: '/works/haojiu-meichi/ui/memories.jpg', alt: '実際の食事周期の参考画面', attraction: '設計理由：本人の生活リズムを個人の周期で表す。' },
+      {
+        title: 'ホームでは食事タイムラインと久しぶりの味から',
+        copy: '上に食事タイムライン（週／月）があり、最近何を食べたかが一目で分かる。下には久しぶり順に候補が並び、気分で選ぶことも、一番久しぶりのものを選ぶこともできる。',
+        image: '/works/haojiu-meichi/ui/v11-home.jpg',
+        alt: '好久没吃 1.1 ホーム：食事タイムラインと久しぶりの味',
+        attraction: 'なぜこうしたか：アプリは時間の目安を示すだけで、今日食べるものを決めつけない。',
+      },
+      {
+        title: '食事カレンダー：記録し忘れた食事も後から足せる',
+        copy: 'カレンダーで日ごとに食べたものを表示し、日付を押せば追加や日付の修正ができる。毎日の記録を求めず、抜けは後から埋められる。',
+        image: '/works/haojiu-meichi/ui/v11-calendar.jpg',
+        alt: '好久没吃 1.1 食事カレンダー',
+        attraction: 'なぜこうしたか：記録がそろうほど周期は正確になり、後から足すほうが毎日の通知より負担が少ない。',
+      },
+      {
+        title: 'そろそろ：自分の周期の順に並ぶ',
+        copy: '自分で決めた周期を過ぎた味が上に来て、飲み物は「そろそろ飲もう」と表示。気が乗らなければ「7日後にまた表示」で先送りでき、記録は消えない。',
+        image: '/works/haojiu-meichi/ui/v11-due.jpg',
+        alt: '好久没吃 1.1 そろそろ一覧',
+        attraction: 'なぜこうしたか：見えるのは自分の生活のリズムで、アプリが決めた通知周期ではない。',
+      },
     ],
     decisionsKicker: 'Design decisions',
     decisionsTitle: '調査が変えた3つの設計',
@@ -214,16 +250,16 @@ const copy: Record<Language, CaseCopy> = {
     loopCopy: '食べた後に日付を更新し、周期表を本人の実際の生活リズムへ近づけていく。蓄積した記録で「前回いつ食べたか」もすぐ探せる。',
     loop: [['記録', '食べ物と日付を保存'], ['計算', '前回からの日数を表示'], ['設定', '個人の目安周期を決める'], ['判断', '今また食べるかを選ぶ'], ['更新', '食後に日付を更新'], ['蓄積', '個人の周期ができる']],
     iterKicker: '改版',
-    iterTitle: '公開後、「初めて使う人」として2回たどり直し、1.1版に改めた',
-    iterCopy: '1.0の公開後、模擬の新規ユーザー2人（ガイドどおりに入力する人、ガイドを飛ばす人）に実際の画面コードで全体の流れをたどらせ、さらに「アプリを何も知らない人」としてもう一度たどり、つまずく箇所を一つずつ直した。まだ実ユーザーによるテストではなく、それが次のステップ。',
+    iterTitle: '「初めて使う人」として2回たどり直し、現在の1.1版に',
+    iterCopy: '現在の1.1版は、「初めて使う人」として2回たどり直して改めたもの。模擬の新規ユーザー2人（ガイドどおりに入力する人、ガイドを飛ばす人）に実際の画面コードで全体をたどらせ、さらに「アプリを何も知らない人」としてもう一度たどり、つまずく箇所を一つずつ直した。まだ実ユーザーによるテストではなく、それが次のステップ。',
     iterCaption: '1.1の初回フロー：ようこそ → 1分で好みを入力 → 確認 → ホームの食事タイムライン（開発者ツールでの描画）',
-    versions: [['1.0', '公開版', '記録、前回からの日数、個人の周期、「そろそろ」一覧、プライバシー説明とデータ削除。'], ['1.1', '全面改版', 'ホームに食事タイムライン（週／月）と食事カレンダーを追加し、過去の食事も記録可能に。1分で好みを入力、気分で選ぶ／一番久しぶりから選ぶ、3段階の評価、バックアップの書き出しと復元、写真をユーザーごとに保存。']],
+    versions: [['1.1', '現在の版', 'ホームに食事タイムライン（週／月）と食事カレンダー、過去の食事も記録可能。1分で好みを入力、気分で選ぶ／一番久しぶりから選ぶ、3段階の評価、バックアップの書き出しと復元、写真をユーザーごとに保存。']],
     fixesTitle: 'たどり直しで見つかった問題と直し方',
     fixes: [['同じ名前を2回記録すると「ラーメン」が2件になり、食べたばかりの方も「そろそろ」と表示された', '同じ名前は元の記録にまとめ、もう一度食べたことにして「前にも記録あり」と表示'], ['記録が少ないうちは「気分で選ぶ」を押しても何も出なかった', '候補がないときは隠し、ガイドはまずタイムラインを示す'], ['数日前に決めたプランが「今日のプラン」のまま毎日表示された', '決めた日を明記し、今日決めたものだけを表示'], ['「食べたもの」画面だけ別の配色と凡例で、「紫＝過去、橙＝今日」と食い違った', '古いタイムラインを外し、配色を全体で統一'], ['飲み物にも「そろそろ食べよう」、今日食べたものにも「今日食べる」が出た', '飲み物は「そろそろ飲もう」に、今日食べたものには出さない']],
     pending: '未解決：「気分で選ぶ」の効きが弱い（久しぶり度が気分より強く効く）、初回入力の確認画面が詰まっている、「プラン」という言葉が抽象的。',
     resultKicker: 'Outcome',
     resultTitle: '概念調査から、実際に使える公開済みWeChatミニプログラムへ',
-    resultCopy: '現在の版は、食事記録、前回からの日数、個人の周期設定、周期の確認、再記録をカバーする。',
+    resultCopy: '現在の1.1版は、食事タイムラインとカレンダー、記録、個人の周期、そろそろ一覧、気分で選ぶ、バックアップと復元をカバーする。',
     result: [['主要フロー', '食事記録、日付更新、周期設定、周期一覧、再記録。'], ['個人のリズム', '食べ物ごとに目安周期を設定し、変更や見送りを本人が選べる。'], ['実装', 'AI開発ツールを使ってWeChatミニプログラムを制作し、主要フローを操作できるようにした。']],
     nextTitle: '次の検証',
     next: ['実ユーザー5〜8名で、初回記録・久しぶりの味の検索・「そろそろ」一覧の扱いを説明なしでできるか確かめる。', '7日間の利用観察で、初回記録の完了率、再訪、再食を見る。', '「気分で選ぶ」で気分の重みを上げ、推薦が変わるかを確かめる。'],
@@ -238,10 +274,10 @@ export default function TasteAgainCasePage() {
   const work = portfolioWorks[language].find((item) => item.id === 'taste-again')
   const storyMedia = [
     { image: '/works/haojiu-meichi/ui/curry.jpg', position: 'center' },
-    { image: '/works/haojiu-meichi/ui/home.jpg', position: 'center 38%' },
-    { image: '/works/haojiu-meichi/ui/reminders.jpg', position: 'center 30%' },
-    { image: '/works/haojiu-meichi/ui/record.jpg', position: 'center 34%' },
-    { image: '/works/haojiu-meichi/ui/memories.jpg', position: 'center 28%' },
+    { image: '/works/haojiu-meichi/ui/v11-home.jpg', position: 'center 30%' },
+    { image: '/works/haojiu-meichi/ui/v11-due.jpg', position: 'center 30%' },
+    { image: '/works/haojiu-meichi/ui/v11-home.jpg', position: 'center 85%' },
+    { image: '/works/haojiu-meichi/ui/v11-calendar.jpg', position: 'center 40%' },
     { image: '/works/haojiu-meichi/ui/curry.jpg', position: 'center' },
   ]
 
@@ -261,9 +297,9 @@ export default function TasteAgainCasePage() {
             </div>
             <figure className="relative aspect-[3/2] overflow-hidden rounded-lg border border-[#f7b718]/35 bg-[#131313]">
               <div aria-hidden="true" className="absolute inset-x-0 top-0 h-1 bg-[#f7b718]" />
-              <img src="/works/haojiu-meichi/ui/record.jpg" alt="" className="absolute -bottom-[20%] left-[6%] w-[28%] -rotate-6 border border-white/15 shadow-2xl" />
-              <img src="/works/haojiu-meichi/ui/home.jpg" alt={work.title} className="absolute -bottom-[10%] left-1/2 z-10 w-[34%] -translate-x-1/2 border border-white/15 shadow-2xl" />
-              <img src="/works/haojiu-meichi/ui/memories.jpg" alt="" className="absolute -bottom-[20%] right-[6%] w-[28%] rotate-6 border border-white/15 shadow-2xl" />
+              <img src="/works/haojiu-meichi/ui/v11-welcome.jpg" alt="" className="absolute -bottom-[20%] left-[6%] w-[28%] -rotate-6 border border-white/15 shadow-2xl" />
+              <img src="/works/haojiu-meichi/ui/v11-home.jpg" alt={work.title} className="absolute -bottom-[10%] left-1/2 z-10 w-[34%] -translate-x-1/2 border border-white/15 shadow-2xl" />
+              <img src="/works/haojiu-meichi/ui/v11-due.jpg" alt="" className="absolute -bottom-[20%] right-[6%] w-[28%] rotate-6 border border-white/15 shadow-2xl" />
             </figure>
           </div>
         </div>
@@ -397,7 +433,7 @@ export default function TasteAgainCasePage() {
           </div>
           <p className="text-lg leading-8 text-neutral-600 dark:text-neutral-300">{t.iterCopy}</p>
         </div>
-        <div className="mt-10 grid gap-4 md:grid-cols-2">
+        <div className="mt-10 grid gap-4">
           {t.versions.map(([version, label, description]) => (
             <article key={version} className="rounded-lg border border-[#f7b718]/35 bg-white p-5 dark:border-[#f7b718]/25 dark:bg-neutral-900">
               <div className="flex items-baseline gap-3"><span className="text-3xl font-semibold text-[#b57900] dark:text-[#f7b718]">{version}</span><span className="text-sm font-semibold">{label}</span></div>
