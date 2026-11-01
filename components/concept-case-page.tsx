@@ -67,9 +67,9 @@ const visualNotes: Record<CaseId, Record<'en' | 'ja' | 'zh', string>> = {
     zh: '晚餐示例为说明用的设想场景。右侧面板逐项列出 AI 的理解，用户可以补一句话修正，或改某一项由谁判断。',
   },
   'transparent-driving-hud': {
-    en: 'Blender render of the driver view (scenario 1, S1): a child steps out from between parked cars on the right. The pedestrian badge and arrow at the lower edge of the HUD point to the child; “L2” on the left is the system status. Cars, people and the city are untextured models, and the navigation screen is a mock-up.',
-    ja: 'Blenderで描画した運転者視点（場面1、S1）：右側の駐車車両の間から子どもが出てくる。HUD下端の歩行者バッジと矢印が子どもの方向を指し、左の「L2」はシステムの状態。車両・人・街は簡易モデルで、ナビ画面はイメージ。',
-    zh: 'Blender 渲染的驾驶员视角（第 1 章，S1）：儿童从右侧停放车辆间走出，HUD 下缘的行人徽章和箭头指向儿童所在方位，左侧「L2」是系统状态。车辆、行人和城市都是白模，导航界面为示意。',
+    en: 'Driver view in the VR test scene (scenario 1, S1): a child steps out from between parked cars on the right. The pedestrian badge and arrow at the lower edge of the HUD point to the child; “L2” on the left is the system status. Cars, people and the city are simplified models, and the navigation screen is a mock-up.',
+    ja: 'VRテスト場面の運転者視点（場面1、S1）：右側の駐車車両の間から子どもが出てくる。HUD下端の歩行者バッジと矢印が子どもの方向を指し、左の「L2」はシステムの状態。車両・人・街は簡易モデルで、ナビ画面はイメージ。',
+    zh: 'VR 测试场景中的驾驶员视角（第 1 章，S1）：儿童从右侧停放车辆间走出，HUD 下缘的行人徽章和箭头指向儿童所在方位，左侧「L2」是系统状态。车辆、行人和城市为简化模型，导航界面为示意。',
   },
   'fridge-timeline': {
     en: 'This board is a 2026 AI-assisted reinterpretation of the concept, not the original 2023 design. In the original, the door cue was an angled light strip beside the handle (see the 2023 renders and animation below).',

@@ -19,11 +19,26 @@ const nextConfig = {
           source: '/aitest/',
           destination: '/aitest/index.html',
         },
+        {
+          source: '/test',
+          destination: '/test/index.html',
+        },
+        {
+          source: '/test/',
+          destination: '/test/index.html',
+        },
       ],
     }
   },
   async headers() {
     return [
+      {
+        source: '/test/:path*',
+        headers: [
+          { key: 'X-Robots-Tag', value: 'noindex, nofollow' },
+          { key: 'Referrer-Policy', value: 'same-origin' },
+        ],
+      },
       {
         source: '/aitest/:path*',
         headers: [

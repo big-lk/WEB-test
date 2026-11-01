@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>AI会話シナリオ 試読版</title>
+<style>
+:root{--ink:#222831;--mute:#6b6f76;--line:#d5d9e0;--tint:#f3f4f6;--accent:#c8502a;--accent-soft:#fbefe9;--navy:#1d2266;--bg:#ffffff}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Sans","Yu Gothic UI","Meiryo","Noto Sans JP",sans-serif;line-height:1.7}
+header{position:sticky;top:0;z-index:5;background:#fff;border-bottom:1px solid var(--line)}
+.bar{max-width:1240px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:12px}
+.bar b{font-size:15px}
+.prog{flex:1;height:6px;background:var(--tint);border-radius:3px;overflow:hidden}
+.prog i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
+.step{font-size:13px;color:var(--mute);white-space:nowrap}
+main{max-width:1240px;margin:0 auto;padding:24px 16px 80px}
+.card{max-width:760px;margin:0 auto}
+h1{font-size:24px;margin:8px 0 12px}
+h2{font-size:20px;margin:24px 0 8px}
+p{margin:8px 0}
+.note{color:var(--mute);font-size:14px}
+.sp{display:none}@media (max-width:820px){.sp{display:inline}}
+ul.plain{padding-left:1.2em;margin:8px 0}
+.btn{display:inline-block;border:0;border-radius:24px;background:var(--accent);color:#fff;font-size:16px;font-weight:700;padding:12px 28px;cursor:pointer;font-family:inherit}
+.btn[disabled]{background:#c9cdd3;cursor:not-allowed}
+.btn.sub{background:#fff;color:var(--ink);border:1px solid var(--line);font-weight:500}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:20px}
+.shot{width:100%;max-width:1192px;display:block;margin:0 auto;border:1px solid var(--line);border-radius:6px}
+.hint{max-width:1192px;margin:0 auto 10px;font-size:14px;color:var(--mute)}
+.qbox{max-width:760px;margin:28px auto 0;background:var(--tint);border-radius:12px;padding:20px}
+.q{margin:0 0 18px}
+.q .t{font-weight:700;margin-bottom:8px}
+.scale{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.scale label{display:flex;flex-direction:column;align-items:center;gap:2px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px 4px;font-size:12px;text-align:center;cursor:pointer;color:var(--mute)}
+.scale label b{font-size:16px;color:var(--ink)}
+.scale input{display:none}
+.scale label:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.ends{display:flex;justify-content:space-between;font-size:12px;color:var(--mute);margin-top:4px}
+.opts label{display:block;background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:6px 0;cursor:pointer}
+.opts label:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:8px;padding:8px;font:inherit;font-size:15px}
+.done{background:var(--accent-soft);border-radius:12px;padding:16px;margin-top:16px}
+pre{white-space:pre-wrap;word-break:break-all;background:var(--tint);padding:12px;border-radius:8px;font-size:12px;max-height:220px;overflow:auto}
+@media (max-width:640px){.scale label{font-size:10px;padding:6px 2px}h1{font-size:20px}}
+</style>
+</head>
+<body>
+<header><div class="bar"><b>AI会話シナリオ 試読版</b><div class="prog"><i id="pg"></i></div><span class="step" id="st"></span></div></header>
+<main id="app"></main>
+<script>
+/* ===== 設定 ===== */
+const CONFIG = {
+  // Google Apps Script のウェブアプリURL（未設定なら、最後に結果のコピー／ダウンロードのみ）
+  ENDPOINT: "",
+  VERSION: "pilot-2026-11"
+};
+/* ================ */
+
+const UI_NAME = { A: "標準UI", B: "価値基準参照UI", C: "価値基準調整UI" };
+const SCENES = [
+  { n: 1, title: "場面1" }, { n: 2, title: "場面2" }, { n: 3, title: "場面3" }, { n: 4, title: "場面4" }
+];
+const Q_SCENE = [
+  { id: "natural", t: "この場面の、利用者の考えや行動の流れは自然でしたか。", lo: "まったく自然でない", hi: "とても自然" },
+  { id: "readable", t: "この場面の画面と文章は読みやすかったですか。", lo: "とても読みにくい", hi: "とても読みやすい" }
+];
+const Q_CHECK = [
+  { id: "c1", t: "場面3で、利用者がAIに任せたことはどれですか。", o: ["料理の内容や作り方", "料理を出す順番", "食卓の雰囲気", "分からない"] },
+  { id: "c2", t: "場面4で、利用者がAIと一緒に考えたいことはどれですか。", o: ["料理の内容", "料理を出す順番", "誰を招待するか", "分からない"] }
+];
+
+const qs = new URLSearchParams(location.search);
+const forced = (qs.get("ui") || "").toUpperCase();
+const ui = "ABC".includes(forced) && forced ? forced : "ABC"[Math.floor(Math.random() * 3)];
+const pid = Math.random().toString(36).slice(2, 10);
+const R = { pid, version: CONFIG.VERSION, ui, forced: !!forced, started: new Date().toISOString(), device: { w: innerWidth, h: innerHeight, ua: navigator.userAgent }, guideSec: null, scenes: [], check: {}, comment: "", totalSec: null };
+const T0 = performance.now();
+let tStart = 0;
+const app = document.getElementById("app");
+const TOTAL = 2 + SCENES.length + 1; // 説明・見方・4場面・確認
+function prog(k, label) { document.getElementById("pg").style.width = (k / TOTAL * 100) + "%"; document.getElementById("st").textContent = label || ""; scrollTo(0, 0); }
+function sec() { return Math.round((performance.now() - tStart) / 100) / 10; }
+const esc = (s) => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function intro() {
+  prog(0, "はじめに");
+  app.innerHTML = `<div class="card">
+    <h1>AIとの会話画面を想定したシナリオの試読</h1>
+    <p>夕食の計画をAIに相談する場面を、4つ続けて読んでいただきます。各場面のあとに、2つの質問があります。</p>
+    <ul class="plain">
+      <li>所要時間：約8〜10分</li>
+      <li>画面の文字が小さいため、PCまたはタブレットでの閲覧をおすすめします。</li>
+      <li>回答は匿名で、シナリオの文章と画面を改善するためにだけ使います。名前やメールアドレスは聞きません。</li>
+      <li>途中でやめても構いません（途中までの回答は送信されません）。</li>
+    </ul>
+    <p class="note">これは本調査の前の試読版です。表示される画面の種類は、自動でランダムに決まります。</p>
+    <div class="row"><button class="btn" id="go">始める</button></div></div>`;
+  document.getElementById("go").onclick = guide;
+}
+
+function guide() {
+  prog(1, "画面の見方");
+  tStart = performance.now();
+  app.innerHTML = `<p class="hint">まず、この後に読む画面の見方を確認してください。灰色・緑色の枠は説明用の注釈です。</p>
+    <a href="/test/img/${ui}_guide.webp" target="_blank" rel="noopener"><img class="shot" src="/test/img/${ui}_guide.webp" alt="画面の見方"></a>
+    <div class="row" style="justify-content:center"><button class="btn" id="nx">シナリオを読む</button></div>`;
+  document.getElementById("nx").onclick = () => { R.guideSec = sec(); scene(0); };
+}
+
+function scaleHTML(q, name) {
+  let h = `<div class="q"><div class="t">${q.t}</div><div class="scale">`;
+  for (let v = 1; v <= 5; v++) h += `<label><input type="radio" name="${name}" value="${v}"><b>${v}</b></label>`;
+  return h + `</div><div class="ends"><span>1：${q.lo}</span><span>5：${q.hi}</span></div></div>`;
+}
+
+function scene(i) {
+  const s = SCENES[i];
+  prog(2 + i, `${s.title} / 4`);
+  tStart = performance.now();
+  app.innerHTML = `<p class="hint">${s.title}を読んでください。画像は下へスクロールして最後まで読み、そのあと質問に答えてください。<span class="sp">文字が小さい場合は、画像をタップすると拡大できます。</span></p>
+    <a href="/test/img/${ui}${s.n}.webp" target="_blank" rel="noopener"><img class="shot" src="/test/img/${ui}${s.n}.webp" alt="${s.title}" id="im"></a>
+    <div class="qbox">
+      ${Q_SCENE.map(q => scaleHTML(q, q.id)).join("")}
+      <div class="q"><div class="t">分かりにくかった点や、不自然に感じた表現があれば（任意）</div><textarea id="cm"></textarea></div>
+      <div class="row"><button class="btn" id="nx" disabled>${i < SCENES.length - 1 ? "次の場面へ" : "最後の質問へ"}</button></div>
+    </div>`;
+  const nx = document.getElementById("nx");
+  app.onchange = () => { nx.disabled = !Q_SCENE.every(q => app.querySelector(`input[name=${q.id}]:checked`)); };
+  if (i + 1 < SCENES.length) { const pre = new Image(); pre.src = `img/${ui}${SCENES[i + 1].n}.webp`; }
+  nx.onclick = () => {
+    const rec = { scene: s.n, sec: sec() };
+    Q_SCENE.forEach(q => rec[q.id] = +app.querySelector(`input[name=${q.id}]:checked`).value);
+    rec.comment = document.getElementById("cm").value.trim();
+    R.scenes.push(rec);
+    i < SCENES.length - 1 ? scene(i + 1) : check();
+  };
+}
+
+function check() {
+  prog(2 + SCENES.length, "最後の質問");
+  tStart = performance.now();
+  app.innerHTML = `<div class="card"><h1>最後の質問</h1>
+    ${Q_CHECK.map(q => `<div class="q"><div class="t">${q.t}</div><div class="opts">${q.o.map(o => `<label><input type="radio" name="${q.id}" value="${esc(o)}"> ${esc(o)}</label>`).join("")}</div></div>`).join("")}
+    <div class="q"><div class="t">全体を通して気づいたことがあれば（任意）</div><textarea id="cm"></textarea></div>
+    <div class="row"><button class="btn" id="nx" disabled>回答を終える</button></div></div>`;
+  const nx = document.getElementById("nx");
+  app.onchange = () => { nx.disabled = !Q_CHECK.every(q => app.querySelector(`input[name=${q.id}]:checked`)); };
+  nx.onclick = () => {
+    Q_CHECK.forEach(q => R.check[q.id] = app.querySelector(`input[name=${q.id}]:checked`).value);
+    R.checkSec = sec();
+    R.comment = document.getElementById("cm").value.trim();
+    R.totalSec = Math.round((performance.now() - T0) / 1000);
+    R.finished = new Date().toISOString();
+    finish();
+  };
+}
+
+async function finish() {
+  prog(TOTAL, "完了");
+  const json = JSON.stringify(R);
+  let sent = false;
+  if (CONFIG.ENDPOINT) {
+    try { await fetch(CONFIG.ENDPOINT, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: json }); sent = true; } catch (e) { sent = false; }
+  }
+  app.innerHTML = `<div class="card"><h1>ご協力ありがとうございました</h1>
+    <p>読んでいただいた画面：<b>${UI_NAME[ui]}</b>　所要時間：約${Math.max(1, Math.round(R.totalSec / 60))}分</p>
+    ${sent ? `<div class="done">回答を送信しました。このページは閉じて構いません。</div>`
+           : `<div class="done">お手数ですが、下のボタンで回答をコピーし、研究担当者に送ってください。</div>
+              <div class="row"><button class="btn" id="cp">回答をコピー</button><button class="btn sub" id="dl">ファイルで保存</button></div>
+              <pre>${esc(json)}</pre>`}
+    <p class="note">ほかの種類の画面も見てみたい場合：<a href="/test?ui=A">標準UI</a>／<a href="/test?ui=B">価値基準参照UI</a>／<a href="/test?ui=C">価値基準調整UI</a>（2回目以降の回答は区別して扱います）</p></div>`;
+  const cp = document.getElementById("cp");
+  if (cp) {
+    cp.onclick = async () => { try { await navigator.clipboard.writeText(json); cp.textContent = "コピーしました"; } catch (e) { cp.textContent = "コピーできませんでした"; } };
+    document.getElementById("dl").onclick = () => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([json], { type: "application/json" })); a.download = `pilot_${ui}_${pid}.json`; a.click(); };
+  }
+}
+
+intro();
+</script>
+</body>
+</html>
