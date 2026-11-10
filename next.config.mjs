@@ -33,6 +33,13 @@ const nextConfig = {
   async headers() {
     return [
       {
+        source: '/hmi-vr/:path*',
+        headers: [
+          { key: 'X-Robots-Tag', value: 'noindex, nofollow' },
+          { key: 'Cache-Control', value: 'no-store' },
+        ],
+      },
+      {
         source: '/test/:path*',
         headers: [
           { key: 'X-Robots-Tag', value: 'noindex, nofollow' },

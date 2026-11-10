@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>驾驶 HMI 注意力实验</title>
+<style>
+  :root { --bg:#e9eef1; --ink:#1d2a33; --muted:#5b6b76; --line:#c3cdd3; --accent:#0f7c8a; --warn:#b4471e; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink);
+    font-family: "Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif; }
+  #stage { position: fixed; inset: 0; }
+  #stage canvas { display: block; }
+  #ui { position: fixed; left: 24px; top: 24px; width: min(380px, calc(100% - 48px));
+    background: rgba(233,238,241,0.96); border: 1px solid var(--line); border-radius: 10px; padding: 22px 22px 18px; }
+  h1 { font-size: 20px; margin: 0 0 4px; font-weight: 700; }
+  .lead { margin: 0 0 18px; color: var(--muted); font-size: 14px; line-height: 1.6; }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 4px; }
+  input, select { width: 100%; font: inherit; font-size: 16px; padding: 8px 10px; border: 1px solid var(--line);
+    border-radius: 6px; background: #fff; color: var(--ink); }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  button { font: inherit; font-size: 16px; padding: 11px 14px; border-radius: 6px; border: 1px solid var(--accent);
+    cursor: pointer; width: 100%; margin-top: 10px; }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid #f2c230; outline-offset: 2px; }
+  #btn-vr { background: var(--accent); color: #fff; margin-top: 20px; }
+  #btn-vr:disabled { background: #9fb0b8; border-color: #9fb0b8; cursor: not-allowed; }
+  #btn-desk, #btn-dl, #btn-end { background: transparent; color: var(--accent); }
+  #xr-note { color: var(--warn); font-size: 13px; margin: 8px 0 0; min-height: 1em; line-height: 1.5; }
+  #status { font-size: 13px; color: var(--muted); margin: 10px 0 0; line-height: 1.5; }
+  .live, .done { display: none; }
+  body.running .setup { display: none; }
+  body.running .live { display: block; }
+  body.ended .done { display: block; }
+  body.ended #btn-end { display: none; }
+  .hint { font-size: 12px; color: var(--muted); margin: 12px 0 0; line-height: 1.6; }
+  #ui.min { opacity: .35; } #ui.min:hover { opacity: 1; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="ui">
+  <div class="setup">
+    <h1>驾驶 HMI 注意力实验</h1>
+    <p class="lead">L2 城市道路，约 20 分钟。记录头部朝向、注视区域和接管反应时间。</p>
+    <label for="pid">被试编号</label>
+    <input id="pid" value="P01" autocomplete="off">
+    <div class="row">
+      <div>
+        <label for="cond">提示方案</label>
+        <select id="cond">
+          <option value="S1">S1：HUD 方位光带</option>
+          <option value="S2">S2：AR 贴地光圈</option>
+          <option value="S3">S3：中控屏鸟瞰</option>
+        </select>
+      </div>
+      <div>
+        <label for="dur">时长（分钟）</label>
+        <input id="dur" type="number" min="2" max="40" value="20">
+      </div>
+    </div>
+    <button id="btn-vr">进入 VR 开始</button>
+    <button id="btn-desk">桌面预览</button>
+    <p id="xr-note"></p>
+  </div>
+  <div class="live">
+    <h1>记录中</h1>
+    <p id="status">等待开始…</p>
+    <button id="btn-end">提前结束</button>
+    <div class="done">
+      <button id="btn-dl">下载本次数据</button>
+      <p class="hint">数据已尝试发送到电脑端 data 文件夹。没有连电脑时，用这个按钮下载三个文件。</p>
+    </div>
+    <p class="hint">桌面预览：拖动鼠标转头，空格键代表扳机，R 键重新对准。</p>
+  </div>
+</div>
+<script type="module" src="./main.js"></script>
+</body>
+</html>
