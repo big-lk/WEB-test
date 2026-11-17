@@ -44,7 +44,7 @@ RATE_LIMIT_LOCK = threading.Lock()
 API_URL = "https://api.openai.com/v1/responses"
 DIALOGUE_MODEL = os.environ.get("OPENAI_DIALOGUE_MODEL", "gpt-5.4-nano")
 ANALYSIS_MODEL = os.environ.get("OPENAI_ANALYSIS_MODEL", "gpt-5.4-nano")
-PROMPT_VERSION = "judgment-delegation-guided-turns-v2.3"
+PROMPT_VERSION = "judgment-delegation-guided-turns-v2.4"
 SESSION_SCHEMA_VERSION = 6
 MAX_USER_CHARS = 500
 ALLOWED_CONDITIONS = {"UI_A", "UI_B"}
@@ -1875,6 +1875,42 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
                         target["title"] = str(prev_match.get("title", ""))[:18]
                         target["meaning"] = str(prev_match.get("meaning", ""))[:100]
                         analysis_repairs.append(f"user_lock_kept:{target['id']}")
+    # v2.4: 固定されたカードを毎ターン維持する（UI B の「自分で決定」／文章での「変えないで」）。
+    # AI には固定の情報を渡さず、右側パネルの表示だけを維持する（UI B の操作が効く範囲はパネルまで）。
+    lock_kept: list[str] = []
+    if not analysis_fallback and previous_criteria and (card_mode == "separate" or turn not in {3, 4}):
+        text_locks: set[str] = set()
+        for quoted, state in delegation_requests(" ".join([r["content"] for r in history if r["role"] == "user"] + [user_text])):
+            hit = max(previous_criteria, key=lambda c: text_similarity(quoted, c.get("title", "")), default=None)
+            if hit and text_similarity(quoted, hit.get("title", "")) >= 0.5:
+                if state == "USER_DECIDE":
+                    text_locks.add(hit["id"])
+                else:
+                    text_locks.discard(hit["id"])
+        button_locks = {cid for cid, state in delegation.items() if state == "self"} if condition == "UI_B" else set()
+        locks = text_locks | button_locks
+        crit = analysis["criteria"]
+        for prev in [c for c in previous_criteria if c.get("id") in locks]:
+            # 今回の入力でそのカードの内容に触れている（言い直している）場合は、参加者の言葉を優先して固定しない
+            if text_similarity(prev.get("title", ""), user_text) >= 0.35 and prev["id"] not in text_locks:
+                continue
+            current = next((c for c in crit if c.get("id") == prev["id"]), None)
+            if current is None:
+                pool = [c for c in crit if c.get("id") not in locks and not str(c.get("id", "")).startswith("event-")
+                        and not c.get("focus")]
+                if not pool:
+                    continue
+                rank = {"未確定": 0, "維持": 1, "中心": 2}
+                current = min(pool, key=lambda c: rank.get(c.get("priority"), 1))
+                current.update({"id": prev["id"], "source": "USER_STATED", "evidenceTurns": [max(0, turn - 1)],
+                                "priority": prev.get("priority") if prev.get("priority") in rank else "維持"})
+                lock_kept.append(f"restored:{prev['id']}")
+            if (current.get("title"), current.get("meaning")) != (prev.get("title"), prev.get("meaning")):
+                current["title"] = str(prev.get("title", ""))[:18]
+                current["meaning"] = str(prev.get("meaning", ""))[:100]
+                lock_kept.append(f"wording:{prev['id']}")
+            current["delegationState"] = "USER_DECIDE"
+        analysis_repairs.extend(f"lock_{x}" for x in lock_kept)
     event_delegation = None
     if condition == "UI_B" and turn in {3, 4} and source_criteria and required_control_sentence:
         def state_of(terms: list[str]):

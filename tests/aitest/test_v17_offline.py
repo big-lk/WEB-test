@@ -539,5 +539,29 @@ r = core.run_two_ais(b)
 calm = next((c for c in r["analysis"]["criteria"] if c["id"] == "calm-time"), None)
 check("text-locked card kept and wording unchanged at turn 3", calm is not None and calm["meaning"] == lock_prev[0]["meaning"], str(calm))
 
+# 32) v2.4 固定カードは毎ターン維持（言い換え・消失の両方）
+prev5 = [{"id": "gapao", "title": "初デートのガパオを再現", "meaning": "初デートで食べたガパオを家で再現する。", "priority": "中心"},
+         {"id": "relax", "title": "いつも通りゆるく", "meaning": "普段通りに過ごす。", "priority": "維持"},
+         {"id": "sofa", "title": "食後はソファで", "meaning": "食後はソファでだらだらする。", "priority": "未確定"}]
+dropped = [{"id": "relax", "title": "いつも通りゆるく", "meaning": "普段通りに過ごす。", "priority": "中心", "delegationState": "CO_DECIDE",
+            "source": "USER_STATED", "evidenceTurns": [1], "focus": True},
+           {"id": "sofa", "title": "食後はソファで", "meaning": "食後はソファでだらだらする。", "priority": "維持", "delegationState": "CO_DECIDE",
+            "source": "USER_STATED", "evidenceTurns": [1], "focus": False},
+           {"id": "deco", "title": "記念の演出", "meaning": "デザートにメッセージを添える。", "priority": "未確定", "delegationState": "CO_DECIDE",
+            "source": "AI_INFERENCE", "evidenceTurns": [4], "focus": False}]
+b = body(5, "milestone", condition="UI_B", previous=prev5)
+b["delegationSourceCriteria"] = prev5; b["delegation"] = {"gapao": "self", "relax": "consult", "sofa": "consult"}
+b["userText"] = "流れは二人で作って普通に食べて、そのままソファでだらだら、でいい。"
+core.call_openai = fake_by_stage([core.ensure_exact_turn_ending(5, "わかりました。" + PAD[:120])] * 3, [analysis_json(dropped)] * 2)
+r = core.run_two_ais(b)
+g = next((c for c in r["analysis"]["criteria"] if c["id"] == "gapao"), None)
+check("locked card restored when AI dropped it", g is not None and g["title"] == prev5[0]["title"] and g["delegationState"] == "USER_DECIDE"
+      and len(r["analysis"]["criteria"]) == 3, str(r["analysis"]["criteria"]))
+# UI A では同じ入力でもボタン固定は無い（AI 入力は同一、パネル維持はボタンのある UI B のみ）
+b2 = dict(b); b2["condition"] = "UI_A"; b2["delegation"] = {}; b2["delegationSourceCriteria"] = []
+core.call_openai = fake_by_stage([core.ensure_exact_turn_ending(5, "わかりました。" + PAD[:120])] * 3, [analysis_json(dropped)] * 2)
+r2 = core.run_two_ais(b2)
+check("UI A has no button lock", not any(c["id"] == "gapao" for c in r2["analysis"]["criteria"]))
+
 print(f"\n{len(failures)} failure(s)")
 sys.exit(1 if failures else 0)
