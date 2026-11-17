@@ -276,7 +276,8 @@ s_busy = core.controlled_fixation_sentence(ANCHORS["busy"], [], "x")
 s_reu = core.controlled_fixation_sentence(ANCHORS["reunion"], [], "x")
 judge = [
     (s_busy, "準備の負担を見せない工夫", "準備が大変そうに見えない形にして、会話は少なめで静かに休める形に寄せる。", ["A16_FIXATION_UNCLEAR", "A17_FIXATION_TITLE_UNCLEAR"]),
-    (s_reu, "気負わず会話が続く時間", "自然に話せることを、照明や音の刺激を減らした静かな環境として扱う。", ["A17_FIXATION_TITLE_UNCLEAR"]),
+    # v1.9.6: 参加者の言葉のタイトル（価値名を含む）は残す
+    (s_reu, "気負わず会話が続く時間", "自然に話せることを、照明や音の刺激を減らした静かな環境として扱う。", []),
     (s_busy, "静かに休める時間", "気を遣わせないことを、会話を少なくして静かに休めることとして扱う。", []),
 ]
 for sentence, title, meaning, expect in judge:
@@ -407,6 +408,34 @@ check("text delegation applied to same id", ls["delegationState"] == "AI_PROPOSE
 t5b = "食後にお茶を出すとき短く添えます。最後にこの夕食で大切にしたいことは自然に感謝を届けること、避けたいことは改まって重くしすぎることです。"
 out = core.drop_participant_voice(t5b)
 check("summary pre-writing removed", "避けたい" not in out and "短く添えます。" in out, out)
+
+# 26) v1.9.6 E2 は縮められる側（会話）のカードに書かない（模擬参加者 P2 で発生）
+cards = [
+    {"id": "calm", "title": "刺激の少ない静かな場", "meaning": "自然に話せることを、照明や音の刺激を減らした静かな環境として扱う。", "priority": "中心",
+     "delegationState": "USER_DECIDE", "source": "AI_INFERENCE", "evidenceTurns": [3], "focus": True},
+    {"id": "glad", "title": "来てよかったと感じてほしい", "meaning": "相手に来てよかったと感じてもらう。", "priority": "維持",
+     "delegationState": "CO_DECIDE", "source": "USER_TURN", "evidenceTurns": [1], "focus": False},
+    {"id": "again", "title": "食後に自然な「また会おう」", "meaning": "食後に自然にまた会おうと言える。", "priority": "維持",
+     "delegationState": "CO_DECIDE", "source": "USER_TURN", "evidenceTurns": [1], "focus": False},
+]
+core.call_openai = fake_by_stage([core.ensure_exact_turn_ending(4, "わかりました。" + core.controlled_priority_sentence("reunion") + PAD)] * 3,
+                                 [analysis_json(cards)] * 2)
+crit = core.run_two_ais(body(4, "reunion"))["analysis"]["criteria"]
+calm = next(c for c in crit if c["id"] == "calm")
+check("E2 not written onto compressed-value card", "優先" not in calm["title"] and not calm["focus"], str(crit))
+
+# 27) v1.9.6 「変えないで」と書かれたカードは（第3・4回以外）文言を保つ
+prev_lock = [{"id": "calm", "title": "落ち着いた雰囲気でじっくり話す", "meaning": "落ち着いた雰囲気で、じっくり話せる時間にする。", "priority": "中心"},
+             {"id": "glad", "title": "来てよかったと感じてほしい", "meaning": "相手に来てよかったと感じてもらう。", "priority": "維持"},
+             {"id": "again", "title": "食後に自然な「また会おう」", "meaning": "食後に自然にまた会おうと言える。", "priority": "維持"}]
+changed = [dict(c, delegationState="CO_DECIDE", source="USER_TURN", evidenceTurns=[2], focus=(c["id"] == "calm")) for c in prev_lock]
+changed[0]["meaning"] = "落ち着いた雰囲気でじっくり話し、気楽に昔話も近況も話せるようにする。"
+b = body(2, "reunion", previous=prev_lock); b["userText"] = "「落ち着いた雰囲気でじっくり話す」はこのまま変えないでください。気楽に話せることも大切です。"
+core.call_openai = fake_by_stage([core.ensure_exact_turn_ending(2, "わかりました。" + PAD)] * 3, [analysis_json(changed)] * 2)
+r = core.run_two_ais(b)
+calm = next(c for c in r["analysis"]["criteria"] if c["id"] == "calm")
+check("locked card wording kept", calm["meaning"] == prev_lock[0]["meaning"] and calm["delegationState"] == "USER_DECIDE"
+      and "user_lock_kept:calm" in r["meta"]["analysisRepairs"], str(calm))
 
 print(f"\n{len(failures)} failure(s)")
 sys.exit(1 if failures else 0)

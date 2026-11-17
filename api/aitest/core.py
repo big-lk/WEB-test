@@ -44,7 +44,7 @@ RATE_LIMIT_LOCK = threading.Lock()
 API_URL = "https://api.openai.com/v1/responses"
 DIALOGUE_MODEL = os.environ.get("OPENAI_DIALOGUE_MODEL", "gpt-5.4-nano")
 ANALYSIS_MODEL = os.environ.get("OPENAI_ANALYSIS_MODEL", "gpt-5.4-nano")
-PROMPT_VERSION = "judgment-delegation-guided-turns-v1.9.5"
+PROMPT_VERSION = "judgment-delegation-guided-turns-v1.9.6"
 SESSION_SCHEMA_VERSION = 6
 MAX_USER_CHARS = 500
 ALLOWED_CONDITIONS = {"UI_A", "UI_B"}
@@ -964,7 +964,7 @@ REPAIRABLE_ANALYSIS_CODES |= {"A14_PRIORITY_RELATION_UNCLEAR", "A15_PRIORITY_TIT
 # 登録文ごとに A・N・タイトル語を定める。
 TURN3_FIXATION_TERMS = {
     "会話を少なくして静かに休める": (["気を遣わせ", "気を遣わな"], ["会話を少なく", "静かに休"], ["静か", "休"], "静かに休める時間"),
-    "照明や音の刺激を減らした静かな環境": (["自然に話"], ["刺激を減ら", "静かな環境"], ["静か", "刺激"], "刺激の少ない静かな場"),
+    "照明や音の刺激を減らした静かな環境": (["自然に話", "話"], ["刺激を減ら", "静かな環境"], ["静か", "刺激"], "刺激の少ない静かな場"),
     "前菜と主菜に分ける短いコース": (["特別感", "大げさ"], ["コース"], ["コース"], "短いコースで特別感"),
     "一皿の盛り付けだけで伝える": (["特別感", "大げさ"], ["盛り付け"], ["盛り付け", "一皿"], "盛り付けだけで特別感"),
     "短いカードを食後に置いて": (["感謝", "重く"], ["カード"], ["カード"], "食後のカードで感謝"),
@@ -990,7 +990,8 @@ def turn3_fixation_codes(value: Any, required_sentence: str) -> list[str]:
     codes = []
     if not (any(t in meaning for t in n_terms) and any(t in title + meaning for t in a_terms)):
         codes.append("A16_FIXATION_UNCLEAR")
-    if not any(t in title for t in title_terms):
+    # タイトルは元の価値の名前（A）か狭めた意味（N）のどちらかを含めばよい（参加者の言葉のタイトルを残すため）
+    if not any(t in title for t in title_terms + a_terms):
         codes.append("A17_FIXATION_TITLE_UNCLEAR")
     return codes
 
@@ -1093,6 +1094,8 @@ def event_target_score(card: dict[str, Any], turn: int, scenario_id: str, requir
         p_terms, c_terms = TURN4_RELATION_TERMS[scenario_id]
         side = (any(t in title for t in p_terms) - any(t in title for t in c_terms)) * 2 + \
                (any(t in meaning for t in p_terms) - any(t in meaning for t in c_terms))
+        if any(t in title + meaning for t in c_terms) and not any(t in title for t in p_terms):
+            side -= 10  # 縮められる側の価値のカードには E2 を書かない（参加者の固定がそこに付いていることが多い）
     if turn == 3 and fixation_terms(required_sentence):
         a_terms, n_terms, _, _ = fixation_terms(required_sentence)
         side = any(t in title + meaning for t in a_terms) * 2 + any(t in title + meaning for t in n_terms)
@@ -1151,7 +1154,7 @@ def repair_analysis(value: dict[str, Any], turn: int, scenario_id: str, required
                 if not (any(t in t_meaning for t in n_terms) and any(t in t_title + t_meaning for t in a_terms)):
                     target["meaning"] = meaning
                     repairs.append(f"fixation_meaning:{target['id']}")
-                if not any(t in str(target.get("title", "")) for t in title_terms):
+                if not any(t in str(target.get("title", "")) for t in title_terms + a_terms):
                     target["title"] = std_title
                     repairs.append(f"fixation_title:{target['id']}")
             if turn == 4:
@@ -1536,6 +1539,11 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
                 if target.get("delegationState") != state:
                     target["delegationState"] = state
                 delegation_from_text.append(f"{target['id']}={state}")
+                if state == "USER_DECIDE" and turn not in {3, 4} and prev_match and prev_match.get("id") == target.get("id"):
+                    if (target.get("title"), target.get("meaning")) != (prev_match.get("title"), prev_match.get("meaning")):
+                        target["title"] = str(prev_match.get("title", ""))[:18]
+                        target["meaning"] = str(prev_match.get("meaning", ""))[:100]
+                        analysis_repairs.append(f"user_lock_kept:{target['id']}")
     event_delegation = None
     if condition == "UI_B" and turn in {3, 4} and source_criteria and required_control_sentence:
         def state_of(terms: list[str]):
