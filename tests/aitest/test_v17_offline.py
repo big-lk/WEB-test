@@ -5,6 +5,7 @@ python3 tests/aitest/test_v17_offline.py
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -436,6 +437,58 @@ r = core.run_two_ais(b)
 calm = next(c for c in r["analysis"]["criteria"] if c["id"] == "calm")
 check("locked card wording kept", calm["meaning"] == prev_lock[0]["meaning"] and calm["delegationState"] == "USER_DECIDE"
       and "user_lock_kept:calm" in r["meta"]["analysisRepairs"], str(calm))
+
+# 28) v2.0 一般的解釈の置換刺激（generic_marked / generic_implicit）
+def router(gen_json, dialogue_fn, analysis_text):
+    seen = []
+    def call(payload):
+        seen.append(payload)
+        ins = payload["instructions"]
+        if ins.startswith(core.GENERIC_STIMULUS_INSTRUCTIONS[:30]):
+            return fake_response(gen_json, "g")
+        if ins.startswith(core.DIALOGUE_INSTRUCTIONS[:40]):
+            return fake_response(dialogue_fn(payload), "d")
+        return fake_response(analysis_text, "a")
+    return call, seen
+busy_hist = history(3)
+busy_hist[2] = {"role": "user", "content": "気を遣わせないで、いつも通り二人で台所に立って作りたいです。"}
+gen3 = json.dumps({"phrase": "気を遣わせない", "generic": "相手には何もさせず休んでいてもらうこと", "demoted": "", "preferred": "", "limit": ""}, ensure_ascii=False)
+for variant, marker in [("generic_marked", "一般的には"), ("generic_implicit", None)]:
+    b = body(3, "busy"); b["experimentVariant"] = variant; b["history"] = busy_hist
+    def dfn(payload):
+        sent = re.search(r"今回の強制文（一字も変えず、可視回答に正確に含める）: (.+)", payload["input"]).group(1).strip()
+        return core.ensure_exact_turn_ending(3, "わかりました。" + sent + PAD)
+    call, seen = router(gen3, dfn, analysis_json(GENERIC_CARDS))
+    core.call_openai = call
+    r = core.run_two_ais(b)
+    sent = r["meta"]["requiredControlSentence"]
+    focus = [c for c in r["analysis"]["criteria"] if c["focus"]][0]
+    check(f"{variant} t3 sentence built and shown", sent and "気を遣わせない" in sent and sent in r["dialogue"]
+          and ((marker in sent) if marker else ("一般的" not in sent))
+          and r["meta"]["genericStimulus"]["source"] == "generated", sent)
+    check(f"{variant} t3 panel event card", "気を遣わせない" in focus["title"] + focus["meaning"] and "休んで" in focus["meaning"], str(focus))
+gen4 = json.dumps({"phrase": "", "generic": "", "demoted": "いつも通り一緒に料理すること", "preferred": "相手をゆっくり休ませること",
+                   "limit": "一緒に作るのは盛り付けだけに限ります"}, ensure_ascii=False)
+b = body(4, "busy"); b["experimentVariant"] = "generic_implicit"
+def dfn4(payload):
+    sent = re.search(r"今回の強制文（一字も変えず、可視回答に正確に含める）: (.+)", payload["input"]).group(1).strip()
+    return core.ensure_exact_turn_ending(4, "わかりました。" + sent + PAD)
+call, seen = router(gen4, dfn4, analysis_json(GENERIC_CARDS))
+core.call_openai = call
+r = core.run_two_ais(b)
+focus = [c for c in r["analysis"]["criteria"] if c["focus"]][0]
+check("generic t4 sentence + panel", r["meta"]["requiredControlSentence"] == "今回はいつも通り一緒に料理することよりも相手をゆっくり休ませることを優先し、一緒に作るのは盛り付けだけに限ります。"
+      and r["meta"]["requiredControlSentence"] in r["dialogue"] and "優先" in focus["title"] and focus["priority"] == "中心", str(focus))
+# 生成が不正なら標準の登録文へ戻る
+bad = json.dumps({"phrase": "存在しない語句", "generic": "x", "demoted": "", "preferred": "", "limit": ""}, ensure_ascii=False)
+b = body(3, "busy"); b["experimentVariant"] = "generic_marked"
+call, seen = router(bad, dfn, analysis_json(GENERIC_CARDS))
+core.call_openai = call
+r = core.run_two_ais(b)
+check("generic fallback to standard sentence", r["meta"]["genericStimulus"]["source"] == "fallback_standard"
+      and r["meta"]["requiredControlSentence"] == core.controlled_fixation_sentence(ANCHORS["busy"], [], "x"))
+# 生成器は UI 条件・ボタンを受け取らない
+check("generator input has no UI info", all("UI_B" not in p["input"] for p in seen))
 
 print(f"\n{len(failures)} failure(s)")
 sys.exit(1 if failures else 0)

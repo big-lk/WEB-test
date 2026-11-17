@@ -44,12 +44,15 @@ RATE_LIMIT_LOCK = threading.Lock()
 API_URL = "https://api.openai.com/v1/responses"
 DIALOGUE_MODEL = os.environ.get("OPENAI_DIALOGUE_MODEL", "gpt-5.4-nano")
 ANALYSIS_MODEL = os.environ.get("OPENAI_ANALYSIS_MODEL", "gpt-5.4-nano")
-PROMPT_VERSION = "judgment-delegation-guided-turns-v1.9.6"
+PROMPT_VERSION = "judgment-delegation-guided-turns-v2.0"
 SESSION_SCHEMA_VERSION = 6
 MAX_USER_CHARS = 500
 ALLOWED_CONDITIONS = {"UI_A", "UI_B"}
 ALLOWED_DELEGATION_VALUES = {"ai", "consult", "self"}
-ALLOWED_EXPERIMENT_VARIANTS = {"standard", "strong_ambiguity"}
+ALLOWED_EXPERIMENT_VARIANTS = {"standard", "strong_ambiguity", "generic_marked", "generic_implicit"}
+# v2.0 比較用：参加者の言葉に対して「多くの人が想定する一般的な意味・優先」を当てはめる刺激。
+# marked = 「一般的には」と出どころを示す / implicit = 参加者の意味として言い切る。
+GENERIC_VARIANTS = {"generic_marked", "generic_implicit"}
 
 SCENARIOS = {
     "busy": "相手は最近忙しく、少し疲れている",
@@ -610,6 +613,8 @@ def dialogue_validation_codes(
         elif experiment_variant == "strong_ambiguity" and scenario_id:
             required_priority = strong_ambiguity_sentence(scenario_id, 4)
         # 登録済みの必須文がそのまま含まれていれば、優先関係の代行は成立している。
+        if required_sentence and required_sentence in text:
+            required_priority = required_sentence
         if not (required_priority and required_priority in text) and (
             not any(term in text for term in priority_markers) or not any(term in text for term in weakening_markers)
         ):
@@ -1282,6 +1287,142 @@ def keep_uncorrected_relation(previous: list[dict[str, Any]], criteria: list[dic
     repairs.append(f"relation_kept:{target['id']}")
 
 
+# ---------------------------------------------------------------- v2.0: 一般的解釈による置換刺激
+GENERIC_STIMULUS_INSTRUCTIONS = """
+あなたは実験刺激の生成器である。会話AIとは別に動き、出力は会話AIの回答に一文として埋め込まれる。
+目的：参加者が書いた価値の言葉を、「多くの人がその言葉で想定する一般的な意味・一般的な優先順位」で
+受け取ってしまうAIの振る舞いを、自然な夕食提案の一文として作る。参加者個人の独自の意味は無視される形になる。
+
+第3ターン（意味）：
+- phrase：参加者自身の言葉（事前の一文または入力）から、価値を表す語句を2〜16字でそのまま抜き出す。
+- generic：その語句から多くの人が想定する、一般的でもっともらしい具体的な夕食の形（10〜36字、「〜こと」で終える）。
+  参加者がその語句について既に書いた具体的な中身とは違うものにする。ただし最新入力の直接の否定（話したい→話さない等）は避ける。
+第4ターン（優先）：
+- demoted：参加者が大切だと書いてきた価値（参加者の言葉に近い表現、4〜20字、「〜こと」で終える）。
+- preferred：この種の夕食で一般的に優先されやすい別の価値（4〜20字、「〜こと」で終える）。参加者が最優先にしていないもの。
+- limit：demotedを具体的に縮める一節（10〜32字、「〜ます」で終える。例：ゆっくり話すのは食後の短い時間に限ります）。
+共通：日本語のみ。安全・健康・個人情報・実験への言及は入れない。荒唐無稽にしない。
+"""
+GENERIC_STIMULUS_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {
+        "phrase": {"type": "string"}, "generic": {"type": "string"},
+        "demoted": {"type": "string"}, "preferred": {"type": "string"}, "limit": {"type": "string"},
+    },
+    "required": ["phrase", "generic", "demoted", "preferred", "limit"],
+}
+
+
+def build_generic_sentence(turn: int, variant: str, parts: dict[str, str]) -> str:
+    if turn == 3:
+        phrase, generic = parts["phrase"], parts["generic"].rstrip("。")
+        if variant == "generic_marked":
+            return f"「{phrase}」は、一般的には{generic}と受け取られることが多いので、今回もその形で整えます。"
+        return f"「{phrase}」は、{generic}として整えます。"
+    demoted, preferred, limit = parts["demoted"].rstrip("。"), parts["preferred"].rstrip("。"), parts["limit"].rstrip("。")
+    if variant == "generic_marked":
+        return f"こうした夕食では{preferred}を大切にする方が多いので、今回は{demoted}よりも{preferred}を優先し、{limit}。"
+    return f"今回は{demoted}よりも{preferred}を優先し、{limit}。"
+
+
+def validate_generic_parts(turn: int, parts: dict[str, str], participant_text: str, latest: str) -> list[str]:
+    codes = []
+    if turn == 3:
+        phrase, generic = parts.get("phrase", "").strip(), parts.get("generic", "").strip()
+        if not (2 <= len(phrase) <= 16) or phrase not in participant_text:
+            codes.append("G01_PHRASE_NOT_PARTICIPANTS")
+        if not (8 <= len(generic) <= 40):
+            codes.append("G02_GENERIC_LENGTH")
+        if text_similarity(generic, latest) >= 0.45:
+            codes.append("G03_GENERIC_ECHOES_PARTICIPANT")
+    else:
+        d, pr, lm = parts.get("demoted", "").strip(), parts.get("preferred", "").strip(), parts.get("limit", "").strip()
+        if not (3 <= len(d) <= 22) or not (3 <= len(pr) <= 22) or not (8 <= len(lm) <= 36):
+            codes.append("G04_PRIORITY_LENGTH")
+        if text_similarity(d, pr) >= 0.5:
+            codes.append("G05_SAME_VALUE")
+        if not lm.rstrip("。").endswith("ます"):
+            codes.append("G06_LIMIT_FORM")
+    joined = "".join(parts.values())
+    if "?" in joined or "？" in joined or not japanese_visible(joined):
+        codes.append("G07_FORM")
+    return codes
+
+
+def generate_generic_stimulus(turn: int, variant: str, anchor: dict[str, str], history: list[dict[str, str]],
+                              user_text: str) -> tuple[str, dict[str, Any]]:
+    """参加者の言葉に一般的解釈を当てはめる一文を生成する。失敗時は標準の登録文に戻す。"""
+    participant_text = anchor["freeText"] + "".join(r["content"] for r in history if r["role"] == "user") + user_text
+    payload = {
+        "model": ANALYSIS_MODEL,
+        "instructions": GENERIC_STIMULUS_INSTRUCTIONS,
+        "input": (f"ターン: {turn}\n事前場面: {anchor['scenarioLabel']}\n事前の一文: {anchor['freeText']}\n"
+                  f"対話:\n{transcript_text(history, user_text, '')}\n"
+                  f"第{turn}ターンの項目だけを意味のある内容で埋め、もう一方の項目は空文字にする。"),
+        "reasoning": {"effort": "low"},
+        "text": {"verbosity": "low", "format": {"type": "json_schema", "name": "generic_stimulus", "strict": True,
+                                                "schema": GENERIC_STIMULUS_SCHEMA}},
+        "max_output_tokens": 400,
+        "store": False,
+    }
+    info: dict[str, Any] = {"variant": variant, "attempts": []}
+    for attempt in range(2):
+        try:
+            text, _, latency = call_openai(payload)
+            parts = json.loads(text)
+        except Exception as exc:  # noqa: BLE001
+            info["attempts"].append({"error": type(exc).__name__})
+            continue
+        codes = validate_generic_parts(turn, parts, participant_text, user_text)
+        info["attempts"].append({"codes": codes, "latencyMs": round(latency)})
+        if not codes:
+            info["parts"] = {k: v for k, v in parts.items() if v}
+            info["source"] = "generated"
+            return build_generic_sentence(turn, variant, parts), info
+    info["source"] = "fallback_standard"
+    fallback = controlled_fixation_sentence(anchor, history, user_text) if turn == 3 else controlled_priority_sentence(anchor["scenarioId"])
+    return fallback, info
+
+
+def enforce_generic_panel(turn: int, criteria: list[dict[str, Any]], parts: dict[str, str], repairs: list[str]) -> None:
+    """一般的解釈の事象カードを右側に読める形で置く（第3回：語句と一般的意味、第4回：優先関係）。"""
+    if not criteria or not parts:
+        return
+    if turn == 3:
+        phrase, generic = parts["phrase"], parts["generic"].rstrip("。")
+        meaning = f"「{phrase}」を、{generic}として扱う。"[:100]
+        def score(c):
+            text = str(c.get("title", "")) + str(c.get("meaning", ""))
+            return (phrase in text, text_similarity(text, phrase + generic), bool(c.get("focus")))
+        ok = lambda c: phrase in str(c.get("title", "")) + str(c.get("meaning", "")) and text_similarity(str(c.get("meaning", "")), generic) >= 0.3
+        title = phrase[:18] if phrase in "".join(str(c.get("title", "")) for c in criteria) else generic[:18]
+    else:
+        demoted, preferred, limit = parts["demoted"].rstrip("。"), parts["preferred"].rstrip("。"), parts["limit"].rstrip("。")
+        meaning = f"{demoted}よりも{preferred}を優先し、{limit}。"[:100]
+        def score(c):
+            text = str(c.get("title", "")) + str(c.get("meaning", ""))
+            return (-(text_similarity(text, demoted) >= 0.35), text_similarity(text, preferred), bool(c.get("focus")))
+        ok = lambda c: "優先" in str(c.get("meaning", "")) and text_similarity(str(c.get("meaning", "")), preferred) >= 0.2 \
+            and not any(n in str(c.get("meaning", "")) for n in PRIORITY_NEGATIONS)
+        title = f"{preferred.removesuffix('こと')}を優先"[:18]
+    target = max(criteria, key=score)
+    if not ok(target):
+        target["meaning"] = meaning
+        repairs.append(f"generic_meaning:{target.get('id')}")
+        if turn == 4 or phrase not in str(target.get("title", "")):
+            target["title"] = title
+            repairs.append(f"generic_title:{target.get('id')}")
+    for c in criteria:
+        c["focus"] = c is target
+    target["source"] = "AI_INFERENCE"
+    if turn == 4:
+        target["priority"] = "中心"
+        for c in criteria:
+            if c is not target and c.get("priority") == "中心":
+                c["priority"] = "維持"
+
+
 def reconcile_ids(previous: list[dict[str, Any]], criteria: list[dict[str, Any]], mapping: list[str]) -> None:
     """前ターンと実質的に同じ価値には、前ターンと同じ id を使う（UI B のボタン選択を保つため）。"""
     prev = [p for p in previous if p.get("id") and p["id"] not in PLACEHOLDER_IDS and not str(p["id"]).startswith("turn-")]
@@ -1334,7 +1475,10 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     if not previous_criteria and source_criteria:
         previous_criteria = [dict(item) for item in source_criteria]
     strong_stimulus = experiment_variant == "strong_ambiguity" and turn in {3, 4}
-    if strong_stimulus:
+    generic_info: dict[str, Any] | None = None
+    if experiment_variant in GENERIC_VARIANTS and turn in {3, 4}:
+        required_control_sentence, generic_info = generate_generic_stimulus(turn, experiment_variant, anchor, history, user_text)
+    elif strong_stimulus:
         required_control_sentence = strong_ambiguity_sentence(anchor["scenarioId"], turn)
     elif turn == 3:
         required_control_sentence = controlled_fixation_sentence(anchor, history, user_text)
@@ -1487,14 +1631,18 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
             return list(dict.fromkeys(base + extra))
         return base
 
+    generic_mode = experiment_variant in GENERIC_VARIANTS
+    panel_scenario = "" if generic_mode else anchor["scenarioId"]
+    panel_sentence = "" if generic_mode else required_control_sentence
+
     def parse_and_repair(text: str) -> tuple[Any, list[str]]:
-        value, codes = parse_analysis(text, turn, anchor["scenarioId"])
+        value, codes = parse_analysis(text, turn, panel_scenario)
         codes = full_codes(value, codes)
         if codes and value is not None and isinstance(value.get("criteria"), list) and len(value["criteria"]) == 3 \
                 and set(codes) <= REPAIRABLE_ANALYSIS_CODES:
             local: list[str] = []
-            repaired = repair_analysis(value, turn, anchor["scenarioId"], required_control_sentence, local)
-            _, remaining = parse_analysis(json.dumps(repaired, ensure_ascii=False), turn, anchor["scenarioId"])
+            repaired = repair_analysis(value, turn, panel_scenario, panel_sentence, local)
+            _, remaining = parse_analysis(json.dumps(repaired, ensure_ascii=False), turn, panel_scenario)
             remaining = full_codes(repaired, remaining)
             # 登録文から作ったカードは A13 の語彙チェックに依存しない
             if any(r.startswith(("event_meaning", "relation_meaning", "fixation_meaning")) for r in local):
@@ -1513,7 +1661,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         )
     except ExperimentError as exc:
         analysis_fallback = True
-        analysis = fallback_with_event(turn, anchor, required_control_sentence, previous_criteria)
+        analysis = fallback_with_event(turn, anchor, panel_sentence, previous_criteria)
         analysis_raw = {}
         analysis_latency = 0.0
         analysis_attempts = exc.attempts
@@ -1523,6 +1671,8 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         if (turn in {5, 6} and experiment_variant == "standard" and previous_criteria
                 and not any(participant_touched_relation(t, anchor["scenarioId"]) for t in later_user_texts)):
             keep_uncorrected_relation(previous_criteria, analysis["criteria"], anchor["scenarioId"], analysis_repairs)
+    if generic_info and generic_info.get("parts"):
+        enforce_generic_panel(turn, analysis["criteria"], generic_info["parts"], analysis_repairs)
     delegation_from_text: list[str] = []
     if not analysis_fallback:
         for quoted, state in delegation_requests(user_text):
@@ -1602,6 +1752,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
             "analysisRepairs": analysis_repairs,
             "idReconciliation": id_mapping,
             "eventDelegation": event_delegation,
+            "genericStimulus": generic_info,
             "finalRelationInserted": bool(final_relation_inserted),
             "delegationFromText": delegation_from_text,
             "requiredControlSentence": required_control_sentence or None,
