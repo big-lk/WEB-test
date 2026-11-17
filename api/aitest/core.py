@@ -44,7 +44,7 @@ RATE_LIMIT_LOCK = threading.Lock()
 API_URL = "https://api.openai.com/v1/responses"
 DIALOGUE_MODEL = os.environ.get("OPENAI_DIALOGUE_MODEL", "gpt-5.4-nano")
 ANALYSIS_MODEL = os.environ.get("OPENAI_ANALYSIS_MODEL", "gpt-5.4-nano")
-PROMPT_VERSION = "judgment-delegation-guided-turns-v1.7"
+PROMPT_VERSION = "judgment-delegation-guided-turns-v1.7.2"
 SESSION_SCHEMA_VERSION = 6
 MAX_USER_CHARS = 500
 ALLOWED_CONDITIONS = {"UI_A", "UI_B"}
@@ -910,6 +910,69 @@ EVENT_CARD_TITLES = {
 }
 PLACEHOLDER_IDS = {"anchor-context", "pending-meaning"}
 
+# 第4回（標準刺激）：焦点カードが「何を・何より優先し、何を縮めたか」を読める形で示しているか。
+# P = 優先された価値、C = 縮められた価値（登録文 STANDARD_PRIORITY_TABLE と対応）。
+TURN4_RELATION_TERMS = {
+    "busy": (["特別"], ["休"]),
+    "reunion": (["料理の特別", "特別感"], ["話", "会話"]),
+    "milestone": (["節目", "特別感"], ["気楽", "いつもの", "普段"]),
+    "gratitude": (["感謝"], ["雑談", "会話"]),
+}
+PRIORITY_NEGATIONS = ["優先しない", "優先せず", "優先ではな", "優先しすぎ", "優先しなく", "優先はしな"]
+COMPRESS_MARKERS = ["抑え", "限", "短い", "短く", "後回し", "控え", "だけ", "少なく"]
+TITLE_BALANCE_WORDS = ["両方", "両立", "同時", "どちらも", "バランス"]
+REPAIRABLE_ANALYSIS_CODES |= {"A14_PRIORITY_RELATION_UNCLEAR", "A15_PRIORITY_TITLE_UNCLEAR"}
+
+
+def _first(text: str, terms: list[str], start: int = 0) -> int:
+    hits = [i for i in (text.find(t, start) for t in terms) if i >= 0]
+    return min(hits) if hits else -1
+
+
+def priority_relation_ok(meaning: str, scenario_id: str) -> bool:
+    """「C より P を優先」または「P を優先し、C は短く/抑える」の関係が読めるか。否定・逆転は不可。"""
+    terms = TURN4_RELATION_TERMS.get(scenario_id)
+    if not terms:
+        return True
+    p_terms, c_terms = terms
+    text = re.sub(r"\s+", "", meaning)
+    if any(n in text for n in PRIORITY_NEGATIONS) or "優先" not in text:
+        return False
+    pri = text.find("優先")
+    # 型A: C … より … P … 優先
+    c_i = _first(text, c_terms)
+    yori = text.find("より", c_i + 1) if c_i >= 0 else -1
+    if c_i >= 0 and 0 <= yori < pri:
+        p_i = _first(text, p_terms, yori)
+        if 0 <= p_i < pri:
+            return True
+    # 型B: P … 優先 … C … 縮める表現
+    p_i = _first(text, p_terms)
+    if 0 <= p_i < pri:
+        c_after = _first(text, c_terms, pri)
+        if c_after >= 0 and _first(text, COMPRESS_MARKERS, c_after) >= 0:
+            return True
+    return False
+
+
+def priority_title_ok(title: str) -> bool:
+    return "優先" in title and not any(w in title for w in TITLE_BALANCE_WORDS) and not any(
+        n in title for n in PRIORITY_NEGATIONS)
+
+
+def turn4_relation_codes(value: Any, scenario_id: str) -> list[str]:
+    if not isinstance(value, dict) or not isinstance(value.get("criteria"), list):
+        return []
+    focus = [c for c in value["criteria"] if isinstance(c, dict) and c.get("focus") is True]
+    if len(focus) != 1 or scenario_id not in TURN4_RELATION_TERMS:
+        return []
+    codes = []
+    if not priority_relation_ok(str(focus[0].get("meaning", "")), scenario_id):
+        codes.append("A14_PRIORITY_RELATION_UNCLEAR")
+    if not priority_title_ok(str(focus[0].get("title", ""))):
+        codes.append("A15_PRIORITY_TITLE_UNCLEAR")
+    return codes
+
 
 def _bigrams(text: str) -> set[str]:
     t = re.sub(r"\s+", "", str(text))
@@ -1001,6 +1064,22 @@ def repair_analysis(value: dict[str, Any], turn: int, scenario_id: str, required
                     if c is not target and c.get("priority") == "中心":
                         c["priority"] = "維持"
                         repairs.append(f"priority_demote:{c['id']}")
+                if scenario_id in TURN4_RELATION_TERMS and required_sentence == STANDARD_PRIORITY_TABLE.get(scenario_id):
+                    if not priority_relation_ok(str(target.get("meaning", "")), scenario_id):
+                        target["meaning"] = meaning
+                        repairs.append(f"relation_meaning:{target['id']}")
+                    if not priority_title_ok(str(target.get("title", ""))):
+                        target["title"] = EVENT_CARD_TITLES[(4, scenario_id)]
+                        repairs.append(f"relation_title:{target['id']}")
+                    # 焦点以外のカードが別の価値を「最優先」と言うと、優先関係が二重に読めてしまう
+                    for c in criteria:
+                        if c is target:
+                            continue
+                        for field in ("title", "meaning"):
+                            text = str(c.get(field, ""))
+                            if "最優先" in text or "優先し" in text:
+                                c[field] = text.replace("最優先に", "大切に").replace("最優先", "大切").replace("優先し", "大切にし")
+                                repairs.append(f"other_priority_softened:{c['id']}")
     return {"summary": str(value.get("summary", "")), "criteria": criteria}
 
 
@@ -1223,15 +1302,24 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     analysis_repairs: list[str] = []
     id_mapping: list[str] = []
 
+    strict_relation = turn == 4 and experiment_variant == "standard"
+
+    def full_codes(value: Any, base: list[str]) -> list[str]:
+        if strict_relation and value is not None and "A02_CRITERIA_COUNT" not in base and "A01_INVALID_JSON" not in base:
+            return list(dict.fromkeys(base + turn4_relation_codes(value, anchor["scenarioId"])))
+        return base
+
     def parse_and_repair(text: str) -> tuple[Any, list[str]]:
         value, codes = parse_analysis(text, turn, anchor["scenarioId"])
+        codes = full_codes(value, codes)
         if codes and value is not None and isinstance(value.get("criteria"), list) and len(value["criteria"]) == 3 \
                 and set(codes) <= REPAIRABLE_ANALYSIS_CODES:
             local: list[str] = []
             repaired = repair_analysis(value, turn, anchor["scenarioId"], required_control_sentence, local)
             _, remaining = parse_analysis(json.dumps(repaired, ensure_ascii=False), turn, anchor["scenarioId"])
+            remaining = full_codes(repaired, remaining)
             # 登録文から作ったカードは A13 の語彙チェックに依存しない
-            if any(r.startswith("event_meaning") for r in local):
+            if any(r.startswith(("event_meaning", "relation_meaning")) for r in local):
                 remaining = [c for c in remaining if c != "A13_EVENT_NOT_VISIBLE"]
             if not remaining:
                 analysis_repairs.extend(local)

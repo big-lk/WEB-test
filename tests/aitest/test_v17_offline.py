@@ -191,5 +191,51 @@ _, codes = core.parse_analysis(json.dumps(result["analysis"], ensure_ascii=False
 check("turn4 fallback keeps ids with one event focus", [c["id"] for c in crit] == [c["id"] for c in GENERIC_CARDS]
       and sum(c["focus"] for c in crit) == 1 and "A13_EVENT_NOT_VISIBLE" not in codes, str(codes))
 
+# 11) 第4回の優先関係：実際の線上出力（2026-11-17）で判定が意図どおりか
+LIVE_T4 = [  # (scenario, title, meaning, relation_ok, title_ok)
+    ("busy", "家で特別感を両方同時に", "相手を長く休ませるより、食べ始めから鶏もも肉のハーブ焼きの香りで“少し特別”を感じてもらうことを優先する。静けさは食後の短い時間に限定する。", True, False),
+    ("reunion", "家で夕食を一緒に作る", "主菜の香りを楽しむ特別感を優先し、前菜と温かいスープは最初にまとめて出す。鶏もも肉は焼き上がりごとに一言添えて取り分ける。", False, False),
+    ("milestone", "落ち着いた特別感を普段に混ぜる", "張りつめず大げさにしない特別感を食事全体の軸にし、いつもの気楽さは前半だけに限って後半は節目仕様として差を出す。", False, False),
+    ("gratitude", "気負わず話せる食卓にしたい", "普段どおりの自然な会話を最優先にし、感謝を確実に伝えることは優先しない。会話は食事の前半だけ雑談として抑える。", False, False),
+    ("busy", "家で少し特別な夕食体験", "相手を休ませることより「少し特別」と感じられることを優先し、温かな前菜と香りのメインを中心に自然に仕上げる。", True, False),
+    ("reunion", "家で夕食を一緒に楽しむ", "ローストチキン等を一品ずつ出して料理の特別感を優先する夕食にする。会話は相づち中心で、自由な会話は料理待ちの短い時間に寄せる。", True, False),
+    ("milestone", "控えめに段取りを変えて特別感", "普段の流れは保ったまま、前菜から主菜への切り替えで節目らしさを足し、控えめな短いコースにする。", False, False),
+    ("gratitude", "感謝を自然に伝える", "感謝を確実に伝えることを優先し、雑談は食事の前半だけに抑えて、食後のカードで自然に受け渡す。", True, False),
+]
+for sc, title, meaning, rel, tit in LIVE_T4:
+    check(f"relation judge [{sc}] {title}", core.priority_relation_ok(meaning, sc) == rel and core.priority_title_ok(title) == tit,
+          f"rel={core.priority_relation_ok(meaning, sc)} title={core.priority_title_ok(title)}")
+for sc in ANCHORS:
+    check(f"standard event card passes relation [{sc}]",
+          core.priority_relation_ok(core.event_card_meaning(4, core.controlled_priority_sentence(sc)), sc)
+          and core.priority_title_ok(core.EVENT_CARD_TITLES[(4, sc)]))
+
+# 12) 逆転した焦点カード＋別カードの「最優先」→ 修復後は登録文どおりの関係になり、二重の優先が消える
+for sc, title, meaning, _, _ in LIVE_T4[:4]:
+    cards = [dict(c) for c in GENERIC_CARDS]
+    cards[1].update({"title": title, "meaning": meaning, "focus": True, "source": "AI_INFERENCE", "priority": "中心"})
+    cards[0].update({"meaning": "自然な会話を最優先にして過ごす。", "focus": False})
+    sentence = core.controlled_priority_sentence(sc)
+    core.call_openai = fake_by_stage([core.ensure_exact_turn_ending(4, "わかりました。" + sentence + PAD)] * 3,
+                                     [analysis_json(cards)] * 2)
+    result = core.run_two_ais(body(4, sc))
+    crit = result["analysis"]["criteria"]
+    focus = [c for c in crit if c["focus"]]
+    others = " ".join(c["title"] + c["meaning"] for c in crit if not c["focus"])
+    check(f"turn4 relation repaired [{sc}]", len(focus) == 1 and core.priority_relation_ok(focus[0]["meaning"], sc)
+          and core.priority_title_ok(focus[0]["title"]) and "優先" not in others
+          and result["analysis"]["criteria"][1]["id"] == GENERIC_CARDS[1]["id"]
+          and len(result["meta"]["analysisAttempts"]) == 1,
+          f"{focus} | {others} | {result['meta']['analysisRepairs']}")
+
+# 13) strong_ambiguity では第4回の厳格判定をかけない（別の登録文のため）
+cards = [dict(c) for c in GENERIC_CARDS]
+core.call_openai = fake_by_stage([core.ensure_exact_turn_ending(4, "わかりました。" + core.strong_ambiguity_sentence("busy", 4) + PAD)] * 3,
+                                 [analysis_json(cards)] * 2)
+b = body(4, "busy"); b["experimentVariant"] = "strong_ambiguity"
+result = core.run_two_ais(b)
+check("strong variant skips strict relation", not any(r.startswith("relation_") for r in result["meta"]["analysisRepairs"]),
+      str(result["meta"]["analysisRepairs"]))
+
 print(f"\n{len(failures)} failure(s)")
 sys.exit(1 if failures else 0)
