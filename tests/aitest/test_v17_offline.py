@@ -514,5 +514,30 @@ rep = []
 core.enforce_generic_panel(4, crit3, {"preferred": "相手をゆっくり休ませること", "action": "片付けはすべてこちらでします"}, rep, "separate")
 check("separate mode keeps event-t3 at turn 4", any(c["id"] == "event-t3" for c in crit3) and any(c["id"] == "event-t4" for c in crit3), str(crit3))
 
+# 31) v2.3 別カード方式：参加者が固定したカード（UI B の self／文章の「変えないで」）は置き換えない
+lock_prev = [dict(c) for c in GENERIC_CARDS]
+lock_prev[0]["priority"] = "未確定"  # 固定したカードが最も優先度の低い位置にある場合
+b = body(3, "busy", condition="UI_B"); b["experimentVariant"] = "generic_unranked"; b["eventCardMode"] = "separate"
+b["history"] = busy_hist
+b["previousCriteria"] = [{k: c[k] for k in ("id", "title", "meaning", "priority")} for c in lock_prev]
+b["delegationSourceCriteria"] = b["previousCriteria"]
+b["delegation"] = {"calm-time": "self", "light-special": "consult", "no-burden": "consult"}
+cards_now = [dict(c) for c in lock_prev]
+call, seen = router("{}", lambda p: core.ensure_exact_turn_ending(3, "わかりました。" + sent_from(p) + PAD), analysis_json(cards_now))
+core.call_openai = call
+r = core.run_two_ais(b)
+ids = [c["id"] for c in r["analysis"]["criteria"]]
+check("separate mode never replaces UI B self-locked card", "calm-time" in ids and "event-t3" in ids, str(ids))
+# 文章での「変えないで」も同様（UI A）、かつ第3回でも文言を保つ
+b = body(3, "busy"); b["experimentVariant"] = "generic_unranked"; b["eventCardMode"] = "separate"; b["history"] = busy_hist
+b["previousCriteria"] = [{k: c[k] for k in ("id", "title", "meaning", "priority")} for c in lock_prev]
+b["userText"] = "「落ち着いた時間」は自分で決めたいので、今の内容のまま変えないでください。食事中は笑っていたいです。"
+changed = [dict(c) for c in lock_prev]; changed[0]["meaning"] = "静かに落ち着いて食べる時間にする。"
+call, seen = router("{}", lambda p: core.ensure_exact_turn_ending(3, "わかりました。" + sent_from(p) + PAD), analysis_json(changed))
+core.call_openai = call
+r = core.run_two_ais(b)
+calm = next((c for c in r["analysis"]["criteria"] if c["id"] == "calm-time"), None)
+check("text-locked card kept and wording unchanged at turn 3", calm is not None and calm["meaning"] == lock_prev[0]["meaning"], str(calm))
+
 print(f"\n{len(failures)} failure(s)")
 sys.exit(1 if failures else 0)

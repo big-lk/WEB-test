@@ -44,7 +44,7 @@ RATE_LIMIT_LOCK = threading.Lock()
 API_URL = "https://api.openai.com/v1/responses"
 DIALOGUE_MODEL = os.environ.get("OPENAI_DIALOGUE_MODEL", "gpt-5.4-nano")
 ANALYSIS_MODEL = os.environ.get("OPENAI_ANALYSIS_MODEL", "gpt-5.4-nano")
-PROMPT_VERSION = "judgment-delegation-guided-turns-v2.2"
+PROMPT_VERSION = "judgment-delegation-guided-turns-v2.3"
 SESSION_SCHEMA_VERSION = 6
 MAX_USER_CHARS = 500
 ALLOWED_CONDITIONS = {"UI_A", "UI_B"}
@@ -1493,7 +1493,7 @@ def generate_generic_stimulus(turn: int, variant: str, anchor: dict[str, str], h
 
 
 def enforce_generic_panel(turn: int, criteria: list[dict[str, Any]], parts: dict[str, str], repairs: list[str],
-                          card_mode: str = "merge") -> None:
+                          card_mode: str = "merge", locked_ids: set[str] | None = None) -> None:
     """一般的解釈の事象カードを右側に読める形で置く（第3回：語句と一般的意味、第4回：優先関係）。
     card_mode="separate"（v2.2）：既存のカード（参加者が固定したカードを含む）を書き換えず、
     最も優先度の低いカードの位置に新しい事象カードを置く。"""
@@ -1516,7 +1516,10 @@ def enforce_generic_panel(turn: int, criteria: list[dict[str, Any]], parts: dict
         existing = next((c for c in criteria if c.get("id") == f"event-t{turn}"), None)
         rank = {"未確定": 0, "維持": 1, "中心": 2}
         # 第4回は第3回の事象カード（event-t3）も残す
-        pool = [c for c in criteria if not str(c.get("id", "")).startswith("event-")] or criteria
+        # v2.3: 参加者が固定したカード（文章での「変えないで」／UI B の「自分で決定」）は置き換えない
+        locked_ids = locked_ids or set()
+        pool = [c for c in criteria if not str(c.get("id", "")).startswith("event-") and c.get("id") not in locked_ids] \
+            or [c for c in criteria if not str(c.get("id", "")).startswith("event-")] or criteria
         slot = existing or min(pool, key=lambda c: (rank.get(c.get("priority"), 1), bool(c.get("focus"))))
         if slot is not existing:
             repairs.append(f"separate_event_replaced:{slot.get('id')}")
@@ -1843,7 +1846,13 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
                 and not any(participant_touched_relation(t, anchor["scenarioId"]) for t in later_user_texts)):
             keep_uncorrected_relation(previous_criteria, analysis["criteria"], anchor["scenarioId"], analysis_repairs)
     if generic_info and generic_info.get("parts"):
-        enforce_generic_panel(turn, analysis["criteria"], generic_info["parts"], analysis_repairs, card_mode)
+        locked_ids = {cid for cid, state in delegation.items() if state == "self"}
+        for quoted, state in delegation_requests(" ".join([user_text] + [r["content"] for r in history if r["role"] == "user"])):
+            if state == "USER_DECIDE":
+                hit = max(previous_criteria, key=lambda c: text_similarity(quoted, c.get("title", "")), default=None)
+                if hit and text_similarity(quoted, hit.get("title", "")) >= 0.5:
+                    locked_ids.add(hit["id"])
+        enforce_generic_panel(turn, analysis["criteria"], generic_info["parts"], analysis_repairs, card_mode, locked_ids)
     delegation_from_text: list[str] = []
     if not analysis_fallback:
         for quoted, state in delegation_requests(user_text):
@@ -1860,7 +1869,8 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
                 if target.get("delegationState") != state:
                     target["delegationState"] = state
                 delegation_from_text.append(f"{target['id']}={state}")
-                if state == "USER_DECIDE" and turn not in {3, 4} and prev_match and prev_match.get("id") == target.get("id"):
+                if state == "USER_DECIDE" and (turn not in {3, 4} or card_mode == "separate") \
+                        and prev_match and prev_match.get("id") == target.get("id"):
                     if (target.get("title"), target.get("meaning")) != (prev_match.get("title"), prev_match.get("meaning")):
                         target["title"] = str(prev_match.get("title", ""))[:18]
                         target["meaning"] = str(prev_match.get("meaning", ""))[:100]
