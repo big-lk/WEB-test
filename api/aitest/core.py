@@ -44,15 +44,29 @@ RATE_LIMIT_LOCK = threading.Lock()
 API_URL = "https://api.openai.com/v1/responses"
 DIALOGUE_MODEL = os.environ.get("OPENAI_DIALOGUE_MODEL", "gpt-5.4-nano")
 ANALYSIS_MODEL = os.environ.get("OPENAI_ANALYSIS_MODEL", "gpt-5.4-nano")
-PROMPT_VERSION = "judgment-delegation-guided-turns-v2.1.1"
+PROMPT_VERSION = "judgment-delegation-guided-turns-v2.2"
 SESSION_SCHEMA_VERSION = 6
 MAX_USER_CHARS = 500
 ALLOWED_CONDITIONS = {"UI_A", "UI_B"}
 ALLOWED_DELEGATION_VALUES = {"ai", "consult", "self"}
-ALLOWED_EXPERIMENT_VARIANTS = {"standard", "strong_ambiguity", "generic_marked", "generic_implicit"}
+ALLOWED_EXPERIMENT_VARIANTS = {"standard", "strong_ambiguity", "generic_marked", "generic_implicit",
+                               "generic_unranked", "generic_unranked_marked"}
 # v2.0 比較用：参加者の言葉に対して「多くの人が想定する一般的な意味・優先」を当てはめる刺激。
 # marked = 「一般的には」と出どころを示す / implicit = 参加者の意味として言い切る。
-GENERIC_VARIANTS = {"generic_marked", "generic_implicit"}
+GENERIC_VARIANTS = {"generic_marked", "generic_implicit", "generic_unranked", "generic_unranked_marked"}
+MARKED_VARIANTS = {"generic_marked", "generic_unranked_marked"}
+# v2.2 E2 の別案：参加者が述べた優先順位は倒さず、まだ順位を述べていない部分に「多くの人の優先」を当てはめて決める
+UNRANKED_VARIANTS = {"generic_unranked", "generic_unranked_marked"}
+UNRANKED_PRIORITY_CANDIDATES = {
+    "busy": [("相手をゆっくり休ませること", "食事の準備と片付けはすべてこちらでします"),
+             ("食卓を少し特別に整えること", "いつもより一品多くして、器も少し良いものにします")],
+    "reunion": [("料理でしっかりもてなすこと", "メインは手の込んだ一皿を用意して、食卓で取り分けます"),
+                ("落ち着いて向き合える場をつくること", "テレビは消して、食卓で向かい合って座ります")],
+    "milestone": [("節目らしさを形に残すこと", "食後に二人で写真を一枚撮る時間をつくります"),
+                  ("記念日らしい演出をすること", "デザートに小さなメッセージを添えます")],
+    "gratitude": [("感謝をきちんと届けること", "食後に一言、改めてお礼を伝える時間をつくります"),
+                  ("特別なごちそうでもてなすこと", "普段より品数を増やして、ごちそうらしく整えます")],
+}
 
 SCENARIOS = {
     "busy": "相手は最近忙しく、少し疲れている",
@@ -1339,13 +1353,19 @@ GENERIC_STIMULUS_SCHEMA = {
 
 
 def build_generic_sentence(turn: int, variant: str, parts: dict[str, str]) -> str:
+    marked = variant in MARKED_VARIANTS
+    if turn == 4 and "action" in parts:
+        preferred, action = parts["preferred"].rstrip("。"), parts["action"].rstrip("。")
+        if marked:
+            return f"こうした夕食では{preferred}を大切にする方が多いので、今回もそれを優先して、{action}。"
+        return f"今回は{preferred}を優先して、{action}。"
     if turn == 3:
         phrase, generic = parts["phrase"], parts["generic"].rstrip("。")
-        if variant == "generic_marked":
+        if marked:
             return f"「{phrase}」は、一般的には{generic}と受け取られることが多いので、今回もその形で整えます。"
         return f"「{phrase}」は、{generic}として整えます。"
     demoted, preferred, limit = parts["demoted"].rstrip("。"), parts["preferred"].rstrip("。"), parts["limit"].rstrip("。")
-    if variant == "generic_marked":
+    if marked:
         return f"こうした夕食では{preferred}を大切にする方が多いので、今回は{demoted}よりも{preferred}を優先し、{limit}。"
     return f"今回は{demoted}よりも{preferred}を優先し、{limit}。"
 
@@ -1432,6 +1452,12 @@ def generate_generic_stimulus(turn: int, variant: str, anchor: dict[str, str], h
         phrase = next((w for w in VALUE_PHRASES.get(scenario, []) if w in early), DEFAULT_PHRASE.get(scenario, "大切にしたいこと"))
         generic = least_overlapping(GENERIC_MEANING_CANDIDATES[scenario], participant_text)
         parts = {"phrase": phrase, "generic": generic}
+    elif variant in UNRANKED_VARIANTS:
+        options = UNRANKED_PRIORITY_CANDIDATES[scenario]
+        joined = [f"{p}{a}" for p, a in options]
+        chosen = least_overlapping(joined, participant_text)
+        preferred, action = options[joined.index(chosen)]
+        parts = {"preferred": preferred, "action": action}
     else:
         demoted = ""
         payload = {
@@ -1466,9 +1492,41 @@ def generate_generic_stimulus(turn: int, variant: str, anchor: dict[str, str], h
     return build_generic_sentence(turn, variant, parts), info
 
 
-def enforce_generic_panel(turn: int, criteria: list[dict[str, Any]], parts: dict[str, str], repairs: list[str]) -> None:
-    """一般的解釈の事象カードを右側に読める形で置く（第3回：語句と一般的意味、第4回：優先関係）。"""
+def enforce_generic_panel(turn: int, criteria: list[dict[str, Any]], parts: dict[str, str], repairs: list[str],
+                          card_mode: str = "merge") -> None:
+    """一般的解釈の事象カードを右側に読める形で置く（第3回：語句と一般的意味、第4回：優先関係）。
+    card_mode="separate"（v2.2）：既存のカード（参加者が固定したカードを含む）を書き換えず、
+    最も優先度の低いカードの位置に新しい事象カードを置く。"""
     if not criteria or not parts:
+        return
+    if card_mode == "separate":
+        if turn == 3:
+            phrase, generic = parts["phrase"], parts["generic"].rstrip("。")
+            meaning = f"「{phrase}」を、{generic}として扱う。"[:100]
+            core_generic = generic.removesuffix("こと")
+            title = core_generic if len(core_generic) <= 18 else (core_generic.split("、")[0][:18])
+        elif "action" in parts:
+            preferred, action = parts["preferred"].rstrip("。"), parts["action"].rstrip("。")
+            meaning = f"{preferred}を優先し、{action}。"[:100]
+            title = f"{preferred.removesuffix('こと')}を優先"[:18]
+        else:
+            demoted, preferred, limit = parts["demoted"].rstrip("。"), parts["preferred"].rstrip("。"), parts["limit"].rstrip("。")
+            meaning = f"{demoted}よりも{preferred}を優先し、{limit}。"[:100]
+            title = f"{preferred.removesuffix('こと')}を優先"[:18]
+        existing = next((c for c in criteria if c.get("id") == f"event-t{turn}"), None)
+        rank = {"未確定": 0, "維持": 1, "中心": 2}
+        # 第4回は第3回の事象カード（event-t3）も残す
+        pool = [c for c in criteria if not str(c.get("id", "")).startswith("event-")] or criteria
+        slot = existing or min(pool, key=lambda c: (rank.get(c.get("priority"), 1), bool(c.get("focus"))))
+        if slot is not existing:
+            repairs.append(f"separate_event_replaced:{slot.get('id')}")
+        slot.update({"id": f"event-t{turn}", "title": title, "meaning": meaning, "source": "AI_INFERENCE",
+                     "delegationState": "CO_DECIDE", "evidenceTurns": [turn], "priority": "中心" if turn == 4 else "維持"})
+        for c in criteria:
+            c["focus"] = c is slot
+            if turn == 4 and c is not slot and c.get("priority") == "中心":
+                c["priority"] = "維持"
+        repairs.append(f"separate_event_card:t{turn}")
         return
     if turn == 3:
         phrase, generic = parts["phrase"], parts["generic"].rstrip("。")
@@ -1480,6 +1538,14 @@ def enforce_generic_panel(turn: int, criteria: list[dict[str, Any]], parts: dict
         core_generic = generic.removesuffix("こと")
         short = core_generic.split("、")[0]
         title = (short if len(short) <= 18 else phrase[:18]) if len(core_generic) > 18 else core_generic
+    elif "action" in parts:
+        preferred, action = parts["preferred"].rstrip("。"), parts["action"].rstrip("。")
+        meaning = f"{preferred}を優先し、{action}。"[:100]
+        def score(c):
+            text = str(c.get("title", "")) + str(c.get("meaning", ""))
+            return (text_similarity(text, preferred + action), bool(c.get("focus")))
+        ok = lambda c: "優先" in str(c.get("meaning", "")) and text_similarity(str(c.get("meaning", "")), preferred) >= 0.2
+        title = f"{preferred.removesuffix('こと')}を優先"[:18]
     else:
         demoted, preferred, limit = parts["demoted"].rstrip("。"), parts["preferred"].rstrip("。"), parts["limit"].rstrip("。")
         meaning = f"{demoted}よりも{preferred}を優先し、{limit}。"[:100]
@@ -1544,6 +1610,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     ) = validate_request_body(body)
     safety_id = hashlib.sha256(session_id.encode("utf-8")).hexdigest()[:32]
     control_event = CONTROL_EVENTS[turn]
+    card_mode = "separate" if body.get("eventCardMode") == "separate" else "merge"
     previous_raw = body.get("previousCriteria", [])
     previous_criteria: list[dict[str, str]] = []
     if isinstance(previous_raw, list):
@@ -1776,7 +1843,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
                 and not any(participant_touched_relation(t, anchor["scenarioId"]) for t in later_user_texts)):
             keep_uncorrected_relation(previous_criteria, analysis["criteria"], anchor["scenarioId"], analysis_repairs)
     if generic_info and generic_info.get("parts"):
-        enforce_generic_panel(turn, analysis["criteria"], generic_info["parts"], analysis_repairs)
+        enforce_generic_panel(turn, analysis["criteria"], generic_info["parts"], analysis_repairs, card_mode)
     delegation_from_text: list[str] = []
     if not analysis_fallback:
         for quoted, state in delegation_requests(user_text):
@@ -1857,6 +1924,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
             "idReconciliation": id_mapping,
             "eventDelegation": event_delegation,
             "genericStimulus": generic_info,
+            "eventCardMode": card_mode,
             "finalRelationInserted": bool(final_relation_inserted),
             "delegationFromText": delegation_from_text,
             "requiredControlSentence": required_control_sentence or None,

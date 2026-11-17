@@ -491,5 +491,28 @@ r = core.run_two_ais(body(4, "reunion"))
 check("hard-code candidate sanitized instead of 502", sentence in r["dialogue"] and "？" not in r["dialogue"]
       and "自分で決めたい" not in r["dialogue"], r["dialogue"][:120])
 
+# 30) v2.2 E2 別案（未順位部分への一般的優先）と、事象カードを別カードで出す方式
+for variant, marker in [("generic_unranked", None), ("generic_unranked_marked", "大切にする方が多い")]:
+    b = body(4, "busy"); b["experimentVariant"] = variant; b["history"] = busy_hist4; b["eventCardMode"] = "separate"
+    prev_lock = [dict(c) for c in GENERIC_CARDS]
+    b["previousCriteria"] = [{k: c[k] for k in ("id", "title", "meaning", "priority")} for c in prev_lock]
+    call, seen = router("{}", lambda p: core.ensure_exact_turn_ending(4, "わかりました。" + sent_from(p) + PAD), analysis_json(GENERIC_CARDS))
+    core.call_openai = call
+    r = core.run_two_ais(b)
+    sent = r["meta"]["requiredControlSentence"]
+    crit = r["analysis"]["criteria"]
+    ev = [c for c in crit if c["id"] == "event-t4"]
+    kept_ids = {c["id"] for c in crit} - {"event-t4"}
+    check(f"{variant}: no reversal of stated priority", "よりも" not in sent and "優先して" in sent
+          and ((marker in sent) if marker else "一般" not in sent and "方が多い" not in sent), sent)
+    check(f"{variant}: separate event card, other cards untouched", len(ev) == 1 and ev[0]["focus"] and ev[0]["priority"] == "中心"
+          and all(c["title"] == next(g["title"] for g in GENERIC_CARDS if g["id"] == c["id"]) for c in crit if c["id"] in kept_ids),
+          str(crit))
+# 第4回でも第3回の事象カードは残る
+crit3 = [dict(c) for c in GENERIC_CARDS]; crit3[0]["id"] = "event-t3"; crit3[0]["title"] = "E1"
+rep = []
+core.enforce_generic_panel(4, crit3, {"preferred": "相手をゆっくり休ませること", "action": "片付けはすべてこちらでします"}, rep, "separate")
+check("separate mode keeps event-t3 at turn 4", any(c["id"] == "event-t3" for c in crit3) and any(c["id"] == "event-t4" for c in crit3), str(crit3))
+
 print(f"\n{len(failures)} failure(s)")
 sys.exit(1 if failures else 0)

@@ -154,7 +154,8 @@ function buildPreviewSession() {
   const preview = newSession(
     "PREVIEW",
     QUERY.get("condition") === "UI_A" ? "UI_A" : "UI_B",
-    QUERY.get("variant") === "strong_ambiguity" ? "strong_ambiguity" : "standard"
+    ["strong_ambiguity", "generic_marked", "generic_implicit", "generic_unranked", "generic_unranked_marked"]
+      .includes(QUERY.get("variant")) ? QUERY.get("variant") : "standard"
   );
   preview.status = "running";
   preview.currentTurn = 3;
@@ -574,6 +575,7 @@ async function submitTurn() {
         sessionId: session.sessionId,
         condition: session.condition,
         experimentVariant: session.experimentVariant || "standard",
+        eventCardMode: QUERY.get("card") === "separate" ? "separate" : "merge",
         turn: session.currentTurn,
         userText: text,
         history,
