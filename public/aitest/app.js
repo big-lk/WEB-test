@@ -286,7 +286,7 @@ function startTask(resuming = false) {
   els.appShell.dataset.condition = session.condition;
   els.conditionBadge.textContent = session.condition === "UI_B" ? "UI B" : "UI A";
   els.insightHelp.textContent = session.condition === "UI_B"
-    ? "本文はAIの解釈、タグはAIが置いた優先度です。ボタンの選択は、次に送信した内容へのAI回答から反映されます。"
+    ? "本文はAIの解釈、タグはAIが置いた優先度です。ボタンの選択は下の例文に反映されます。AIに伝わるのは、あなたが送信した文章です。"
     : "本文はAIの解釈、タグはAIが置いた優先度を表します。";
   showOnly(els.appShell);
   renderAll();
@@ -466,11 +466,40 @@ function createDelegationControl(key, selectedValue, readOnly) {
         item.classList.toggle("selected", selected);
         item.setAttribute("aria-pressed", selected ? "true" : "false");
       });
-      showToast(`「${button.textContent}」を選びました。次のAI回答から反映されます。`);
+      showToast(`「${button.textContent}」を選びました。下の「例文を作る」で、次に伝える文に反映できます。`);
     });
     control.append(button);
   });
   return control;
+}
+
+// v1.9.3: ボタンの選択は AI には送らず、参加者が次に書く文の「例文」にだけ反映する。
+const DELEGATION_EXAMPLE_PATTERNS = {
+  self: (title) => `「${title}」は自分で決めたいので、今の内容のまま変えないでください。`,
+  ai: (title) => `「${title}」は具体的な案を一つ出してください。`,
+  consult: (title) => `「${title}」はまだ決めずに、考える材料を示してください。`
+};
+const DELEGATION_EXAMPLE_ORDER = { self: 0, ai: 1, consult: 2 };
+const PLACEHOLDER_CRITERION_IDS = new Set(["anchor-context", "pending-meaning"]);
+
+function buildDelegationExample(criteria, delegation, touched, maxItems = 2, maxLength = 120) {
+  const picked = (criteria || [])
+    .map((item, index) => ({ item, index, key: item.id || item.title }))
+    .filter(({ item, key }) => key && item.title && !PLACEHOLDER_CRITERION_IDS.has(key) && !/^turn-\d+-record$/.test(key))
+    .map((entry) => ({ ...entry, state: delegation?.[entry.key] || "consult" }))
+    // 既定の「一緒に考える」のまま触っていないカードは例文に入れない
+    .filter(({ key, state }) => state !== "consult" || touched?.[key] === true)
+    .sort((a, b) => DELEGATION_EXAMPLE_ORDER[a.state] - DELEGATION_EXAMPLE_ORDER[b.state] || a.index - b.index);
+  const sentences = [];
+  const used = [];
+  for (const { key, state, item } of picked) {
+    if (sentences.length >= maxItems) break;
+    const sentence = DELEGATION_EXAMPLE_PATTERNS[state](String(item.title).trim());
+    if ((sentences.join("") + sentence).length > maxLength && sentences.length) break;
+    sentences.push(sentence);
+    used.push({ key, state });
+  }
+  return { text: sentences.join(""), used };
 }
 
 function createNextInputExample() {
@@ -481,6 +510,7 @@ function createNextInputExample() {
   const criteria = completed.at(-1)?.analysis?.criteria || [];
   const titles = criteria.map((item) => item.title);
   const focusTitle = criteria.find((item) => item.focus)?.title || titles[0] || "夕食全体の雰囲気";
+  const fromButtons = buildDelegationExample(criteria, round.delegation, round.delegationTouched);
   const examples = {
     1: "相手に＿＿と感じてほしく、二人の間に＿＿のような空気があるとよいです。",
     2: `「${focusTitle}」と一緒に、＿＿と感じられることも大切にしたいです。`,
@@ -489,7 +519,8 @@ function createNextInputExample() {
     5: "食べ始めは＿＿で、食後は＿＿となる流れが自然です。",
     6: "この夕食で最後に大切にしたいのは＿＿です。"
   };
-  const text = examples[turn].slice(0, 100);
+  const text = fromButtons.text || examples[turn].slice(0, 100);
+  els.exampleGuide.dataset.source = fromButtons.text ? "buttons" : "template";
   els.exampleGuideText.textContent = text;
   els.exampleGuide.classList.remove("hidden");
   round.exampleGeneratedAt = isoNow();
@@ -499,9 +530,13 @@ function createNextInputExample() {
     at: round.exampleGeneratedAt,
     textLength: text.length,
     generationCount: round.exampleGenerationCount,
-    delegation: { ...round.delegation }
+    delegation: { ...round.delegation },
+    source: fromButtons.text ? "buttons" : "template",
+    usedCriteria: fromButtons.used
   });
-  showToast("右下に短い例文の型を表示しました。必要な部分だけ使ってください。");
+  round.exampleSource = fromButtons.text ? "buttons" : "template";
+  showToast(fromButtons.text ? "ボタンの選択から例文を作りました。必要な部分だけ使ってください。"
+    : "右下に短い例文の型を表示しました。必要な部分だけ使ってください。");
 }
 
 async function submitTurn() {
@@ -742,6 +777,19 @@ function openExperimenterMenu() {
   els.dialog.showModal();
 }
 
+// 例文の2文字連続のうち、実際の送信文に含まれた割合（例文をどれだけ使ったかの目安）
+function exampleOverlap(example, sent) {
+  const clean = (value) => String(value || "").replace(/[\s＿「」。、]/g, "");
+  const a = clean(example);
+  const b = clean(sent);
+  if (a.length < 2 || !b) return "";
+  const grams = new Set();
+  for (let i = 0; i < a.length - 1; i += 1) grams.add(a.slice(i, i + 2));
+  let hit = 0;
+  grams.forEach((gram) => { if (b.includes(gram)) hit += 1; });
+  return (hit / grams.size).toFixed(2);
+}
+
 function exportCsv() {
   const header = [
     "participant_id", "session_id", "ui_condition", "experiment_variant", "session_schema_version", "prompt_version", "round", "control_event",
@@ -749,7 +797,7 @@ function exportCsv() {
     "input_focus_ts", "first_keystroke_ts", "last_keystroke_ts", "send_click_ts",
     "dialogue_model", "analysis_model", "dialogue_latency_ms", "analysis_latency_ms",
     "validation_status", "delegation_json", "delegation_touched_json",
-    "example_generated_ts", "example_generation_count", "example_text"
+    "example_generated_ts", "example_generation_count", "example_text", "example_source", "example_overlap"
   ];
   const rows = session.rounds.map((round) => [
     session.participantId, session.sessionId, session.condition, session.experimentVariant || "standard",
@@ -760,7 +808,8 @@ function exportCsv() {
     round.aiMeta?.dialogueModel || "", round.aiMeta?.analysisModel || "", round.aiMeta?.dialogueLatencyMs || "",
     round.aiMeta?.analysisLatencyMs || "", round.aiMeta?.validationStatus || "", JSON.stringify(round.delegation),
     JSON.stringify(round.delegationTouched), round.exampleGeneratedAt || "",
-    round.exampleGenerationCount || 0, round.exampleText || ""
+    round.exampleGenerationCount || 0, round.exampleText || "", round.exampleSource || "",
+    exampleOverlap(round.exampleText, round.userText)
   ]);
   download([header, ...rows].map((row) => row.map(csvCell).join(",")).join("\r\n"), `${safeName(session.sessionId)}_timing.csv`, "text/csv;charset=utf-8");
   logEvent("export_csv");
