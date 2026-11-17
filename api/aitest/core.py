@@ -44,7 +44,7 @@ RATE_LIMIT_LOCK = threading.Lock()
 API_URL = "https://api.openai.com/v1/responses"
 DIALOGUE_MODEL = os.environ.get("OPENAI_DIALOGUE_MODEL", "gpt-5.4-nano")
 ANALYSIS_MODEL = os.environ.get("OPENAI_ANALYSIS_MODEL", "gpt-5.4-nano")
-PROMPT_VERSION = "judgment-delegation-guided-turns-v2.4"
+PROMPT_VERSION = "judgment-delegation-guided-turns-v2.5"
 SESSION_SCHEMA_VERSION = 6
 MAX_USER_CHARS = 500
 ALLOWED_CONDITIONS = {"UI_A", "UI_B"}
@@ -1614,6 +1614,9 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     safety_id = hashlib.sha256(session_id.encode("utf-8")).hexdigest()[:32]
     control_event = CONTROL_EVENTS[turn]
     card_mode = "separate" if body.get("eventCardMode") == "separate" else "merge"
+    # v2.5: パネル固定（v2.3 のボタン由来の除外・v2.4 の固定維持）は比較用の任意設定。既定は無効。
+    # 正式実験では右側パネルは常に「AIの読み取り内容」であり、UI B のボタンはパネルにも AI にも作用しない。
+    panel_lock = body.get("panelLock") is True
     previous_raw = body.get("previousCriteria", [])
     previous_criteria: list[dict[str, str]] = []
     if isinstance(previous_raw, list):
@@ -1846,7 +1849,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
                 and not any(participant_touched_relation(t, anchor["scenarioId"]) for t in later_user_texts)):
             keep_uncorrected_relation(previous_criteria, analysis["criteria"], anchor["scenarioId"], analysis_repairs)
     if generic_info and generic_info.get("parts"):
-        locked_ids = {cid for cid, state in delegation.items() if state == "self"}
+        locked_ids = {cid for cid, state in delegation.items() if state == "self"} if panel_lock else set()
         for quoted, state in delegation_requests(" ".join([user_text] + [r["content"] for r in history if r["role"] == "user"])):
             if state == "USER_DECIDE":
                 hit = max(previous_criteria, key=lambda c: text_similarity(quoted, c.get("title", "")), default=None)
@@ -1875,10 +1878,10 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
                         target["title"] = str(prev_match.get("title", ""))[:18]
                         target["meaning"] = str(prev_match.get("meaning", ""))[:100]
                         analysis_repairs.append(f"user_lock_kept:{target['id']}")
-    # v2.4: 固定されたカードを毎ターン維持する（UI B の「自分で決定」／文章での「変えないで」）。
+    # v2.4（v2.5 から panelLock=True のときのみ）: 固定されたカードを毎ターン維持する（UI B の「自分で決定」／文章での「変えないで」）。
     # AI には固定の情報を渡さず、右側パネルの表示だけを維持する（UI B の操作が効く範囲はパネルまで）。
     lock_kept: list[str] = []
-    if not analysis_fallback and previous_criteria and (card_mode == "separate" or turn not in {3, 4}):
+    if panel_lock and not analysis_fallback and previous_criteria and (card_mode == "separate" or turn not in {3, 4}):
         text_locks: set[str] = set()
         for quoted, state in delegation_requests(" ".join([r["content"] for r in history if r["role"] == "user"] + [user_text])):
             hit = max(previous_criteria, key=lambda c: text_similarity(quoted, c.get("title", "")), default=None)
@@ -1971,6 +1974,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
             "eventDelegation": event_delegation,
             "genericStimulus": generic_info,
             "eventCardMode": card_mode,
+            "panelLock": panel_lock,
             "finalRelationInserted": bool(final_relation_inserted),
             "delegationFromText": delegation_from_text,
             "requiredControlSentence": required_control_sentence or None,

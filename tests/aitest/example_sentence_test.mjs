@@ -18,7 +18,7 @@ check("no cards → empty (template fallback)", r.text === "" && r.used.length =
 r = buildDelegationExample(cards, { rest: "consult", special: "consult", burden: "consult" }, {});
 check("all default consult, untouched → empty", r.text === "");
 r = buildDelegationExample(cards, { rest: "self" }, { rest: true });
-check("one self", r.text === "「静かに休める時間」は自分で決めたいので、今の内容のまま変えないでください。", r.text);
+check("one self", r.text === "「静かに休める時間」は自分で決めたいので、AIからは案を出さないでください。", r.text);
 r = buildDelegationExample(cards, { rest: "consult", special: "ai", burden: "self" }, { rest: true, special: true, burden: true });
 check("order self > ai, max 2", r.used.map((u) => u.key).join() === "burden,special" && !r.text.includes("材料"), r.text);
 r = buildDelegationExample(cards, { rest: "consult" }, { rest: true });
@@ -33,8 +33,8 @@ r = buildDelegationExample(long, { a: "self", b: "self" }, {});
 check("length cap keeps ≤120 chars", r.text.length <= 120 && r.used.length >= 1, `${r.text.length} ${r.text}`);
 r = buildDelegationExample(cards, { rest: "self", special: "self", burden: "self" }, {});
 check("never more than 2 sentences", r.used.length === 2);
-check("overlap: copied example ≈1", Number(exampleOverlap("「静かに休める時間」は自分で決めたいので、今の内容のまま変えないでください。",
-  "静かに休める時間は自分で決めたいので、今の内容のまま変えないでください。")) > 0.95);
+check("overlap: copied example ≈1", Number(exampleOverlap("「静かに休める時間」は自分で決めたいので、AIからは案を出さないでください。",
+  "静かに休める時間は自分で決めたいので、AIからは案を出さないでください。")) > 0.95);
 check("overlap: unrelated ≈0", Number(exampleOverlap("「静かに休める時間」は自分で決めたいので。", "洋食で前菜を出したいです")) < 0.2);
 check("overlap: no example → blank", exampleOverlap("", "abc") === "");
 console.log(`\n${fails} failure(s)`); process.exit(fails ? 1 : 0);

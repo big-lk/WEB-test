@@ -247,7 +247,7 @@ function prepareInstructions() {
   els.instructionScreen.dataset.condition = adjustable ? "UI_B" : "UI_A";
   els.conditionInstruction.querySelector("h3").textContent = adjustable ? "「AIが読み取ったこと」を確認し、AIの関わり方を選ぶ" : "「AIが読み取ったこと」を確認する";
   els.conditionInstruction.querySelector("p").textContent = adjustable
-    ? "「AIが読み取ったこと」でAIの受け取り方を確認します。必要なら、AIにどこまで考えてもらうかをボタンで変え、次に伝える短い例文も作れます。"
+    ? "「AIが読み取ったこと」でAIの受け取り方を確認します。必要なら、AIにどこまで考えてもらうかをボタンで選び、次に伝える短い例文を作れます。ボタンは例文づくりのためのもので、カードはAIの読み取りとして毎回更新されます。"
     : "「AIが読み取ったこと」で、AIがあなたの希望をどう受け取ったか確認します。変更用のボタンはありません。";
   if (session.pretaskAnchor) {
     const radio = els.anchorForm.querySelector(`input[value="${session.pretaskAnchor.scenarioId}"]`);
@@ -287,7 +287,7 @@ function startTask(resuming = false) {
   els.appShell.dataset.condition = session.condition;
   els.conditionBadge.textContent = session.condition === "UI_B" ? "UI B" : "UI A";
   els.insightHelp.textContent = session.condition === "UI_B"
-    ? "本文はAIの解釈、タグはAIが置いた優先度です。ボタンの選択は下の例文に反映されます。AIに伝わるのは、あなたが送信した文章です。"
+    ? "本文はAIの解釈、タグはAIが置いた優先度です。ボタンは例文づくりのためのもので、カードはAIの読み取りとして毎回更新されます。AIに伝わるのは、あなたが送信した文章です。"
     : "本文はAIの解釈、タグはAIが置いた優先度を表します。";
   showOnly(els.appShell);
   renderAll();
@@ -447,7 +447,7 @@ function createDelegationControl(key, selectedValue, readOnly) {
   control.setAttribute("role", "group");
   control.setAttribute("aria-label", "AIにどこまで考えてもらうか");
   control.dataset.aoi = "AOI_Right_Delegation_Control";
-  [["ai", "AIに提案してもらう"], ["consult", "一緒に考える"], ["self", "自分で決定・固定"]].forEach(([value, label]) => {
+  [["ai", "AIに提案してもらう"], ["consult", "一緒に考える"], ["self", "自分で決める"]].forEach(([value, label]) => {
     const button = document.createElement("button");
     button.type = "button";
     button.dataset.value = value;
@@ -476,7 +476,7 @@ function createDelegationControl(key, selectedValue, readOnly) {
 
 // v1.9.3: ボタンの選択は AI には送らず、参加者が次に書く文の「例文」にだけ反映する。
 const DELEGATION_EXAMPLE_PATTERNS = {
-  self: (title) => `「${title}」は自分で決めたいので、今の内容のまま変えないでください。`,
+  self: (title) => `「${title}」は自分で決めたいので、AIからは案を出さないでください。`,
   ai: (title) => `「${title}」は具体的な案を一つ出してください。`,
   consult: (title) => `「${title}」はまだ決めずに、考える材料を示してください。`
 };
@@ -576,6 +576,8 @@ async function submitTurn() {
         condition: session.condition,
         experimentVariant: session.experimentVariant || "standard",
         eventCardMode: QUERY.get("card") === "separate" ? "separate" : "merge",
+        // v2.5: パネル固定は比較用の任意設定（?lock=1）。正式実験では使わない。
+        panelLock: QUERY.get("lock") === "1",
         turn: session.currentTurn,
         userText: text,
         history,
@@ -693,15 +695,14 @@ function buildReflectionRows() {
   els.reflectionRows.replaceChildren();
   els.overallScaleRows.replaceChildren();
   [
-    ["understanding", "「AIが読み取ったこと」の表示から、AIの受け取り方を確認しやすかった"],
-    ["priority", "「AIが読み取ったこと」の表示から、AIが重視した内容を確認しやすかった"],
+    ["understanding", "「AIが読み取ったこと」から、AIの受け取り方を確認しやすかった"],
+    ["noticeGap", "「AIが読み取ったこと」と自分の意図とのずれに気づきやすかった"],
     ["nextInput", "次に伝える内容を考えるうえで役立った"],
-    ["targetExposure", "各対話で、次に何を書けばよいか分かりやすかった"],
-    ["delegationBoundary", "対話を通して、「AIに提案してもらうこと」と「自分で決定・固定すること」を考えるようになった"]
+    ["delegationBoundary", "今回のやり取りでは、「AIに考えてもらいたいこと」と「自分で決めたいこと」の分け方を意識した"]
   ].forEach(([name, label]) => els.overallScaleRows.append(buildFivePointScale(name, label)));
   const prompts = [
     ["reflected", "AIの回答は、自分が入力した内容を反映していた"],
-    ["fixedMeaning", "AIの回答は、自分が入力した希望の捉え方を一つに限定していた"],
+    ["partialUptake", "AIの回答は、自分が入力した複数の希望のうち、一部だけを取り上げ、ほかの希望を十分に扱っていなかった"],
     ["proxyPriority", "AIの回答は、自分が決めていない優先順位まで決めていた"],
     ["easyNext", "次に何を入力すればよいか考えやすかった"],
     ["needRevision", "自分の考えを修正・追加する必要を感じた"]
@@ -730,7 +731,7 @@ function buildReflectionRows() {
         if (input) input.value = value;
       });
     });
-    ["understanding", "priority", "nextInput", "targetExposure", "delegationBoundary"].forEach((name) => {
+    ["understanding", "noticeGap", "nextInput", "delegationBoundary"].forEach((name) => {
       els.reflectionForm.elements[name].value = session.reflection[name];
     });
     els.reflectionForm.elements.turningPoint.value = session.reflection.turningPoint || "";
@@ -931,7 +932,7 @@ els.reflectionForm.addEventListener("submit", (event) => {
   const rounds = REVIEW_TURNS.map((turn) => ({
     turn,
     reflected: Number(data.get(`reflected_${turn}`)),
-    fixedMeaning: Number(data.get(`fixedMeaning_${turn}`)),
+    partialUptake: Number(data.get(`partialUptake_${turn}`)),
     proxyPriority: Number(data.get(`proxyPriority_${turn}`)),
     easyNext: Number(data.get(`easyNext_${turn}`)),
     needRevision: Number(data.get(`needRevision_${turn}`))
@@ -940,9 +941,8 @@ els.reflectionForm.addEventListener("submit", (event) => {
     completedAt: isoNow(),
     rounds,
     understanding: Number(data.get("understanding")),
-    priority: Number(data.get("priority")),
+    noticeGap: Number(data.get("noticeGap")),
     nextInput: Number(data.get("nextInput")),
-    targetExposure: Number(data.get("targetExposure")),
     delegationBoundary: Number(data.get("delegationBoundary")),
     turningPoint: String(data.get("turningPoint") || "").trim(),
     delegationTurningPoint: String(data.get("delegationTurningPoint") || "").trim()

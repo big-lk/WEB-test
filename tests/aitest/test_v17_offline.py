@@ -522,12 +522,26 @@ b["history"] = busy_hist
 b["previousCriteria"] = [{k: c[k] for k in ("id", "title", "meaning", "priority")} for c in lock_prev]
 b["delegationSourceCriteria"] = b["previousCriteria"]
 b["delegation"] = {"calm-time": "self", "light-special": "consult", "no-burden": "consult"}
+b["panelLock"] = True  # v2.5: 比較用の任意設定のときだけ
 cards_now = [dict(c) for c in lock_prev]
 call, seen = router("{}", lambda p: core.ensure_exact_turn_ending(3, "わかりました。" + sent_from(p) + PAD), analysis_json(cards_now))
 core.call_openai = call
 r = core.run_two_ais(b)
 ids = [c["id"] for c in r["analysis"]["criteria"]]
-check("separate mode never replaces UI B self-locked card", "calm-time" in ids and "event-t3" in ids, str(ids))
+check("panelLock: separate mode never replaces UI B self-locked card", "calm-time" in ids and "event-t3" in ids, str(ids))
+# v2.5 既定（panelLock なし）：UI B のボタンはパネルに作用しない → UI A と同じパネル
+b_def = dict(b); b_def.pop("panelLock")
+call, seen = router("{}", lambda p: core.ensure_exact_turn_ending(3, "わかりました。" + sent_from(p) + PAD), analysis_json([dict(c) for c in lock_prev]))
+core.call_openai = call
+r_b = core.run_two_ais(b_def)
+b_a = dict(b_def); b_a["condition"] = "UI_A"; b_a["delegation"] = {}; b_a["delegationSourceCriteria"] = []
+call, seen = router("{}", lambda p: core.ensure_exact_turn_ending(3, "わかりました。" + sent_from(p) + PAD), analysis_json([dict(c) for c in lock_prev]))
+core.call_openai = call
+r_a = core.run_two_ais(b_a)
+strip = lambda crit: [(c["id"], c["title"], c["meaning"], c["priority"]) for c in crit]
+check("default: UI B buttons do not change the panel (same as UI A)",
+      strip(r_b["analysis"]["criteria"]) == strip(r_a["analysis"]["criteria"]) and r_b["meta"]["panelLock"] is False,
+      str(strip(r_b["analysis"]["criteria"])))
 # 文章での「変えないで」も同様（UI A）、かつ第3回でも文言を保つ
 b = body(3, "busy"); b["experimentVariant"] = "generic_unranked"; b["eventCardMode"] = "separate"; b["history"] = busy_hist
 b["previousCriteria"] = [{k: c[k] for k in ("id", "title", "meaning", "priority")} for c in lock_prev]
@@ -539,7 +553,7 @@ r = core.run_two_ais(b)
 calm = next((c for c in r["analysis"]["criteria"] if c["id"] == "calm-time"), None)
 check("text-locked card kept and wording unchanged at turn 3", calm is not None and calm["meaning"] == lock_prev[0]["meaning"], str(calm))
 
-# 32) v2.4 固定カードは毎ターン維持（言い換え・消失の両方）
+# 32) v2.4 固定カードは毎ターン維持（言い換え・消失の両方）— v2.5 から panelLock=True のときのみ
 prev5 = [{"id": "gapao", "title": "初デートのガパオを再現", "meaning": "初デートで食べたガパオを家で再現する。", "priority": "中心"},
          {"id": "relax", "title": "いつも通りゆるく", "meaning": "普段通りに過ごす。", "priority": "維持"},
          {"id": "sofa", "title": "食後はソファで", "meaning": "食後はソファでだらだらする。", "priority": "未確定"}]
@@ -552,6 +566,8 @@ dropped = [{"id": "relax", "title": "いつも通りゆるく", "meaning": "普�
 b = body(5, "milestone", condition="UI_B", previous=prev5)
 b["delegationSourceCriteria"] = prev5; b["delegation"] = {"gapao": "self", "relax": "consult", "sofa": "consult"}
 b["userText"] = "流れは二人で作って普通に食べて、そのままソファでだらだら、でいい。"
+b_nolock = dict(b)
+b["panelLock"] = True
 core.call_openai = fake_by_stage([core.ensure_exact_turn_ending(5, "わかりました。" + PAD[:120])] * 3, [analysis_json(dropped)] * 2)
 r = core.run_two_ais(b)
 g = next((c for c in r["analysis"]["criteria"] if c["id"] == "gapao"), None)
@@ -562,6 +578,11 @@ b2 = dict(b); b2["condition"] = "UI_A"; b2["delegation"] = {}; b2["delegationSou
 core.call_openai = fake_by_stage([core.ensure_exact_turn_ending(5, "わかりました。" + PAD[:120])] * 3, [analysis_json(dropped)] * 2)
 r2 = core.run_two_ais(b2)
 check("UI A has no button lock", not any(c["id"] == "gapao" for c in r2["analysis"]["criteria"]))
+# v2.5 既定：UI B でも固定維持はしない（カードは毎回 AI の読み取りとして更新される）
+core.call_openai = fake_by_stage([core.ensure_exact_turn_ending(5, "わかりました。" + PAD[:120])] * 3, [analysis_json(dropped)] * 2)
+r3 = core.run_two_ais(b_nolock)
+check("default UI B: no lock restore, panel stays AI reading",
+      not any(c["id"] == "gapao" for c in r3["analysis"]["criteria"]) and not any(x.startswith("lock_") for x in r3["meta"]["analysisRepairs"]))
 
 print(f"\n{len(failures)} failure(s)")
 sys.exit(1 if failures else 0)
