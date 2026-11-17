@@ -44,7 +44,7 @@ RATE_LIMIT_LOCK = threading.Lock()
 API_URL = "https://api.openai.com/v1/responses"
 DIALOGUE_MODEL = os.environ.get("OPENAI_DIALOGUE_MODEL", "gpt-5.4-nano")
 ANALYSIS_MODEL = os.environ.get("OPENAI_ANALYSIS_MODEL", "gpt-5.4-nano")
-PROMPT_VERSION = "judgment-delegation-guided-turns-v1.9.1"
+PROMPT_VERSION = "judgment-delegation-guided-turns-v1.9.2"
 SESSION_SCHEMA_VERSION = 6
 MAX_USER_CHARS = 500
 ALLOWED_CONDITIONS = {"UI_A", "UI_B"}
@@ -696,7 +696,8 @@ VALIDATION_GUIDANCE = {
     "R16_PRIORITY_SENTENCE_MISSING": "標準刺激の優先関係を示す必須文を、一字も変えず可視回答へ含めてください",
     "R17_EARLY_RELATION_METHOD": "第1・2ターンでは感情表現の言葉、時刻、カード、会話量を決めず、多義的な希望を開いたままにしてください",
     "R18_STRONG_AMBIGUITY_BURIED": "強制文を説明の後ろに埋めず、最新入力への短い応答に続く第2文として、冒頭160字以内に置いてください",
-    "R19_UNCORRECTED_RELATION_DROPPED": "第4ターンで置いた優先関係（参加者は修正していない）を、最終方針の一文にそのまま含めてください",
+    "R19_UNCORRECTED_RELATION_DROPPED": "第4ターンの方針（参加者は修正していない）を、料理や過ごし方の具体文の中に自然に含めてください。引用符、「優先関係」「最終方針として」等の説明語は使わないでください",
+    "R20_RELATION_QUOTED": "方針を引用符で囲んだり「優先関係」「最終方針として」と説明したりせず、通常の計画文として書いてください",
     "A01_INVALID_JSON": "スキーマに一致するJSONだけを返してください",
     "A02_CRITERIA_COUNT": "criteriaを正確に3件にしてください",
     "A03_FOCUS_COUNT": "focus=trueを正確に1件にしてください",
@@ -1357,6 +1358,9 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         extra = []
         if relation_untouched and not any(k in normalized for k in FINAL_RELATION_KEYS.get(anchor["scenarioId"], [])):
             extra.append("R19_UNCORRECTED_RELATION_DROPPED")
+        if turn >= 5 and ("優先関係" in normalized or "最終方針として" in normalized
+                          or re.search(r"「[^」]*(優先|前半だけ|料理を待つ|食後の短い)[^」]*」", normalized)):
+            extra.append("R20_RELATION_QUOTED")
         return (
             normalized,
             extra + dialogue_validation_codes(

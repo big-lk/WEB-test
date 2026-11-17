@@ -375,5 +375,13 @@ for t5_text, dialogues, expect_attempts in [
     check(f"turn6 relation retention attempts={expect_attempts}", n == expect_attempts and kept == (expect_attempts == 2),
           f"attempts={n} kept={kept}")
 
+# 23) v1.9.2 方針の引用・説明語（線上 B milestone t6）は再生成対象
+quoted = core.ensure_exact_turn_ending(6, "わかりました。優先関係は「今回は普段どおりの気楽さよりも節目の特別感を優先し」とします。" + PAD)
+natural = core.ensure_exact_turn_ending(6, "わかりました。いつもの流れは食事の前半だけにして、後半は主菜の香りを主役にします。" + PAD)
+b = body(6, "milestone", previous=e2_prev); b["history"] = hist6("前菜を食べながら乾杯したいです。"); b["userText"] = "記憶に残る夕食にしたいです。"
+core.call_openai = fake_by_stage([quoted, natural, natural], [analysis_json(drifted)] * 2)
+r = core.run_two_ais(b)
+check("quoted relation regenerated", r["dialogue"] == natural and "R20_RELATION_QUOTED" in str(r["meta"]["dialogueAttempts"]), r["dialogue"][:60])
+
 print(f"\n{len(failures)} failure(s)")
 sys.exit(1 if failures else 0)
