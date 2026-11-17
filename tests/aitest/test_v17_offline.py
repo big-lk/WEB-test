@@ -261,6 +261,10 @@ check("near-duplicate ending removed", fixed.count("方針は以上です") == 1
 nopunct = core.ensure_exact_turn_ending(5, "相手が休める流れにします。気を遣わせることは避けたいです")
 check("missing 。 added before ending", "避けたいです。\n" in nopunct, nopunct)
 
+dup2 = "今日いちばん嬉しかったことだけを共有します。現行方針は以上です。"
+fixed2 = core.ensure_exact_turn_ending(6, dup2)
+check("near-duplicate ending removed (現行)", fixed2.count("方針は以上") == 1, fixed2)
+
 # 16) v1.8 参加者の一人称まとめ文を除く（線上 UI_A busy t5）
 t5 = ("特別感は控えめにして、相手がゆっくり休める流れを最優先にします。私は、この夕食で相手の負担を減らして安心して休めることを大切にし、"
       "気を遣わせたり急かしたりすることは避けたいです\n最後に、この夕食で大切にしたいことや避けたいことを、自分の言葉でまとめてください。")

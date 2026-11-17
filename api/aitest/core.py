@@ -44,7 +44,7 @@ RATE_LIMIT_LOCK = threading.Lock()
 API_URL = "https://api.openai.com/v1/responses"
 DIALOGUE_MODEL = os.environ.get("OPENAI_DIALOGUE_MODEL", "gpt-5.4-nano")
 ANALYSIS_MODEL = os.environ.get("OPENAI_ANALYSIS_MODEL", "gpt-5.4-nano")
-PROMPT_VERSION = "judgment-delegation-guided-turns-v1.8"
+PROMPT_VERSION = "judgment-delegation-guided-turns-v1.8.1"
 SESSION_SCHEMA_VERSION = 6
 MAX_USER_CHARS = 500
 ALLOWED_CONDITIONS = {"UI_A", "UI_B"}
@@ -322,7 +322,8 @@ def ensure_exact_turn_ending(turn: int, text: str) -> str:
     # v1.8: 末尾に終止文の言い換え（「現状の方針は以上です…」等）があれば二重表示しない。
     sentences = [x for x in re.split(r"(?<=[。！])", stripped) if x.strip()]
     required_parts = [x for x in re.split(r"(?<=[。！])", required) if x.strip()]
-    while sentences and any(text_similarity(sentences[-1].strip(), part) >= 0.6 for part in required_parts):
+    while sentences and (any(text_similarity(sentences[-1].strip(), part) >= 0.5 for part in required_parts)
+                         or (turn == 6 and re.search(r"方針は以上", sentences[-1]))):
         sentences.pop()
     stripped = "".join(sentences).rstrip()
     if stripped and stripped[-1] not in "。！!」』":
@@ -1426,9 +1427,17 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
                 return None
             c = hits[0]
             return {"id": c["id"], "title": c["title"], "state": delegation.get(c["id"], "consult")}
+        focus_ids = [c["id"] for c in analysis["criteria"] if c.get("focus")]
+        by_focus = next(({"id": c["id"], "title": c["title"], "state": delegation.get(c["id"], "consult")}
+                         for c in source_criteria if focus_ids and c["id"] == focus_ids[0]), None)
         if turn == 4 and anchor["scenarioId"] in TURN4_RELATION_TERMS:
             p_terms, c_terms = TURN4_RELATION_TERMS[anchor["scenarioId"]]
-            event_delegation = {"prioritized": state_of(p_terms), "compressed": state_of(c_terms)}
+            compressed = state_of(c_terms)
+            if compressed and by_focus and compressed["id"] == by_focus["id"]:
+                compressed = next(({"id": c["id"], "title": c["title"], "state": delegation.get(c["id"], "consult")}
+                                   for c in source_criteria if c["id"] != by_focus["id"]
+                                   and any(t in c["title"] + c["meaning"] for t in c_terms)), None)
+            event_delegation = {"prioritized": by_focus or state_of(p_terms), "compressed": compressed}
         elif turn == 3 and fixation_terms(required_control_sentence):
             event_delegation = {"fixatedValue": state_of(fixation_terms(required_control_sentence)[0])}
 
