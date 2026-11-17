@@ -123,17 +123,11 @@ check("dialogue soft-accept inserts control sentence", sentence in result["dialo
       and str(result["meta"]["dialogueAttempts"][-1]["status"]).startswith("control_sentence_inserted"),
       result["dialogue"][:200])
 
-# 5) 重大コード（直接質問など）だけの候補は従来どおりエラー
+# 5) 重大コード（直接質問など）の候補は、その文を除いて採用（v2.1.1。以前は 502）
 hard = core.ensure_exact_turn_ending(4, "あなたは何を一番大切にしたいですか？" + sentence + PAD)
 core.call_openai = fake_by_stage([hard] * 3, [analysis_json(GENERIC_CARDS)] * 2)
-try:
-    core.run_two_ais(body(4, scenario))
-    codes_now = core.dialogue_validation_codes(4, hard, ANCHORS[scenario]["freeText"], "x", scenario_id=scenario,
-                                               required_sentence=sentence)
-    check("hard-code candidate is not soft-accepted", not (set(codes_now) & core.HARD_DIALOGUE_CODES),
-          f"accepted although codes={codes_now}")
-except core.ExperimentError as exc:
-    check("hard-code candidate is not soft-accepted", exc.code == "R_VALIDATION_FAILED", exc.code)
+r5 = core.run_two_ais(body(4, scenario))
+check("hard-code sentence removed, rest accepted", "？" not in r5["dialogue"] and sentence in r5["dialogue"])
 
 # 6) 分析APIが失敗してもフォールバックにイベントカードが入る
 for turn in (3, 4):
@@ -486,6 +480,16 @@ r = core.run_two_ais(b)
 check("generic t4 falls back when extraction invalid", r["meta"]["genericStimulus"]["source"] == "fallback_standard"
       and r["meta"]["requiredControlSentence"] == core.controlled_priority_sentence("busy"))
 check("extractor input has no UI info", all("UI_B" not in p["input"] for p in seen))
+
+# 29) v2.1.1 「例：」は言語混在扱いにしない／質問文・禁止語は文ごと除いて 502 を避ける
+colon = core.ensure_exact_turn_ending(2, "わかりました。例：温かい汁物を一品足します。" + PAD)
+check("full-width colon allowed", "R05_LANGUAGE_MIXED" not in core.dialogue_validation_codes(2, colon))
+sentence = core.controlled_priority_sentence("reunion")
+bad_q = core.ensure_exact_turn_ending(4, "わかりました。" + sentence + "自分で決めたいとのことなので、そこは触れません。料理は何がいいですか？" + PAD)
+core.call_openai = fake_by_stage([bad_q] * 3, [analysis_json(GENERIC_CARDS)] * 2)
+r = core.run_two_ais(body(4, "reunion"))
+check("hard-code candidate sanitized instead of 502", sentence in r["dialogue"] and "？" not in r["dialogue"]
+      and "自分で決めたい" not in r["dialogue"], r["dialogue"][:120])
 
 print(f"\n{len(failures)} failure(s)")
 sys.exit(1 if failures else 0)

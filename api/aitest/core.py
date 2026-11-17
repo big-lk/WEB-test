@@ -44,7 +44,7 @@ RATE_LIMIT_LOCK = threading.Lock()
 API_URL = "https://api.openai.com/v1/responses"
 DIALOGUE_MODEL = os.environ.get("OPENAI_DIALOGUE_MODEL", "gpt-5.4-nano")
 ANALYSIS_MODEL = os.environ.get("OPENAI_ANALYSIS_MODEL", "gpt-5.4-nano")
-PROMPT_VERSION = "judgment-delegation-guided-turns-v2.1"
+PROMPT_VERSION = "judgment-delegation-guided-turns-v2.1.1"
 SESSION_SCHEMA_VERSION = 6
 MAX_USER_CHARS = 500
 ALLOWED_CONDITIONS = {"UI_A", "UI_B"}
@@ -469,6 +469,12 @@ def transcript_text(history: list[dict[str, str]], current_user: str, dialogue_r
     return "\n".join(lines)
 
 
+DIALOGUE_FORBIDDEN_TERMS = [
+    "本当に重視", "自分で決めたい", "AIに任せたい", "保留・強化・弱化", "どちらを優先", "選んでください",
+    "修正してください", "違っていたら", "最終判断はあなた", "実験", "内部ルール", "判断委任", "価値判断代行",
+]
+
+
 def dialogue_validation_codes(
     turn: int,
     text: str,
@@ -504,11 +510,13 @@ def dialogue_validation_codes(
         "价值要求",
         "优先顺序",
     ]
-    if any(term in text for term in chinese_leaks) or any(mark in text for mark in "，；："):
+    # v2.1.1: 全角コロン「：」は日本語でも普通に使うため対象外（「例：」で 502 になっていた可能性）
+    if any(term in text for term in chinese_leaks) or any(mark in text for mark in "，；"):
         codes.append("R05_LANGUAGE_MIXED")
     if "?" in text or "？" in text:
         codes.append("R06_DIRECT_QUESTION")
-    forbidden = [
+    forbidden = DIALOGUE_FORBIDDEN_TERMS
+    _unused = [
         "本当に重視",
         "自分で決めたい",
         "AIに任せたい",
@@ -1651,7 +1659,21 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         """全試行が不合格でも、重大な問題のない候補があれば実験を止めずに使う。"""
         usable = [c for c in candidates if not (set(c[3]) & HARD_DIALOGUE_CODES)]
         if not usable:
-            return None
+            # v2.1.1: 問題の文だけを取り除いて再検証し、それでも重大な問題が残る場合だけ失敗にする
+            for text, raw, latency, codes in candidates:
+                parts = re.split(r"(?<=[。！？?\n])", text)
+                kept = [x for x in parts if not re.search(r"[？?，；]", x)
+                        and not any(term in x for term in DIALOGUE_FORBIDDEN_TERMS)]
+                cleaned = ensure_exact_turn_ending(turn, "".join(kept))
+                if required_control_sentence and required_control_sentence not in cleaned:
+                    cleaned = ensure_exact_turn_ending(turn, insert_control_sentence(cleaned, required_control_sentence))
+                left = dialogue_validation_codes(turn, cleaned, anchor["freeText"], user_text,
+                                                 experiment_variant=experiment_variant, scenario_id=anchor["scenarioId"],
+                                                 required_sentence=required_control_sentence)
+                if not (set(left) & HARD_DIALOGUE_CODES):
+                    usable.append((cleaned, raw, latency, ["SANITIZED"] + left))
+            if not usable:
+                return None
         usable.sort(key=lambda c: (bool(required_control_sentence) and required_control_sentence not in c[0], len(c[3])))
         text, raw, latency, codes = usable[0]
         note = "soft_accepted:" + "+".join(codes)
