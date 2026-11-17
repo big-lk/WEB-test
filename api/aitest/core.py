@@ -44,7 +44,7 @@ RATE_LIMIT_LOCK = threading.Lock()
 API_URL = "https://api.openai.com/v1/responses"
 DIALOGUE_MODEL = os.environ.get("OPENAI_DIALOGUE_MODEL", "gpt-5.4-nano")
 ANALYSIS_MODEL = os.environ.get("OPENAI_ANALYSIS_MODEL", "gpt-5.4-nano")
-PROMPT_VERSION = "judgment-delegation-guided-turns-v2.0.2"
+PROMPT_VERSION = "judgment-delegation-guided-turns-v2.1"
 SESSION_SCHEMA_VERSION = 6
 MAX_USER_CHARS = 500
 ALLOWED_CONDITIONS = {"UI_A", "UI_B"}
@@ -1367,44 +1367,95 @@ def validate_generic_parts(turn: int, parts: dict[str, str], participant_text: s
         if not lm.rstrip("。").endswith("ます"):
             codes.append("G06_LIMIT_FORM")
     joined = "".join(parts.values())
-    if "?" in joined or "？" in joined or not japanese_visible(joined):
+    if "?" in joined or "？" in joined or not re.search(r"[\u3040-\u30ff]", joined):
         codes.append("G07_FORM")
     return codes
 
 
+# v2.1: 一般的解釈は場面ごとの登録候補から選ぶ（刺激の強さをそろえるため）。
+# 参加者の記述と最も重ならない候補を選び、参加者の言葉（語句・大切にしている価値）だけを差し込む。
+GENERIC_MEANING_CANDIDATES = {
+    "busy": ["相手には何もさせず、ゆっくり休んでいてもらうこと", "会話を控えめにして、静かに過ごしてもらうこと",
+             "準備の手間を見せず、すべてこちらで用意すること"],
+    "reunion": ["向かい合って落ち着いて話せる、静かな環境を整えること", "話題に困らないよう、思い出話のきっかけを用意すること",
+                "料理や演出を控えて、会話だけに集中できるようにすること"],
+    "milestone": ["前菜から主菜まで、少しだけコース仕立てにすること", "盛り付けやテーブルを少しだけおしゃれに整えること",
+                  "キャンドルや花など、小さな飾りを一つ置くこと"],
+    "gratitude": ["食後に短いメッセージカードを添えて伝えること", "乾杯のときに一言だけ、改めてお礼を言うこと",
+                  "相手の好きな店のデザートを用意して伝えること"],
+}
+GENERIC_PRIORITY_CANDIDATES = {
+    "busy": ["相手をゆっくり休ませること", "いつもより特別に感じてもらうこと"],
+    "reunion": ["料理で特別にもてなすこと", "落ち着いて向き合って話すこと"],
+    "milestone": ["節目らしい特別感を出すこと", "記念になる演出を用意すること"],
+    "gratitude": ["感謝をきちんと言葉で伝えること", "特別なごちそうでもてなすこと"],
+}
+VALUE_PHRASES = {
+    "busy": ["気を遣わせない", "気を遣わせず", "気を使わせない", "気を遣わない"],
+    "reunion": ["自然に話せる", "自然に話", "気楽に話せる"],
+    "milestone": ["大げさにしない", "大げさにせず", "大げさじゃない", "さりげなく"],
+    "gratitude": ["重くしない", "重くならない", "重くせず", "重くしないで"],
+}
+DEFAULT_PHRASE = {"busy": "気を遣わせない", "reunion": "自然に話せる", "milestone": "大げさにしない", "gratitude": "重くしない"}
+
+GENERIC_EXTRACT_SCHEMA = {
+    "type": "object", "additionalProperties": False,
+    "properties": {"demoted": {"type": "string"}},
+    "required": ["demoted"],
+}
+GENERIC_EXTRACT_INSTRUCTIONS = """
+参加者の入力から、参加者が自分ならではの希望として一番大切にしてきた価値を一つ抜き出す。
+参加者の言葉に近い表現で、4〜20字、「〜こと」で終える（例：二人で台所に立つこと、いつもの雑談で笑うこと）。日本語のみ。
+"""
+
+
+def least_overlapping(candidates: list[str], participant_text: str) -> str:
+    sentences = [x for x in re.split(r"[。！\n]", participant_text) if x.strip()] or [participant_text]
+    return min(candidates, key=lambda c: (max(text_similarity(c, x) for x in sentences), candidates.index(c)))
+
+
 def generate_generic_stimulus(turn: int, variant: str, anchor: dict[str, str], history: list[dict[str, str]],
                               user_text: str) -> tuple[str, dict[str, Any]]:
-    """参加者の言葉に一般的解釈を当てはめる一文を生成する。失敗時は標準の登録文に戻す。"""
-    participant_text = anchor["freeText"] + "".join(r["content"] for r in history if r["role"] == "user") + user_text
-    payload = {
-        "model": ANALYSIS_MODEL,
-        "instructions": GENERIC_STIMULUS_INSTRUCTIONS,
-        "input": (f"ターン: {turn}\n事前場面: {anchor['scenarioLabel']}\n事前の一文: {anchor['freeText']}\n"
-                  f"対話:\n{transcript_text(history, user_text, '')}\n"
-                  f"第{turn}ターンの項目だけを意味のある内容で埋め、もう一方の項目は空文字にする。"),
-        "reasoning": {"effort": "low"},
-        "text": {"verbosity": "low", "format": {"type": "json_schema", "name": "generic_stimulus", "strict": True,
-                                                "schema": GENERIC_STIMULUS_SCHEMA}},
-        "max_output_tokens": 400,
-        "store": False,
-    }
-    info: dict[str, Any] = {"variant": variant, "attempts": []}
-    for attempt in range(3):
-        try:
-            text, _, latency = call_openai(payload)
-            parts = json.loads(text)
-        except Exception as exc:  # noqa: BLE001
-            info["attempts"].append({"error": type(exc).__name__})
-            continue
-        codes = validate_generic_parts(turn, parts, participant_text, user_text)
-        info["attempts"].append({"codes": codes, "latencyMs": round(latency)})
-        if not codes:
-            info["parts"] = {k: v for k, v in parts.items() if v}
-            info["source"] = "generated"
-            return build_generic_sentence(turn, variant, parts), info
-    info["source"] = "fallback_standard"
-    fallback = controlled_fixation_sentence(anchor, history, user_text) if turn == 3 else controlled_priority_sentence(anchor["scenarioId"])
-    return fallback, info
+    scenario = anchor["scenarioId"]
+    early = anchor["freeText"] + "".join(r["content"] for r in history if r["role"] == "user")
+    participant_text = early + user_text
+    info: dict[str, Any] = {"variant": variant, "attempts": [], "method": "registered_candidates"}
+    if turn == 3:
+        phrase = next((w for w in VALUE_PHRASES.get(scenario, []) if w in early), DEFAULT_PHRASE.get(scenario, "大切にしたいこと"))
+        generic = least_overlapping(GENERIC_MEANING_CANDIDATES[scenario], participant_text)
+        parts = {"phrase": phrase, "generic": generic}
+    else:
+        demoted = ""
+        payload = {
+            "model": ANALYSIS_MODEL, "instructions": GENERIC_EXTRACT_INSTRUCTIONS,
+            "input": f"事前の一文: {anchor['freeText']}\n参加者の入力:\n" + "\n".join(
+                [r["content"] for r in history if r["role"] == "user"] + [user_text]),
+            "reasoning": {"effort": "low"},
+            "text": {"verbosity": "low", "format": {"type": "json_schema", "name": "demoted_value", "strict": True,
+                                                    "schema": GENERIC_EXTRACT_SCHEMA}},
+            "max_output_tokens": 800, "store": False,
+        }
+        for _ in range(2):
+            try:
+                text, _, latency = call_openai(payload)
+                value = json.loads(text).get("demoted", "").strip().rstrip("。")
+                info["attempts"].append({"latencyMs": round(latency), "value": value})
+                if 4 <= len(value) <= 22 and value.endswith("こと") and re.search(r"[\u3040-\u30ff]", value):
+                    demoted = value
+                    break
+            except Exception as exc:  # noqa: BLE001
+                info["attempts"].append({"error": type(exc).__name__})
+        if not demoted:
+            info["source"] = "fallback_standard"
+            return controlled_priority_sentence(scenario), info
+        candidates = [c for c in GENERIC_PRIORITY_CANDIDATES[scenario] if text_similarity(c, demoted) < 0.35] \
+            or GENERIC_PRIORITY_CANDIDATES[scenario]
+        preferred = least_overlapping(candidates, participant_text)
+        limit = f"{demoted.removesuffix('こと')}のは短い時間だけにします"
+        parts = {"demoted": demoted, "preferred": preferred, "limit": limit}
+    info["parts"] = parts
+    info["source"] = "generated"
+    return build_generic_sentence(turn, variant, parts), info
 
 
 def enforce_generic_panel(turn: int, criteria: list[dict[str, Any]], parts: dict[str, str], repairs: list[str]) -> None:
@@ -1665,6 +1716,9 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
 
     def parse_and_repair(text: str) -> tuple[Any, list[str]]:
         value, codes = parse_analysis(text, turn, panel_scenario)
+        if generic_mode and turn in {3, 4}:
+            # 事象カードの焦点・出どころ・優先度は enforce_generic_panel が後で決める
+            codes = [c for c in codes if c not in {"A03_FOCUS_COUNT", "A11_EVENT_SOURCE", "A12_PRIORITY_NOT_VISIBLE", "A13_EVENT_NOT_VISIBLE"}]
         codes = full_codes(value, codes)
         if codes and value is not None and isinstance(value.get("criteria"), list) and len(value["criteria"]) == 3 \
                 and set(codes) <= REPAIRABLE_ANALYSIS_CODES:
