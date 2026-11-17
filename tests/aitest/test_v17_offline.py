@@ -356,5 +356,24 @@ for text, expect_kept in [("最初に軽くつまめるものを出して、メ�
     check(f"turn5 relation kept={expect_kept}", kept == expect_kept and
           (core.priority_relation_ok(dish["meaning"], "reunion") == expect_kept), str(r["meta"]["analysisRepairs"]))
 
+# 22) v1.9.1 第6回：未修正なら最終方針に優先関係が残るまで再生成、修正済みなら要求しない
+def hist6(t5_text):
+    h = history(6)
+    h[8] = {"role": "user", "content": t5_text}
+    return h
+final_no = core.ensure_exact_turn_ending(6, "わかりました。" + PAD)
+final_yes = core.ensure_exact_turn_ending(6, "わかりました。自由な会話は料理を待つ短い時間を中心にします。" + PAD)
+for t5_text, dialogues, expect_attempts in [
+    ("最初に軽くつまめるものを出したいです。", [final_no, final_yes], 2),
+    ("会話を料理待ちの時間だけにするのは違います。", [final_no], 1),
+]:
+    b = body(6, "reunion", previous=e2_prev); b["history"] = hist6(t5_text); b["userText"] = "二人とも楽しかったと思える夜にしたいです。"
+    core.call_openai = fake_by_stage(dialogues * 3, [analysis_json(drifted)] * 2)
+    r = core.run_two_ais(b)
+    n = len([a for a in r["meta"]["dialogueAttempts"] if isinstance(a.get("attempt"), int)])
+    kept = any(x.startswith("relation_kept") for x in r["meta"]["analysisRepairs"])
+    check(f"turn6 relation retention attempts={expect_attempts}", n == expect_attempts and kept == (expect_attempts == 2),
+          f"attempts={n} kept={kept}")
+
 print(f"\n{len(failures)} failure(s)")
 sys.exit(1 if failures else 0)

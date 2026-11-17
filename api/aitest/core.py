@@ -44,7 +44,7 @@ RATE_LIMIT_LOCK = threading.Lock()
 API_URL = "https://api.openai.com/v1/responses"
 DIALOGUE_MODEL = os.environ.get("OPENAI_DIALOGUE_MODEL", "gpt-5.4-nano")
 ANALYSIS_MODEL = os.environ.get("OPENAI_ANALYSIS_MODEL", "gpt-5.4-nano")
-PROMPT_VERSION = "judgment-delegation-guided-turns-v1.9"
+PROMPT_VERSION = "judgment-delegation-guided-turns-v1.9.1"
 SESSION_SCHEMA_VERSION = 6
 MAX_USER_CHARS = 500
 ALLOWED_CONDITIONS = {"UI_A", "UI_B"}
@@ -696,6 +696,7 @@ VALIDATION_GUIDANCE = {
     "R16_PRIORITY_SENTENCE_MISSING": "標準刺激の優先関係を示す必須文を、一字も変えず可視回答へ含めてください",
     "R17_EARLY_RELATION_METHOD": "第1・2ターンでは感情表現の言葉、時刻、カード、会話量を決めず、多義的な希望を開いたままにしてください",
     "R18_STRONG_AMBIGUITY_BURIED": "強制文を説明の後ろに埋めず、最新入力への短い応答に続く第2文として、冒頭160字以内に置いてください",
+    "R19_UNCORRECTED_RELATION_DROPPED": "第4ターンで置いた優先関係（参加者は修正していない）を、最終方針の一文にそのまま含めてください",
     "A01_INVALID_JSON": "スキーマに一致するJSONだけを返してください",
     "A02_CRITERIA_COUNT": "criteriaを正確に3件にしてください",
     "A03_FOCUS_COUNT": "focus=trueを正確に1件にしてください",
@@ -1099,7 +1100,8 @@ def repair_analysis(value: dict[str, Any], turn: int, scenario_id: str, required
             item["title"] = title[:18]
             repairs.append(f"title_trim:{cid}")
         if len(meaning) > 100:
-            item["meaning"] = meaning[:99] + "。"
+            cut = meaning[:100]
+            item["meaning"] = cut[: cut.rfind("。") + 1] if cut.rfind("。") >= 40 else meaning[:99] + "。"
             repairs.append(f"meaning_trim:{cid}")
         evidence = [v for v in item.get("evidenceTurns", []) if isinstance(v, int) and 0 <= v <= turn]
         if evidence != item.get("evidenceTurns"):
@@ -1194,6 +1196,14 @@ def fallback_with_event(turn: int, anchor: dict[str, str], required_sentence: st
                 item["priority"] = "維持"
     return base
 
+
+# 第6回の最終方針に第4回の優先関係が残っているかを見る語（登録文の「縮める」側の表現）
+FINAL_RELATION_KEYS = {
+    "busy": ["食後の短い", "休む時間は食後", "特別に感じられることを優先", "特別感を優先"],
+    "reunion": ["料理を待つ", "料理待ち", "料理の特別感を優先"],
+    "milestone": ["前半だけ", "節目の特別感を優先"],
+    "gratitude": ["前半だけ", "感謝を確実に伝えることを優先"],
+}
 
 RELATION_MENTION_EXTRA = {"gratitude": ["話"], "reunion": ["料理"], "busy": ["ゆっくり", "疲れ"], "milestone": ["大げさ", "記念"]}
 
@@ -1338,11 +1348,18 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         "store": False,
         "safety_identifier": safety_id,
     }
+    later_user_texts = [row["content"] for row in history[8::2]] + [user_text]  # 第5回以降の参加者入力
+    relation_untouched = (experiment_variant == "standard" and turn == 6
+                          and not any(participant_touched_relation(t, anchor["scenarioId"]) for t in later_user_texts))
+
     def parse_dialogue_candidate(text: str) -> tuple[str, list[str]]:
         normalized = ensure_exact_turn_ending(turn, drop_participant_voice(text))
+        extra = []
+        if relation_untouched and not any(k in normalized for k in FINAL_RELATION_KEYS.get(anchor["scenarioId"], [])):
+            extra.append("R19_UNCORRECTED_RELATION_DROPPED")
         return (
             normalized,
-            dialogue_validation_codes(
+            extra + dialogue_validation_codes(
                 turn,
                 normalized,
                 anchor["freeText"],
@@ -1450,7 +1467,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     if not analysis_fallback:
         reconcile_ids(previous_criteria, analysis["criteria"], id_mapping)
         if (turn in {5, 6} and experiment_variant == "standard" and previous_criteria
-                and not participant_touched_relation(user_text, anchor["scenarioId"])):
+                and not any(participant_touched_relation(t, anchor["scenarioId"]) for t in later_user_texts)):
             keep_uncorrected_relation(previous_criteria, analysis["criteria"], anchor["scenarioId"], analysis_repairs)
     event_delegation = None
     if condition == "UI_B" and turn in {3, 4} and source_criteria and required_control_sentence:
