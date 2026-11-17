@@ -618,5 +618,14 @@ core.call_openai = fake_by_stage([core.ensure_exact_turn_ending(6, "わかりま
 r = core.run_two_ais(b)
 check("generic E2 not forced when participant touched it", "一品多く" not in r["dialogue"] and not r["meta"]["finalRelationInserted"])
 
+# 35) v2.5.1 参加者が書いていない語句は「」で引用しない
+anc = dict(ANCHORS["busy"]); anc["freeText"] = "疲れている相手と、のんびり食べられる夜にしたい。"
+h = history(3); h[0] = {"role": "user", "content": "のんびりした夜にしたい。"}; h[2] = {"role": "user", "content": "楽しさも少しほしい。"}
+sent, info = core.generate_generic_stimulus(3, "generic_unranked", anc, h, "笑える軽さもほしい。")
+check("unquoted E1 when phrase not in participant text", not sent.startswith("「") and sent.startswith("相手に気を遣わせないことは"), sent)
+anc["freeText"] = "仕事で疲れている恋人と、気をつかわずにゆっくりできる夜にしたい。"
+sent, info = core.generate_generic_stimulus(3, "generic_unranked", anc, h, "笑える軽さもほしい。")
+check("quoted E1 uses participant's own wording", sent.startswith("「気をつかわず」は"), sent)
+
 print(f"\n{len(failures)} failure(s)")
 sys.exit(1 if failures else 0)

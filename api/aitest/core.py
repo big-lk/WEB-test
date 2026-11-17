@@ -44,7 +44,7 @@ RATE_LIMIT_LOCK = threading.Lock()
 API_URL = "https://api.openai.com/v1/responses"
 DIALOGUE_MODEL = os.environ.get("OPENAI_DIALOGUE_MODEL", "gpt-5.4-nano")
 ANALYSIS_MODEL = os.environ.get("OPENAI_ANALYSIS_MODEL", "gpt-5.4-nano")
-PROMPT_VERSION = "judgment-delegation-guided-turns-v2.5.1"
+PROMPT_VERSION = "judgment-delegation-guided-turns-v2.5.2"
 SESSION_SCHEMA_VERSION = 6
 MAX_USER_CHARS = 500
 ALLOWED_CONDITIONS = {"UI_A", "UI_B"}
@@ -1380,9 +1380,10 @@ def build_generic_sentence(turn: int, variant: str, parts: dict[str, str]) -> st
         return f"今回は{preferred}を優先して、{action}。"
     if turn == 3:
         phrase, generic = parts["phrase"], parts["generic"].rstrip("。")
+        subject = f"「{phrase}」" if parts.get("quoted", "1") else phrase
         if marked:
-            return f"「{phrase}」は、一般的には{generic}と受け取られることが多いので、今回もその形で整えます。"
-        return f"「{phrase}」は、{generic}として整えます。"
+            return f"{subject}は、一般的には{generic}と受け取られることが多いので、今回もその形で整えます。"
+        return f"{subject}は、{generic}として整えます。"
     demoted, preferred, limit = parts["demoted"].rstrip("。"), parts["preferred"].rstrip("。"), parts["limit"].rstrip("。")
     if marked:
         return f"こうした夕食では{preferred}を大切にする方が多いので、今回は{demoted}よりも{preferred}を優先し、{limit}。"
@@ -1438,11 +1439,15 @@ GENERIC_PRIORITY_CANDIDATES = {
     "gratitude": ["感謝をきちんと言葉で伝えること", "特別なごちそうでもてなすこと"],
 }
 VALUE_PHRASES = {
-    "busy": ["気を遣わせない", "気を遣わせず", "気を使わせない", "気を遣わない"],
-    "reunion": ["自然に話せる", "自然に話", "気楽に話せる"],
-    "milestone": ["大げさにしない", "大げさにせず", "大げさじゃない", "さりげなく"],
-    "gratitude": ["重くしない", "重くならない", "重くせず", "重くしないで"],
+    "busy": ["気を遣わせない", "気を遣わせず", "気を使わせない", "気を使わせず", "気をつかわせない", "気をつかわせず",
+             "気を遣わない", "気を遣わず", "気を使わず", "気をつかわない", "気をつかわず", "気を張らず", "気を張らない"],
+    "reunion": ["自然に話せる", "自然に話", "気楽に話せる", "気まずくならない", "気まずくならず"],
+    "milestone": ["大げさにしない", "大げさにせず", "大げさじゃない", "特別すぎない", "特別すぎず", "さりげなく"],
+    "gratitude": ["重くしない", "重くならない", "重くならず", "重くせず", "重くしないで", "さらっと"],
 }
+# v2.5.1: 参加者の文章に該当する語句が無い場合は、参加者の言葉として引用せず、AI の言い換えとして書く
+DEFAULT_VALUE_NOUN = {"busy": "相手に気を遣わせないこと", "reunion": "自然に話せること",
+                      "milestone": "記念日を大げさにしないこと", "gratitude": "感謝を重くしないこと"}
 DEFAULT_PHRASE = {"busy": "気を遣わせない", "reunion": "自然に話せる", "milestone": "大げさにしない", "gratitude": "重くしない"}
 
 GENERIC_EXTRACT_SCHEMA = {
@@ -1468,9 +1473,12 @@ def generate_generic_stimulus(turn: int, variant: str, anchor: dict[str, str], h
     participant_text = early + user_text
     info: dict[str, Any] = {"variant": variant, "attempts": [], "method": "registered_candidates"}
     if turn == 3:
-        phrase = next((w for w in VALUE_PHRASES.get(scenario, []) if w in early), DEFAULT_PHRASE.get(scenario, "大切にしたいこと"))
+        phrase = next((w for w in VALUE_PHRASES.get(scenario, []) if w in early), None)
         generic = least_overlapping(GENERIC_MEANING_CANDIDATES[scenario], participant_text)
-        parts = {"phrase": phrase, "generic": generic}
+        if phrase:
+            parts = {"phrase": phrase, "generic": generic, "quoted": "1"}
+        else:
+            parts = {"phrase": DEFAULT_VALUE_NOUN.get(scenario, "大切にしたいこと"), "generic": generic, "quoted": ""}
     elif variant in UNRANKED_VARIANTS:
         options = UNRANKED_PRIORITY_CANDIDATES[scenario]
         joined = [f"{p}{a}" for p, a in options]
@@ -1515,10 +1523,10 @@ def generic_event_title(turn: int, parts: dict[str, str]) -> str:
     """v2.5: 事象カードの見出しを、途中で切れない読める形にする。
     第3回：「語句＝一般的な形（最後の節）」、第4回：「〜方を優先」。"""
     if turn == 3:
-        phrase = parts.get("phrase", "")
+        phrase = parts.get("phrase", "") if parts.get("quoted", "1") else ""
         core = parts.get("generic", "").rstrip("。").removesuffix("こと")
         last = core.split("、")[-1]
-        for title in (f"{phrase}＝{last}", last, f"{phrase}＝{core.split('、')[0]}"):
+        for title in ((f"{phrase}＝{last}", last) if phrase else (last,)):
             if len(title) <= 20:
                 return title
         return last[:20]
@@ -1537,7 +1545,8 @@ def enforce_generic_panel(turn: int, criteria: list[dict[str, Any]], parts: dict
     if card_mode == "separate":
         if turn == 3:
             phrase, generic = parts["phrase"], parts["generic"].rstrip("。")
-            meaning = f"「{phrase}」を、{generic}として扱う。"[:100]
+            meaning = (f"「{phrase}」" if parts.get("quoted", "1") else phrase) + f"を、{generic}として扱う。"
+            meaning = meaning[:100]
             title = generic_event_title(3, parts)
         elif "action" in parts:
             preferred, action = parts["preferred"].rstrip("。"), parts["action"].rstrip("。")
@@ -1567,7 +1576,7 @@ def enforce_generic_panel(turn: int, criteria: list[dict[str, Any]], parts: dict
         return
     if turn == 3:
         phrase, generic = parts["phrase"], parts["generic"].rstrip("。")
-        meaning = f"「{phrase}」を、{generic}として扱う。"[:100]
+        meaning = ((f"「{phrase}」" if parts.get("quoted", "1") else phrase) + f"を、{generic}として扱う。")[:100]
         def score(c):
             text = str(c.get("title", "")) + str(c.get("meaning", ""))
             return (phrase in text, text_similarity(text, phrase + generic), bool(c.get("focus")))
@@ -1982,7 +1991,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     event_delegation = None
     # v2.5: 事象（E1/E2）が右側のどのカードに出たかを、両UIで同じ方法で記録する（UI B はその時点のボタン状態も）
     event_target = None
-    if turn in {3, 4} and required_control_sentence and not analysis_fallback:
+    if turn in {3, 4} and required_control_sentence:
         focus_card = next((c for c in analysis["criteria"] if c.get("focus")), None)
         if focus_card is not None:
             prev_same = next((c for c in previous_criteria if c.get("id") == focus_card.get("id")), None)
@@ -2047,7 +2056,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
             "analysisRepairs": analysis_repairs,
             "idReconciliation": id_mapping,
             "eventDelegation": event_delegation,
-            "eventTarget": event_target,
+            "eventTarget": dict(event_target, analysisFallback=analysis_fallback) if event_target else None,
             "genericStimulus": generic_info,
             "eventCardMode": card_mode,
             "panelLock": panel_lock,
