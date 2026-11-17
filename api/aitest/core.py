@@ -44,7 +44,7 @@ RATE_LIMIT_LOCK = threading.Lock()
 API_URL = "https://api.openai.com/v1/responses"
 DIALOGUE_MODEL = os.environ.get("OPENAI_DIALOGUE_MODEL", "gpt-5.4-nano")
 ANALYSIS_MODEL = os.environ.get("OPENAI_ANALYSIS_MODEL", "gpt-5.4-nano")
-PROMPT_VERSION = "judgment-delegation-guided-turns-v1.7.2"
+PROMPT_VERSION = "judgment-delegation-guided-turns-v1.7.3"
 SESSION_SCHEMA_VERSION = 6
 MAX_USER_CHARS = 500
 ALLOWED_CONDITIONS = {"UI_A", "UI_B"}
@@ -1013,6 +1013,18 @@ def event_card_meaning(turn: int, sentence: str) -> str:
     return body[:100]
 
 
+def event_target_score(card: dict[str, Any], turn: int, scenario_id: str, required_sentence: str) -> tuple:
+    """イベントカードに書き換える対象を選ぶ。第4回は「優先された価値」のカードを選び、
+    「縮められた価値」のカードは残す（UI B のボタン選択が逆の内容に付かないように）。"""
+    title, meaning = str(card.get("title", "")), str(card.get("meaning", ""))
+    side = 0
+    if turn == 4 and scenario_id in TURN4_RELATION_TERMS:
+        p_terms, c_terms = TURN4_RELATION_TERMS[scenario_id]
+        side = (any(t in title for t in p_terms) - any(t in title for t in c_terms)) * 2 + \
+               (any(t in meaning for t in p_terms) - any(t in meaning for t in c_terms))
+    return (side, text_similarity(title + meaning, required_sentence), bool(card.get("focus")))
+
+
 def repair_analysis(value: dict[str, Any], turn: int, scenario_id: str, required_sentence: str,
                     repairs: list[str]) -> dict[str, Any]:
     """検証で直せる不備を決定的に直す。直した内容は repairs に残す。"""
@@ -1041,8 +1053,7 @@ def repair_analysis(value: dict[str, Any], turn: int, scenario_id: str, required
             repairs.append(f"evidence:{cid}")
     if turn in {3, 4} and required_sentence and criteria:
         meaning = event_card_meaning(turn, required_sentence)
-        target = max(criteria, key=lambda c: (text_similarity(str(c.get("title", "")) + str(c.get("meaning", "")), required_sentence),
-                                              bool(c.get("focus"))))
+        target = max(criteria, key=lambda c: event_target_score(c, turn, scenario_id, required_sentence))
         if any(c is target for c in criteria):
             for c in criteria:
                 if c.get("focus") and c is not target:
@@ -1077,8 +1088,8 @@ def repair_analysis(value: dict[str, Any], turn: int, scenario_id: str, required
                             continue
                         for field in ("title", "meaning"):
                             text = str(c.get(field, ""))
-                            if "最優先" in text or "優先し" in text:
-                                c[field] = text.replace("最優先に", "大切に").replace("最優先", "大切").replace("優先し", "大切にし")
+                            if "優先" in text:
+                                c[field] = text.replace("最優先に", "大切に").replace("最優先", "大切").replace("優先", "大切に")[:100 if field == "meaning" else 18]
                                 repairs.append(f"other_priority_softened:{c['id']}")
     return {"summary": str(value.get("summary", "")), "criteria": criteria}
 

@@ -237,5 +237,22 @@ result = core.run_two_ais(b)
 check("strong variant skips strict relation", not any(r.startswith("relation_") for r in result["meta"]["analysisRepairs"]),
       str(result["meta"]["analysisRepairs"]))
 
+# 14) 修復対象は「優先された価値」のカード。「縮められた価値」のカードは id も内容も残る
+cards = [
+    {"id": "talk", "title": "自然に話せる時間", "meaning": "会話が途切れても気まずくならず自然に話せるようにする。", "priority": "中心",
+     "delegationState": "CO_DECIDE", "source": "USER_STATED", "evidenceTurns": [0, 3], "focus": True},
+    {"id": "dish", "title": "料理を少し凝る", "meaning": "料理を少し凝って特別感を出す。", "priority": "維持",
+     "delegationState": "CO_DECIDE", "source": "USER_STATED", "evidenceTurns": [2], "focus": False},
+    {"id": "mild", "title": "優しい味の料理", "meaning": "辛いものを避けて優しい味にする。", "priority": "維持",
+     "delegationState": "CO_DECIDE", "source": "USER_STATED", "evidenceTurns": [4], "focus": False},
+]
+core.call_openai = fake_by_stage([core.ensure_exact_turn_ending(4, "わかりました。" + core.controlled_priority_sentence("reunion") + PAD)] * 3,
+                                 [analysis_json(cards)] * 2)
+crit = core.run_two_ais(body(4, "reunion"))["analysis"]["criteria"]
+by_id = {c["id"]: c for c in crit}
+check("repair targets prioritized-value card", by_id["dish"]["focus"] and by_id["dish"]["title"] == "料理の特別感を優先"
+      and by_id["talk"]["title"] == "自然に話せる時間" and not by_id["talk"]["focus"] and by_id["talk"]["priority"] == "維持",
+      str(crit))
+
 print(f"\n{len(failures)} failure(s)")
 sys.exit(1 if failures else 0)
