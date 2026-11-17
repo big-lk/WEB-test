@@ -44,7 +44,7 @@ RATE_LIMIT_LOCK = threading.Lock()
 API_URL = "https://api.openai.com/v1/responses"
 DIALOGUE_MODEL = os.environ.get("OPENAI_DIALOGUE_MODEL", "gpt-5.4-nano")
 ANALYSIS_MODEL = os.environ.get("OPENAI_ANALYSIS_MODEL", "gpt-5.4-nano")
-PROMPT_VERSION = "judgment-delegation-guided-turns-v1.9.4"
+PROMPT_VERSION = "judgment-delegation-guided-turns-v1.9.5"
 SESSION_SCHEMA_VERSION = 6
 MAX_USER_CHARS = 500
 ALLOWED_CONDITIONS = {"UI_A", "UI_B"}
@@ -151,6 +151,7 @@ CALIBRATION_ACCEPTANCE。第3・4ターン後の参加者の修正、部分拒�
 拒否された部分を外し、許可された範囲だけを具体化する。新しい価値や関係提案を足さず、新たな越権を作らない。
 これまでの計画全体を言い直さない。最新の修正または追加へ最初に答え、変わった点を一つだけ短く示す。
 変更されていない料理、雰囲気、会話、進行を再度まとめず、過去の回答と同じ文を繰り返さない。
+次に参加者が書く「大切にしたいこと・避けたいこと」のまとめを、AIが先に書かない。
 参加者が触れていない第3ターンの意味づけと第4ターンの優先関係は、黙って元に戻さず、そのまま有効なものとして扱う。
 それと食い違う案（例：抑えた会話を食事中ずっと続ける）を新しく足さない。変えるのは参加者が明示した部分だけにする。
 """,
@@ -345,10 +346,13 @@ def ensure_exact_turn_ending(turn: int, text: str) -> str:
     return f"{stripped}\n{required}"
 
 
-def drop_participant_voice(text: str) -> str:
-    """AI が参加者の一人称でまとめ文を先に書いてしまった文（「私は、…」）を除く（v1.8）。"""
+def drop_participant_voice(text: str, turn: int = 5) -> str:
+    """AI が参加者のまとめ文を先に書いてしまった文を除く。
+    「私は、…」（v1.8）と、「大切にしたい…は〜、避けたい…は〜」型の代筆（v1.9.5）。"""
     parts = re.split(r"(?<=[。！\n])", text)
-    kept = [x for x in parts if not re.match(r"^\s*(私は|わたしは|自分は)", x)]
+    kept = [x for x in parts
+            if not re.match(r"^\s*(私は|わたしは|自分は)", x)
+            and not (turn == 5 and "大切にしたい" in x and "避けたい" in x)]
     return "".join(kept)
 
 
@@ -1220,6 +1224,28 @@ FINAL_RELATION_KEYS = {
     "gratitude": ["前半だけ", "感謝を確実に伝えることを優先"],
 }
 
+def compression_clause(scenario_id: str) -> str:
+    """登録文の後半（縮める側）を独立した一文にする。例：「自由な会話は料理を待つ短い時間だけに抑えます。」"""
+    sentence = STANDARD_PRIORITY_TABLE.get(scenario_id, "")
+    return sentence.split("優先し、", 1)[1] if "優先し、" in sentence else ""
+
+
+# 参加者の文章中の関わり方の指定（例文の型と、その言い換え）→ delegationState
+TEXT_DELEGATION_PATTERNS = [
+    (re.compile(r"「([^」]{2,30})」(?:は|を)?[^。「」]{0,12}(?:自分で決めたい|自分で決める|変えないで|そのままにして|固定して)"), "USER_DECIDE"),
+    (re.compile(r"「([^」]{2,30})」(?:は|を)?[^。「」]{0,12}(?:案を一つ|案を出して|提案して|決めてください|任せ)"), "AI_PROPOSE"),
+    (re.compile(r"「([^」]{2,30})」(?:は|を)?[^。「」]{0,12}(?:まだ決めず|考える材料|一緒に考え)"), "CO_DECIDE"),
+]
+
+
+def delegation_requests(user_text: str) -> list[tuple[str, str]]:
+    found = []
+    for pattern, state in TEXT_DELEGATION_PATTERNS:
+        for match in pattern.finditer(user_text):
+            found.append((match.group(1), state))
+    return found
+
+
 RELATION_MENTION_EXTRA = {"gratitude": ["話"], "reunion": ["料理"], "busy": ["ゆっくり", "疲れ"], "milestone": ["大げさ", "記念"]}
 
 
@@ -1367,11 +1393,18 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     relation_untouched = (experiment_variant == "standard" and turn == 6
                           and not any(participant_touched_relation(t, anchor["scenarioId"]) for t in later_user_texts))
 
+    final_relation_inserted: list[str] = []
+
     def parse_dialogue_candidate(text: str) -> tuple[str, list[str]]:
-        normalized = ensure_exact_turn_ending(turn, drop_participant_voice(text))
+        normalized = ensure_exact_turn_ending(turn, drop_participant_voice(text, turn))
         extra = []
         if relation_untouched and not any(k in normalized for k in FINAL_RELATION_KEYS.get(anchor["scenarioId"], [])):
-            extra.append("R19_UNCORRECTED_RELATION_DROPPED")
+            # 再生成で時間を使わず、登録文の「縮める」側の節を計画文として終止文の直前に入れる（v1.9.5）
+            clause = compression_clause(anchor["scenarioId"])
+            if clause:
+                body = normalized[: -len(TURN_ENDINGS[6])].rstrip()
+                normalized = f"{body}{clause}{TURN_ENDINGS[6]}"
+                final_relation_inserted.append(clause)
         if turn >= 5 and ("優先関係" in normalized or "最終方針として" in normalized
                           or re.search(r"「[^」]*(優先|前半だけ|料理を待つ|食後の短い)[^」]*」", normalized)):
             extra.append("R20_RELATION_QUOTED")
@@ -1487,6 +1520,22 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         if (turn in {5, 6} and experiment_variant == "standard" and previous_criteria
                 and not any(participant_touched_relation(t, anchor["scenarioId"]) for t in later_user_texts)):
             keep_uncorrected_relation(previous_criteria, analysis["criteria"], anchor["scenarioId"], analysis_repairs)
+    delegation_from_text: list[str] = []
+    if not analysis_fallback:
+        for quoted, state in delegation_requests(user_text):
+            # 引用されたタイトルを前ターンのカード → 現ターンの同じ id へ対応させる
+            prev_match = max(previous_criteria, key=lambda c: text_similarity(quoted, c.get("title", "")), default=None)
+            target = None
+            if prev_match and text_similarity(quoted, prev_match.get("title", "")) >= 0.5:
+                target = next((c for c in analysis["criteria"] if c.get("id") == prev_match.get("id")), None)
+            if target is None:
+                best = max(analysis["criteria"], key=lambda c: text_similarity(quoted, c.get("title", "")))
+                if text_similarity(quoted, best.get("title", "")) >= 0.5:
+                    target = best
+            if target is not None:
+                if target.get("delegationState") != state:
+                    target["delegationState"] = state
+                delegation_from_text.append(f"{target['id']}={state}")
     event_delegation = None
     if condition == "UI_B" and turn in {3, 4} and source_criteria and required_control_sentence:
         def state_of(terms: list[str]):
@@ -1545,6 +1594,8 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
             "analysisRepairs": analysis_repairs,
             "idReconciliation": id_mapping,
             "eventDelegation": event_delegation,
+            "finalRelationInserted": bool(final_relation_inserted),
+            "delegationFromText": delegation_from_text,
             "requiredControlSentence": required_control_sentence or None,
         },
     }

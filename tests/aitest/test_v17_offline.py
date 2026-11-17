@@ -364,7 +364,7 @@ def hist6(t5_text):
 final_no = core.ensure_exact_turn_ending(6, "わかりました。" + PAD)
 final_yes = core.ensure_exact_turn_ending(6, "わかりました。自由な会話は料理を待つ短い時間を中心にします。" + PAD)
 for t5_text, dialogues, expect_attempts in [
-    ("最初に軽くつまめるものを出したいです。", [final_no, final_yes], 2),
+    ("最初に軽くつまめるものを出したいです。", [final_no], 1),
     ("会話を料理待ちの時間だけにするのは違います。", [final_no], 1),
 ]:
     b = body(6, "reunion", previous=e2_prev); b["history"] = hist6(t5_text); b["userText"] = "二人とも楽しかったと思える夜にしたいです。"
@@ -372,8 +372,11 @@ for t5_text, dialogues, expect_attempts in [
     r = core.run_two_ais(b)
     n = len([a for a in r["meta"]["dialogueAttempts"] if isinstance(a.get("attempt"), int)])
     kept = any(x.startswith("relation_kept") for x in r["meta"]["analysisRepairs"])
-    check(f"turn6 relation retention attempts={expect_attempts}", n == expect_attempts and kept == (expect_attempts == 2),
-          f"attempts={n} kept={kept}")
+    untouched = "料理待ち" not in t5_text
+    inserted = r["meta"]["finalRelationInserted"]
+    check(f"turn6 relation retention untouched={untouched}", n == 1 and inserted == untouched and kept == untouched
+          and (core.compression_clause("reunion") in r["dialogue"]) == untouched and r["dialogue"].endswith(core.TURN_ENDINGS[6]),
+          f"attempts={n} kept={kept} inserted={inserted} {r['dialogue'][-120:]}")
 
 # 23) v1.9.2 方針の引用・説明語（線上 B milestone t6）は再生成対象
 quoted = core.ensure_exact_turn_ending(6, "わかりました。優先関係は「今回は普段どおりの気楽さよりも節目の特別感を優先し」とします。" + PAD)
@@ -382,6 +385,28 @@ b = body(6, "milestone", previous=e2_prev); b["history"] = hist6("前菜を食�
 core.call_openai = fake_by_stage([quoted, natural, natural], [analysis_json(drifted)] * 2)
 r = core.run_two_ais(b)
 check("quoted relation regenerated", r["dialogue"] == natural and "R20_RELATION_QUOTED" in str(r["meta"]["dialogueAttempts"]), r["dialogue"][:60])
+
+# 24) v1.9.5 文章からの関わり方指定（例文の型と言い換え）
+reqs = core.delegation_requests("「静かに休める時間」は自分で決めたいので、今の内容のまま変えないでください。"
+                                "「少し特別な感じ」は具体的な案を一つ出してください。「感謝の伝え方」はまだ決めずに、考える材料を示してください。"
+                                "「料理」を任せたいです。")
+check("text delegation patterns", reqs == [("静かに休める時間", "USER_DECIDE"), ("少し特別な感じ", "AI_PROPOSE"), ("料理", "AI_PROPOSE"),
+                                          ("感謝の伝え方", "CO_DECIDE")], str(reqs))
+b = body(3, "busy", previous=[{"id": "rest", "title": "静かに休める時間", "meaning": "x", "priority": "維持"},
+                               {"id": "light-special", "title": "さりげない特別感", "meaning": "y", "priority": "維持"},
+                               {"id": "no-burden", "title": "負担をかけない", "meaning": "z", "priority": "維持"}])
+b["userText"] = "「さりげない特別感」は具体的な案を一つ出してください。会話は少なめでいいです。"
+sentence = core.controlled_fixation_sentence(ANCHORS["busy"], history(3), b["userText"])
+core.call_openai = fake_by_stage([core.ensure_exact_turn_ending(3, "わかりました。" + sentence + PAD)] * 3, [analysis_json(GENERIC_CARDS)] * 2)
+r = core.run_two_ais(b)
+ls = next(c for c in r["analysis"]["criteria"] if c["id"] == "light-special")
+check("text delegation applied to same id", ls["delegationState"] == "AI_PROPOSE" and r["meta"]["delegationFromText"] == ["light-special=AI_PROPOSE"],
+      str(r["meta"]["delegationFromText"]))
+
+# 25) v1.9.5 第5回：参加者のまとめの代筆を除く（線上 gratitude t5）
+t5b = "食後にお茶を出すとき短く添えます。最後にこの夕食で大切にしたいことは自然に感謝を届けること、避けたいことは改まって重くしすぎることです。"
+out = core.drop_participant_voice(t5b)
+check("summary pre-writing removed", "避けたい" not in out and "短く添えます。" in out, out)
 
 print(f"\n{len(failures)} failure(s)")
 sys.exit(1 if failures else 0)
