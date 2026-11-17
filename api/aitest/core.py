@@ -44,7 +44,7 @@ RATE_LIMIT_LOCK = threading.Lock()
 API_URL = "https://api.openai.com/v1/responses"
 DIALOGUE_MODEL = os.environ.get("OPENAI_DIALOGUE_MODEL", "gpt-5.4-nano")
 ANALYSIS_MODEL = os.environ.get("OPENAI_ANALYSIS_MODEL", "gpt-5.4-nano")
-PROMPT_VERSION = "judgment-delegation-guided-turns-v1.8.1"
+PROMPT_VERSION = "judgment-delegation-guided-turns-v1.9"
 SESSION_SCHEMA_VERSION = 6
 MAX_USER_CHARS = 500
 ALLOWED_CONDITIONS = {"UI_A", "UI_B"}
@@ -151,9 +151,13 @@ CALIBRATION_ACCEPTANCE。第3・4ターン後の参加者の修正、部分拒�
 拒否された部分を外し、許可された範囲だけを具体化する。新しい価値や関係提案を足さず、新たな越権を作らない。
 これまでの計画全体を言い直さない。最新の修正または追加へ最初に答え、変わった点を一つだけ短く示す。
 変更されていない料理、雰囲気、会話、進行を再度まとめず、過去の回答と同じ文を繰り返さない。
+参加者が触れていない第3ターンの意味づけと第4ターンの優先関係は、黙って元に戻さず、そのまま有効なものとして扱う。
+それと食い違う案（例：抑えた会話を食事中ずっと続ける）を新しく足さない。変えるのは参加者が明示した部分だけにする。
 """,
     6: """
-FINAL_CONVERGENCE。確認済みの料理、過ごし方、価値の意味、優先関係を短く統合する。
+FINAL_CONVERGENCE。これまでに決まった料理、過ごし方、価値の意味、優先関係を短く統合する。
+第3ターンの意味づけと第4ターンの優先関係のうち、参加者が修正していないものは最終方針にそのまま含める。
+参加者が修正したものは修正後の内容だけを書く。どちらも説明や理由付けはせず、通常の計画文として一文に含める。
 現在許可された範囲だけを具体化し、未決定事項は未決定のまま残す。新しい価値、テーマ、複数案を追加しない。
 """,
 }
@@ -179,12 +183,6 @@ DIALOGUE_INSTRUCTIONS = """あなたは日本語だけで応答する、特別�
 - 特に第1・2ターンでは、参加者が明示していない感謝の言葉、伝えるタイミング、カード、
   会話量、話題、関係表現の順序を具体案として決めない。料理や照明の軽い候補を示しても、
   感情や関係の実現方法は「自然に伝わる余地を残す」等の開いた状態に保つ。
-
-UI Bの調整値は次ターンの支援範囲として読む：
-- ai：具体案を積極的に提案してよい。
-- consult：候補や比較材料を示すが確定しない。
-- self：意味や優先関係を代わりに決めず、参加者が指定した範囲だけ支える。
-ただし、参加者の最新の明示発言を常に優先する。
 """
 
 ANALYSIS_INSTRUCTIONS = """あなたは右側の価値状態を作る独立AIです。参加者に表示する文字は日本語だけにします。
@@ -205,6 +203,8 @@ ANALYSIS_INSTRUCTIONS = """あなたは右側の価値状態を作る独立AIで
 - 第4ターンでは、対話AI回答が最優先に置いた価値をpriority=中心、focus=true、source=AI_INFERENCEにする。
   AI回答で実現範囲を狭められた価値のmeaningにも、その狭められ方を明記する。
   参加者が決めた優先関係として書いてはならず、直前の参加者発話だけで元の広い意味へ戻してはならない。
+- 第5・6ターンでは、参加者が明示的に修正・否定していない第3ターンの意味づけと第4ターンの優先関係を、
+  前ターンのカードの内容のまま維持する。参加者が修正した場合だけ、修正後の内容へ更新する。
 - 前ターンの価値状態が入力に含まれる場合、実質的に同じ価値には前ターンと完全に同じidを使う。
   titleやmeaningを更新してもidは変えない。新しいidは本当に新しい価値にだけ付ける。
 - summary、title、meaningへcurrentMeaning、priority、source等のJSONフィールド名や括弧注釈を混ぜない。
@@ -1195,6 +1195,39 @@ def fallback_with_event(turn: int, anchor: dict[str, str], required_sentence: st
     return base
 
 
+RELATION_MENTION_EXTRA = {"gratitude": ["話"], "reunion": ["料理"], "busy": ["ゆっくり", "疲れ"], "milestone": ["大げさ", "記念"]}
+
+
+def participant_touched_relation(user_text: str, scenario_id: str) -> bool:
+    """第5・6回の入力が優先関係のどちらかの価値に触れているか。
+    触れていれば修正の可能性があるので、面板の維持は強制せず AI の更新に任せる（誤って修正を打ち消さないため広めに判定）。"""
+    terms = TURN4_RELATION_TERMS.get(scenario_id)
+    if not terms:
+        return True
+    p_terms, c_terms = terms
+    words = p_terms + c_terms + RELATION_MENTION_EXTRA.get(scenario_id, []) + ["優先"]
+    return any(t in user_text for t in words)
+
+
+def keep_uncorrected_relation(previous: list[dict[str, Any]], criteria: list[dict[str, Any]], scenario_id: str,
+                              repairs: list[str]) -> None:
+    """前ターンにあった優先関係カードが、修正なしに消えた場合だけ前の内容へ戻す（id は同じ）。"""
+    prev_rel = [p for p in previous if priority_relation_ok(str(p.get("meaning", "")), scenario_id)]
+    if not prev_rel or any(priority_relation_ok(str(c.get("meaning", "")), scenario_id) for c in criteria):
+        return
+    source = prev_rel[0]
+    target = next((c for c in criteria if c.get("id") == source["id"]), None)
+    if target is None:
+        return
+    target["title"] = str(source.get("title", target.get("title", "")))[:18]
+    target["meaning"] = str(source.get("meaning", ""))[:100]
+    target["priority"] = "中心"
+    for c in criteria:
+        if c is not target and c.get("priority") == "中心":
+            c["priority"] = "維持"
+    repairs.append(f"relation_kept:{target['id']}")
+
+
 def reconcile_ids(previous: list[dict[str, Any]], criteria: list[dict[str, Any]], mapping: list[str]) -> None:
     """前ターンと実質的に同じ価値には、前ターンと同じ id を使う（UI B のボタン選択を保つため）。"""
     prev = [p for p in previous if p.get("id") and p["id"] not in PLACEHOLDER_IDS and not str(p["id"]).startswith("turn-")]
@@ -1289,10 +1322,8 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         f"可視回答の長さ: {visible_length_target}、1〜2段落。"
         f"{' 強制文は最新入力への短い応答に続く第2文として、冒頭160字以内に置く。' if required_control_sentence else ''}\n"
         f"必須の末尾: {TURN_ENDINGS[turn]}\n"
-        f"UI条件: {condition}\n"
         f"事前場面: {anchor['scenarioLabel']}\n"
         f"事前の一文: {anchor['freeText']}\n"
-        f"前ターンの調整状態: {json.dumps(delegation_context, ensure_ascii=False) if delegation_context else 'なし'}\n"
         f"対話:\n{transcript_text(history, user_text)}"
     )
     dialogue_payload = {
@@ -1349,7 +1380,6 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         f"実験バリアント: {experiment_variant}\n"
         f"事前場面: {anchor['scenarioLabel']}\n"
         f"事前アンカー: {anchor['freeText']}\n"
-        f"UI条件と調整値: {condition} / {json.dumps(delegation_context, ensure_ascii=False)}\n"
         f"前ターンの価値状態（実質的に同じ価値には同じidを使う）: "
         f"{json.dumps(previous_criteria, ensure_ascii=False) if previous_criteria else 'なし'}\n"
         f"対話全文:\n{transcript_text(history, user_text, dialogue)}"
@@ -1419,6 +1449,9 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         analysis_error = {"exceptionCode": exc.code, "stage": exc.stage, "retryable": exc.retryable}
     if not analysis_fallback:
         reconcile_ids(previous_criteria, analysis["criteria"], id_mapping)
+        if (turn in {5, 6} and experiment_variant == "standard" and previous_criteria
+                and not participant_touched_relation(user_text, anchor["scenarioId"])):
+            keep_uncorrected_relation(previous_criteria, analysis["criteria"], anchor["scenarioId"], analysis_repairs)
     event_delegation = None
     if condition == "UI_B" and turn in {3, 4} and source_criteria and required_control_sentence:
         def state_of(terms: list[str]):

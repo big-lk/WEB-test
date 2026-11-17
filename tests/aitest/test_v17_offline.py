@@ -313,5 +313,48 @@ core.call_openai = fake_by_stage([core.ensure_exact_turn_ending(4, "わかりま
 ed = core.run_two_ais(b)["meta"]["eventDelegation"]
 check("event delegation logged", ed and ed["compressed"]["state"] == "self" and ed["prioritized"]["state"] == "ai", str(ed))
 
+# 20) v1.9 隔離：UI A と UI B で会話AI・分析AIへの入力が同一（ボタン状態・条件名が入らない）
+def capture_inputs(b):
+    seen = []
+    def call(payload):
+        seen.append(payload)
+        if payload["instructions"].startswith(core.DIALOGUE_INSTRUCTIONS[:40]):
+            return fake_response(core.ensure_exact_turn_ending(b["turn"], "わかりました。" + core.controlled_priority_sentence("reunion") + PAD), "d")
+        return fake_response(analysis_json(GENERIC_CARDS), "a")
+    core.call_openai = call
+    core.run_two_ais(b)
+    return seen
+ba = body(4, "reunion", condition="UI_A", previous=prev3)
+bb = body(4, "reunion", condition="UI_B", previous=prev3)
+bb["delegationSourceCriteria"] = prev3
+bb["delegation"] = {c["id"]: "self" for c in prev3}
+ia, ib = capture_inputs(ba), capture_inputs(bb)
+check("dialogue input identical across UIs", ia[0]["input"] == ib[0]["input"] and ia[0]["instructions"] == ib[0]["instructions"]
+      and "UI_B" not in ib[0]["input"] and "self" not in ib[0]["input"])
+check("analysis input identical across UIs", ia[-1]["input"] == ib[-1]["input"] and "UI_B" not in ib[-1]["input"])
+
+# 21) v1.9 未修正の優先関係は第5回の面板で維持、修正があれば維持を強制しない
+e2_prev = [{"id": "dish", "title": "料理の特別感を優先", "priority": "中心",
+            "meaning": core.event_card_meaning(4, core.controlled_priority_sentence("reunion"))},
+           {"id": "talk", "title": "自然に話せる時間", "meaning": "会話を楽しむ。", "priority": "維持"},
+           {"id": "mild", "title": "優しい味", "meaning": "辛いものを避ける。", "priority": "維持"}]
+drifted = [
+    {"id": "dish", "title": "優しい味の特別感", "meaning": "料理は少し凝って優しい味にする。", "priority": "中心",
+     "delegationState": "CO_DECIDE", "source": "USER_TURN", "evidenceTurns": [4], "focus": True},
+    {"id": "talk", "title": "会話時間をちゃんと取る", "meaning": "話す時間をしっかり確保する。", "priority": "維持",
+     "delegationState": "CO_DECIDE", "source": "USER_TURN", "evidenceTurns": [2], "focus": False},
+    {"id": "mild", "title": "優しい味", "meaning": "辛いものを避けて優しい味にする。", "priority": "維持",
+     "delegationState": "CO_DECIDE", "source": "USER_TURN", "evidenceTurns": [4], "focus": False},
+]
+for text, expect_kept in [("最初に軽くつまめるものを出して、メインは一緒に取り分けたいです。", True),
+                          ("会話を料理待ちの時間だけにするのは違います。食べながらずっと話したいです。", False)]:
+    b = body(5, "reunion", previous=e2_prev); b["userText"] = text
+    core.call_openai = fake_by_stage([core.ensure_exact_turn_ending(5, "わかりました。" + PAD[:120])] * 3, [analysis_json(drifted)] * 2)
+    r = core.run_two_ais(b)
+    kept = any(x.startswith("relation_kept") for x in r["meta"]["analysisRepairs"])
+    dish = next(c for c in r["analysis"]["criteria"] if c["id"] == "dish")
+    check(f"turn5 relation kept={expect_kept}", kept == expect_kept and
+          (core.priority_relation_ok(dish["meaning"], "reunion") == expect_kept), str(r["meta"]["analysisRepairs"]))
+
 print(f"\n{len(failures)} failure(s)")
 sys.exit(1 if failures else 0)
