@@ -44,7 +44,7 @@ RATE_LIMIT_LOCK = threading.Lock()
 API_URL = "https://api.openai.com/v1/responses"
 DIALOGUE_MODEL = os.environ.get("OPENAI_DIALOGUE_MODEL", "gpt-5.4-nano")
 ANALYSIS_MODEL = os.environ.get("OPENAI_ANALYSIS_MODEL", "gpt-5.4-nano")
-PROMPT_VERSION = "judgment-delegation-guided-turns-v2.0.1"
+PROMPT_VERSION = "judgment-delegation-guided-turns-v2.0.2"
 SESSION_SCHEMA_VERSION = 6
 MAX_USER_CHARS = 500
 ALLOWED_CONDITIONS = {"UI_A", "UI_B"}
@@ -1418,7 +1418,9 @@ def enforce_generic_panel(turn: int, criteria: list[dict[str, Any]], parts: dict
             text = str(c.get("title", "")) + str(c.get("meaning", ""))
             return (phrase in text, text_similarity(text, phrase + generic), bool(c.get("focus")))
         ok = lambda c: phrase in str(c.get("title", "")) + str(c.get("meaning", "")) and text_similarity(str(c.get("meaning", "")), generic) >= 0.3
-        title = phrase[:18] if phrase in "".join(str(c.get("title", "")) for c in criteria) else generic[:18]
+        core_generic = generic.removesuffix("こと")
+        short = core_generic.split("、")[0]
+        title = (short if len(short) <= 18 else phrase[:18]) if len(core_generic) > 18 else core_generic
     else:
         demoted, preferred, limit = parts["demoted"].rstrip("。"), parts["preferred"].rstrip("。"), parts["limit"].rstrip("。")
         meaning = f"{demoted}よりも{preferred}を優先し、{limit}。"[:100]
