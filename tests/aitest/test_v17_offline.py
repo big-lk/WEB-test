@@ -170,5 +170,26 @@ except core.ExperimentError:
 check("previousCriteria only in analysis input", len(seen) >= 2 and "quiet-rest" not in seen[0]["input"]
       and "quiet-rest" in seen[-1]["input"])
 
+# 9) 第5回で分析が失敗しても、前ターンのカード（同じ id）を引き継ぐ
+prev3 = [{"id": c["id"], "title": c["title"], "meaning": c["meaning"], "priority": c["priority"]} for c in GENERIC_CARDS]
+core.call_openai = fake_by_stage([core.ensure_exact_turn_ending(5, "わかりました。" + PAD[:120])] * 3, ["not json"] * 2)
+try:
+    result = core.run_two_ais(body(5, "reunion", previous=prev3))
+    ids = [c["id"] for c in result["analysis"]["criteria"]]
+    _, codes = core.parse_analysis(json.dumps(result["analysis"], ensure_ascii=False), 5, "reunion")
+    check("turn5 fallback carries previous cards", result["meta"]["analysisFallback"] and ids == [c["id"] for c in GENERIC_CARDS]
+          and not codes, f"{ids} {codes}")
+except core.ExperimentError as exc:
+    check("turn5 fallback carries previous cards", False, exc.code)
+
+# 10) 第4回フォールバック＋引き継ぎ：イベントカードは id を維持しつつ1枚だけ focus
+core.call_openai = fake_by_stage([core.ensure_exact_turn_ending(4, "わかりました。" + core.controlled_priority_sentence("busy") + PAD)] * 3,
+                                 ["not json"] * 2)
+result = core.run_two_ais(body(4, "busy", previous=prev3))
+crit = result["analysis"]["criteria"]
+_, codes = core.parse_analysis(json.dumps(result["analysis"], ensure_ascii=False), 4, "busy")
+check("turn4 fallback keeps ids with one event focus", [c["id"] for c in crit] == [c["id"] for c in GENERIC_CARDS]
+      and sum(c["focus"] for c in crit) == 1 and "A13_EVENT_NOT_VISIBLE" not in codes, str(codes))
+
 print(f"\n{len(failures)} failure(s)")
 sys.exit(1 if failures else 0)

@@ -1004,11 +1004,28 @@ def repair_analysis(value: dict[str, Any], turn: int, scenario_id: str, required
     return {"summary": str(value.get("summary", "")), "criteria": criteria}
 
 
-def fallback_with_event(turn: int, anchor: dict[str, str], required_sentence: str) -> dict[str, Any]:
-    base = fallback_analysis(turn, anchor)
+def fallback_with_event(turn: int, anchor: dict[str, str], required_sentence: str,
+                        previous: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    """分析が失敗したときの表示。前ターンのカードがあればそれを引き継ぐ（汎用の仮カードは出さない）。"""
+    carried = [p for p in (previous or []) if p.get("id") and p["id"] not in PLACEHOLDER_IDS
+               and not str(p["id"]).startswith("turn-")][:3]
+    if len(carried) == 3:
+        base = {"summary": "前ターンの読み取りを維持しています。", "criteria": [
+            {"id": p["id"], "title": str(p.get("title", ""))[:18], "meaning": str(p.get("meaning", ""))[:100],
+             "priority": p.get("priority") if p.get("priority") in {"中心", "維持", "未確定"} else "維持",
+             "delegationState": "CO_DECIDE", "source": "USER_STATED", "evidenceTurns": [max(0, turn - 1)],
+             "focus": i == 0} for i, p in enumerate(carried)]}
+    else:
+        base = fallback_analysis(turn, anchor)
     if turn in {3, 4} and required_sentence:
-        base["criteria"][0] = {
-            "id": f"event-turn-{turn}",
+        replace_at = 0
+        if len(carried) == 3:
+            # 引き継いだカードのうち登録文に最も近いものをイベントカードに置き換える（id は維持）
+            replace_at = max(range(3), key=lambda i: text_similarity(
+                str(carried[i].get("title", "")) + str(carried[i].get("meaning", "")), required_sentence))
+        keep_id = base["criteria"][replace_at]["id"] if len(carried) == 3 else f"event-turn-{turn}"
+        base["criteria"][replace_at] = {
+            "id": keep_id,
             "title": EVENT_CARD_TITLES.get((turn, anchor["scenarioId"]), "AIが今回置いた方針"),
             "meaning": event_card_meaning(turn, required_sentence),
             "priority": "中心" if turn == 4 else "維持",
@@ -1017,8 +1034,10 @@ def fallback_with_event(turn: int, anchor: dict[str, str], required_sentence: st
             "evidenceTurns": [0, turn],
             "focus": True,
         }
-        for item in base["criteria"][1:]:
-            item["focus"] = False
+        for i, item in enumerate(base["criteria"]):
+            item["focus"] = i == replace_at
+            if turn == 4 and i != replace_at and item.get("priority") == "中心":
+                item["priority"] = "維持"
     return base
 
 
@@ -1228,7 +1247,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         )
     except ExperimentError as exc:
         analysis_fallback = True
-        analysis = fallback_with_event(turn, anchor, required_control_sentence)
+        analysis = fallback_with_event(turn, anchor, required_control_sentence, previous_criteria)
         analysis_raw = {}
         analysis_latency = 0.0
         analysis_attempts = exc.attempts
