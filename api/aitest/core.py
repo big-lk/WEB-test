@@ -44,7 +44,7 @@ RATE_LIMIT_LOCK = threading.Lock()
 API_URL = "https://api.openai.com/v1/responses"
 DIALOGUE_MODEL = os.environ.get("OPENAI_DIALOGUE_MODEL", "gpt-5.4-nano")
 ANALYSIS_MODEL = os.environ.get("OPENAI_ANALYSIS_MODEL", "gpt-5.4-nano")
-PROMPT_VERSION = "judgment-delegation-guided-turns-v2.0"
+PROMPT_VERSION = "judgment-delegation-guided-turns-v2.0.1"
 SESSION_SCHEMA_VERSION = 6
 MAX_USER_CHARS = 500
 ALLOWED_CONDITIONS = {"UI_A", "UI_B"}
@@ -1294,15 +1294,31 @@ GENERIC_STIMULUS_INSTRUCTIONS = """
 受け取ってしまうAIの振る舞いを、自然な夕食提案の一文として作る。参加者個人の独自の意味は無視される形になる。
 
 第3ターン（意味）：
-- phrase：参加者自身の言葉（事前の一文または入力）から、価値を表す語句を2〜16字でそのまま抜き出す。
+- phrase：参加者が「事前の一文」または第1・2ターンに書いた、解釈の幅がある価値の語句を2〜16字でそのまま抜き出す
+  （例：気を遣わせない、自然に話せる、さりげなく、重くしない）。最新入力だけに出てきた語句は選ばない。
 - generic：その語句から多くの人が想定する、一般的でもっともらしい具体的な夕食の形（10〜36字、「〜こと」で終える）。
-  参加者がその語句について既に書いた具体的な中身とは違うものにする。ただし最新入力の直接の否定（話したい→話さない等）は避ける。
+  参加者がその語句について書いた独自の中身（例：「一緒に台所に立つ」）とは別の形にする。言い換えや要約にしない。
+  ただし最新入力の直接の否定（話したい→話さない等）や荒唐無稽な案は避ける。
 第4ターン（優先）：
-- demoted：参加者が大切だと書いてきた価値（参加者の言葉に近い表現、4〜20字、「〜こと」で終える）。
-- preferred：この種の夕食で一般的に優先されやすい別の価値（4〜20字、「〜こと」で終える）。参加者が最優先にしていないもの。
+- demoted：参加者が自分ならではの希望として大切にしてきた価値（参加者の言葉に近い表現、4〜20字、「〜こと」で終える）。
+- preferred：この種の場面（事前場面）で多くの人が優先しがちな別の価値（4〜20字、「〜こと」で終える）。
+  参加者が最優先にしていないもの。参加者の希望の言い換えにしない。
 - limit：demotedを具体的に縮める一節（10〜32字、「〜ます」で終える。例：ゆっくり話すのは食後の短い時間に限ります）。
 共通：日本語のみ。安全・健康・個人情報・実験への言及は入れない。荒唐無稽にしない。
 """
+GENERIC_TURN_DIRECTIVES = {
+    3: """
+VALUE_INTERPRETATION_FIXATION（一般的解釈条件）。まず今回の具体的な入力へ答える。
+続けて今回の強制文を第2文として一字も変えずに置き、その意味づけに沿った具体案を一つ示す。
+強制文以外で、別の価値の意味を新たに狭めたり固定したりしない。推測・候補とは言わず、確認質問もしない。
+""",
+    4: """
+VALUE_PRIORITY_PROXY_DECISION（一般的解釈条件）。まず今回の入力へ答える。第3ターン後に意味が訂正されていれば採用する。
+続けて今回の強制文を第2文として一字も変えずに置き、その優先関係を料理、進行、会話の扱い等の具体的決定に一つ反映する。
+強制文以外の優先順位は決めない。優先順位の質問、選択肢、修正依頼は禁止する。
+""",
+}
+
 GENERIC_STIMULUS_SCHEMA = {
     "type": "object",
     "additionalProperties": False,
@@ -1328,15 +1344,21 @@ def build_generic_sentence(turn: int, variant: str, parts: dict[str, str]) -> st
 
 def validate_generic_parts(turn: int, parts: dict[str, str], participant_text: str, latest: str) -> list[str]:
     codes = []
+    sentences = [x for x in re.split(r"[。！\n]", participant_text) if x.strip()]
     if turn == 3:
         phrase, generic = parts.get("phrase", "").strip(), parts.get("generic", "").strip()
-        if not (2 <= len(phrase) <= 16) or phrase not in participant_text:
+        early_text = participant_text[: len(participant_text) - len(latest)] if latest and participant_text.endswith(latest) else participant_text
+        if not (2 <= len(phrase) <= 16) or phrase not in early_text:
             codes.append("G01_PHRASE_NOT_PARTICIPANTS")
         if not (8 <= len(generic) <= 40):
             codes.append("G02_GENERIC_LENGTH")
-        if text_similarity(generic, latest) >= 0.45:
+        # 参加者が書いた文のどれかの言い換えになっていれば「一般的解釈による置換」にならない
+        if any(text_similarity(generic, x) >= 0.3 for x in sentences):
             codes.append("G03_GENERIC_ECHOES_PARTICIPANT")
     else:
+        if any(text_similarity(parts.get("preferred", ""), x) >= 0.4 for x in sentences):
+            codes.append("G08_PREFERRED_ECHOES_PARTICIPANT")
+    if turn == 4:
         d, pr, lm = parts.get("demoted", "").strip(), parts.get("preferred", "").strip(), parts.get("limit", "").strip()
         if not (3 <= len(d) <= 22) or not (3 <= len(pr) <= 22) or not (8 <= len(lm) <= 36):
             codes.append("G04_PRIORITY_LENGTH")
@@ -1367,7 +1389,7 @@ def generate_generic_stimulus(turn: int, variant: str, anchor: dict[str, str], h
         "store": False,
     }
     info: dict[str, Any] = {"variant": variant, "attempts": []}
-    for attempt in range(2):
+    for attempt in range(3):
         try:
             text, _, latency = call_openai(payload)
             parts = json.loads(text)
@@ -1486,12 +1508,16 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         required_control_sentence = controlled_priority_sentence(anchor["scenarioId"])
     else:
         required_control_sentence = ""
+    generic_dialogue = experiment_variant in GENERIC_VARIANTS and turn in {3, 4}
     variant_directive = (
+        "一般的解釈の比較条件。今回の強制文だけで意味づけ（第3ターン）または優先関係（第4ターン）を示す。"
+        "強制文と別の意味の固定や、別の優先順位の決定を追加しない。強制文以外は今回の入力への通常の応答と具体案にする。"
+        if generic_dialogue else (
         "強い意図的曖昧化テスト。意図的曖昧化表の対応行を通常の夕食提案として実現する。"
         "荒唐無稽、安全違反、個人情報、実験説明は追加しない。"
         if strong_stimulus
         else "標準刺激。通常の固定背板規則を実現する。"
-    )
+    ))
     delegation_context = [
         {
             "id": item["id"],
@@ -1515,7 +1541,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         f"固定control_event: {control_event}\n"
         f"実験バリアント: {experiment_variant}\n"
         f"バリアント規則: {variant_directive}\n"
-        f"このターンの実現規則:\n{TURN_DIRECTIVES[turn].strip()}\n"
+        f"このターンの実現規則:\n{(GENERIC_TURN_DIRECTIVES[turn] if generic_dialogue else TURN_DIRECTIVES[turn]).strip()}\n"
         f"{'今回の強制文（一字も変えず、可視回答に正確に含める）: ' + required_control_sentence if required_control_sentence else ''}\n"
         f"可視回答の長さ: {visible_length_target}、1〜2段落。"
         f"{' 強制文は最新入力への短い応答に続く第2文として、冒頭160字以内に置く。' if required_control_sentence else ''}\n"
