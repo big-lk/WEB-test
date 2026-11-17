@@ -44,7 +44,7 @@ RATE_LIMIT_LOCK = threading.Lock()
 API_URL = "https://api.openai.com/v1/responses"
 DIALOGUE_MODEL = os.environ.get("OPENAI_DIALOGUE_MODEL", "gpt-5.4-nano")
 ANALYSIS_MODEL = os.environ.get("OPENAI_ANALYSIS_MODEL", "gpt-5.4-nano")
-PROMPT_VERSION = "judgment-delegation-guided-turns-v1.6"
+PROMPT_VERSION = "judgment-delegation-guided-turns-v1.7"
 SESSION_SCHEMA_VERSION = 6
 MAX_USER_CHARS = 500
 ALLOWED_CONDITIONS = {"UI_A", "UI_B"}
@@ -440,8 +440,10 @@ def dialogue_validation_codes(
     *_: Any,
     experiment_variant: str = "standard",
     scenario_id: str = "",
+    required_sentence: str = "",
 ) -> list[str]:
     compact = re.sub(r"\s+", "", text)
+    has_required = bool(required_sentence) and required_sentence in text
     codes: list[str] = []
     # The backboard gives target ranges, not a hard rejection boundary.
     # Keep a lower safety floor so a concise, complete nano-model response is
@@ -525,7 +527,9 @@ def dialogue_validation_codes(
     if turn == 3:
         fixation_markers = ["として整え", "と捉え", "にまとめ", "を意味するものとして", "に固定"]
         hedges = ["かもしれません", "一例です", "別の解釈", "いくつか考えられ"]
-        if not any(term in text for term in fixation_markers) or any(term in text for term in hedges):
+        if any(term in text for term in hedges) or (
+            not has_required and not any(term in text for term in fixation_markers)
+        ):
             codes.append("R10_FIXATION_MISSING")
         # The four semi-open anchor families have pre-registered, plausible
         # narrowings.  This prevents a concrete request such as "do not leave
@@ -553,7 +557,7 @@ def dialogue_validation_codes(
             ),
         ]
         selected_check = next((item for item in anchor_checks if item[0]), None)
-        if selected_check and (
+        if selected_check and not has_required and (
             not any(term in text for term in selected_check[1])
             or not any(term in text for term in selected_check[2])
         ):
@@ -562,13 +566,20 @@ def dialogue_validation_codes(
             codes.append("R14_CONTROL_WORDING_VISIBLE")
     if turn == 4:
         priority_markers = ["最優先", "中心に", "優先し", "よりも"]
-        weakening_markers = ["抑え", "少なく", "後回し", "控え", "限定"]
-        if not any(term in text for term in priority_markers) or not any(term in text for term in weakening_markers):
-            codes.append("R11_PRIORITY_PROXY_MISSING")
+        # v1.7: 「限ります」「限る」も弱化の表現として扱う（busy・milestone の登録文は「限ります」で終わる）。
+        weakening_markers = ["抑え", "少なく", "後回し", "控え", "限定", "限り", "限る"]
+        required_priority = ""
         if experiment_variant == "standard" and scenario_id:
             required_priority = controlled_priority_sentence(scenario_id)
             if required_priority not in text:
                 codes.append("R16_PRIORITY_SENTENCE_MISSING")
+        elif experiment_variant == "strong_ambiguity" and scenario_id:
+            required_priority = strong_ambiguity_sentence(scenario_id, 4)
+        # 登録済みの必須文がそのまま含まれていれば、優先関係の代行は成立している。
+        if not (required_priority and required_priority in text) and (
+            not any(term in text for term in priority_markers) or not any(term in text for term in weakening_markers)
+        ):
+            codes.append("R11_PRIORITY_PROXY_MISSING")
     if turn in {3, 4}:
         obvious_nonsense = [
             "氷を直接",
@@ -615,10 +626,10 @@ def parse_analysis(
         event_terms = {
             (3, "busy"): ["会話を少なく", "静かに休", "話す量"],
             (3, "reunion"): ["静かな環境", "刺激を減ら", "沈黙"],
-            (3, "milestone"): ["コース", "前菜", "主菜"],
+            (3, "milestone"): ["コース", "前菜", "主菜", "盛り付け", "装飾"],
             (3, "gratitude"): ["カード", "食後"],
             (4, "busy"): ["特別", "優先"],
-            (4, "reunion"): ["料理の特別", "特別感"],
+            (4, "reunion"): ["料理の特別", "特別感", "特別な演出"],
             (4, "milestone"): ["節目の特別", "特別感"],
             (4, "gratitude"): ["感謝", "確実"],
         }.get((turn, scenario_id), [])
@@ -749,8 +760,12 @@ def run_validated_stage(
     parser: Any,
     *,
     max_attempts: int,
+    soft_accept: Any = None,
 ) -> tuple[Any, dict[str, Any], float, list[dict[str, Any]]]:
+    """soft_accept(candidates) → (value, raw, latency, note) | None
+    全試行が検証に失敗したとき、実験を止めずに使える候補を選ぶ（v1.7）。"""
     attempts: list[dict[str, Any]] = []
+    candidates: list[tuple[Any, dict[str, Any], float, list[str]]] = []
     working = dict(payload)
     for number in range(1, max_attempts + 1):
         try:
@@ -775,10 +790,17 @@ def run_validated_stage(
         )
         if not codes:
             return value, raw, latency, attempts
+        candidates.append((value, raw, latency, codes))
         if number < max_attempts:
             guidance = "。".join(VALIDATION_GUIDANCE.get(code, code) for code in codes)
             working = dict(working)
             working["instructions"] = working["instructions"] + f"\n前回の出力だけを次の点で直してください：{guidance}。"
+    if soft_accept is not None and candidates:
+        chosen = soft_accept(candidates)
+        if chosen is not None:
+            value, raw, latency, note = chosen
+            attempts.append({"attempt": "soft_accept", "status": note})
+            return value, raw, latency, attempts
     prefix = "R" if stage == "dialogue" else "A"
     raise ExperimentError(
         f"{prefix}_VALIDATION_FAILED",
@@ -868,6 +890,162 @@ def controlled_priority_sentence(scenario_id: str) -> str:
     return sentence
 
 
+# ---------------------------------------------------------------- v1.7: 安定化
+# 第3・4回は「登録済みの必須文」が刺激そのもの。検証の失敗で実験が止まったり、
+# 右側が汎用カードに置き換わったりしないよう、サーバー側で決定的に補う。
+
+HARD_DIALOGUE_CODES = {
+    "R04_JAPANESE_REQUIRED", "R05_LANGUAGE_MIXED", "R06_DIRECT_QUESTION", "R07_TARGET_EXPOSURE",
+    "R09_DINNER_CONTEXT", "R12_OBVIOUS_ERROR", "R14_CONTROL_WORDING_VISIBLE",
+}
+REPAIRABLE_ANALYSIS_CODES = {
+    "A03_FOCUS_COUNT", "A04_INVALID_IDS", "A06_LENGTH", "A08_EVIDENCE",
+    "A11_EVENT_SOURCE", "A12_PRIORITY_NOT_VISIBLE", "A13_EVENT_NOT_VISIBLE",
+}
+EVENT_CARD_TITLES = {
+    (3, "busy"): "静かに休める時間", (3, "reunion"): "刺激の少ない静かな場",
+    (3, "milestone"): "控えめな特別感の形", (3, "gratitude"): "感謝の伝え方",
+    (4, "busy"): "少し特別な感じを優先", (4, "reunion"): "料理の特別感を優先",
+    (4, "milestone"): "節目の特別感を優先", (4, "gratitude"): "感謝を伝えることを優先",
+}
+PLACEHOLDER_IDS = {"anchor-context", "pending-meaning"}
+
+
+def _bigrams(text: str) -> set[str]:
+    t = re.sub(r"\s+", "", str(text))
+    return {t[i:i + 2] for i in range(len(t) - 1)}
+
+
+def text_similarity(a: str, b: str) -> float:
+    left, right = _bigrams(a), _bigrams(b)
+    if not left or not right:
+        return 0.0
+    return len(left & right) / len(left | right)
+
+
+def insert_control_sentence(text: str, sentence: str) -> str:
+    """必須文を最新入力への最初の応答文の直後（第2文）に入れる。"""
+    if not sentence or sentence in text:
+        return text
+    index = text.find("。")
+    if index < 0:
+        return f"{sentence}{text}"
+    return text[: index + 1] + sentence + text[index + 1:]
+
+
+def event_card_meaning(turn: int, sentence: str) -> str:
+    """登録文から右側カードの meaning を作る（AI の現在の受け取り方として表示）。"""
+    body = sentence.strip()
+    if turn == 3:
+        match = re.match(r"^(.+?)は、(.+)として整えます。$", body)
+        if match:
+            return f"{match.group(1)}を、{match.group(2)}として扱う。"[:100]
+        return body[:100]
+    body = body.removeprefix("今回は")
+    for old, new in (("限ります。", "限る。"), ("抑えます。", "抑える。"), ("固定します。", "固定する。"),
+                     ("限定します。", "限定する。"), ("設けて雑談を抑えます。", "設けて雑談を抑える。")):
+        if body.endswith(old):
+            body = body[: -len(old)] + new
+            break
+    return body[:100]
+
+
+def repair_analysis(value: dict[str, Any], turn: int, scenario_id: str, required_sentence: str,
+                    repairs: list[str]) -> dict[str, Any]:
+    """検証で直せる不備を決定的に直す。直した内容は repairs に残す。"""
+    criteria = [dict(item) for item in value.get("criteria", []) if isinstance(item, dict)][:3]
+    # ID の重複・空
+    seen: set[str] = set()
+    for i, item in enumerate(criteria):
+        cid = str(item.get("id", "")).strip() or f"value-{turn}-{i + 1}"
+        while cid in seen:
+            cid = f"{cid}-{i + 1}"
+        if cid != item.get("id"):
+            repairs.append(f"id:{item.get('id')}->{cid}")
+        item["id"] = cid
+        seen.add(cid)
+        # 長さと根拠ターン
+        title, meaning = str(item.get("title", "")).strip(), str(item.get("meaning", "")).strip()
+        if len(title) > 18:
+            item["title"] = title[:18]
+            repairs.append(f"title_trim:{cid}")
+        if len(meaning) > 100:
+            item["meaning"] = meaning[:99] + "。"
+            repairs.append(f"meaning_trim:{cid}")
+        evidence = [v for v in item.get("evidenceTurns", []) if isinstance(v, int) and 0 <= v <= turn]
+        if evidence != item.get("evidenceTurns"):
+            item["evidenceTurns"] = evidence or [turn]
+            repairs.append(f"evidence:{cid}")
+    if turn in {3, 4} and required_sentence and criteria:
+        meaning = event_card_meaning(turn, required_sentence)
+        target = max(criteria, key=lambda c: (text_similarity(str(c.get("title", "")) + str(c.get("meaning", "")), required_sentence),
+                                              bool(c.get("focus"))))
+        if any(c is target for c in criteria):
+            for c in criteria:
+                if c.get("focus") and c is not target:
+                    c["focus"] = False
+            if not target.get("focus"):
+                target["focus"] = True
+                repairs.append(f"focus:{target['id']}")
+            if target.get("source") != "AI_INFERENCE":
+                target["source"] = "AI_INFERENCE"
+                repairs.append(f"source:{target['id']}")
+            if turn == 4 and target.get("priority") != "中心":
+                target["priority"] = "中心"
+                repairs.append(f"priority:{target['id']}")
+            if "A13_EVENT_NOT_VISIBLE" in (parse_analysis(json.dumps({"summary": "", "criteria": criteria}, ensure_ascii=False), turn, scenario_id)[1]):
+                target["meaning"] = meaning
+                repairs.append(f"event_meaning:{target['id']}")
+            if turn == 4:
+                for c in criteria:
+                    if c is not target and c.get("priority") == "中心":
+                        c["priority"] = "維持"
+                        repairs.append(f"priority_demote:{c['id']}")
+    return {"summary": str(value.get("summary", "")), "criteria": criteria}
+
+
+def fallback_with_event(turn: int, anchor: dict[str, str], required_sentence: str) -> dict[str, Any]:
+    base = fallback_analysis(turn, anchor)
+    if turn in {3, 4} and required_sentence:
+        base["criteria"][0] = {
+            "id": f"event-turn-{turn}",
+            "title": EVENT_CARD_TITLES.get((turn, anchor["scenarioId"]), "AIが今回置いた方針"),
+            "meaning": event_card_meaning(turn, required_sentence),
+            "priority": "中心" if turn == 4 else "維持",
+            "delegationState": "CO_DECIDE",
+            "source": "AI_INFERENCE",
+            "evidenceTurns": [0, turn],
+            "focus": True,
+        }
+        for item in base["criteria"][1:]:
+            item["focus"] = False
+    return base
+
+
+def reconcile_ids(previous: list[dict[str, Any]], criteria: list[dict[str, Any]], mapping: list[str]) -> None:
+    """前ターンと実質的に同じ価値には、前ターンと同じ id を使う（UI B のボタン選択を保つため）。"""
+    prev = [p for p in previous if p.get("id") and p["id"] not in PLACEHOLDER_IDS and not str(p["id"]).startswith("turn-")]
+    if not prev:
+        return
+    used_prev = {c.get("id") for c in criteria if c.get("id") in {p["id"] for p in prev}}
+    current_ids = {c.get("id") for c in criteria}
+    for item in criteria:
+        if item.get("id") in {p["id"] for p in prev}:
+            continue
+        text = str(item.get("title", "")) + str(item.get("meaning", ""))
+        best, score = None, 0.0
+        for p in prev:
+            if p["id"] in used_prev or p["id"] in current_ids:
+                continue
+            s = text_similarity(text, str(p.get("title", "")) + str(p.get("meaning", "")))
+            if s > score:
+                best, score = p, s
+        if best is not None and score >= 0.3:
+            mapping.append(f"{item.get('id')}->{best['id']}({score:.2f})")
+            item["id"] = best["id"]
+            used_prev.add(best["id"])
+
+
 def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     (
         turn,
@@ -882,6 +1060,19 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     ) = validate_request_body(body)
     safety_id = hashlib.sha256(session_id.encode("utf-8")).hexdigest()[:32]
     control_event = CONTROL_EVENTS[turn]
+    previous_raw = body.get("previousCriteria", [])
+    previous_criteria: list[dict[str, str]] = []
+    if isinstance(previous_raw, list):
+        for item in previous_raw[:4]:
+            if isinstance(item, dict) and str(item.get("id", "")).strip():
+                previous_criteria.append({
+                    "id": str(item.get("id", "")).strip()[:80],
+                    "title": str(item.get("title", ""))[:80],
+                    "meaning": str(item.get("meaning", ""))[:240],
+                    "priority": str(item.get("priority", ""))[:8],
+                })
+    if not previous_criteria and source_criteria:
+        previous_criteria = [dict(item) for item in source_criteria]
     strong_stimulus = experiment_variant == "strong_ambiguity" and turn in {3, 4}
     if strong_stimulus:
         required_control_sentence = strong_ambiguity_sentence(anchor["scenarioId"], turn)
@@ -954,14 +1145,29 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
                 user_text,
                 experiment_variant=experiment_variant,
                 scenario_id=anchor["scenarioId"],
+                required_sentence=required_control_sentence,
             ),
         )
+
+    def soft_accept_dialogue(candidates: list[tuple[Any, dict[str, Any], float, list[str]]]):
+        """全試行が不合格でも、重大な問題のない候補があれば実験を止めずに使う。"""
+        usable = [c for c in candidates if not (set(c[3]) & HARD_DIALOGUE_CODES)]
+        if not usable:
+            return None
+        usable.sort(key=lambda c: (bool(required_control_sentence) and required_control_sentence not in c[0], len(c[3])))
+        text, raw, latency, codes = usable[0]
+        note = "soft_accepted:" + "+".join(codes)
+        if required_control_sentence and required_control_sentence not in text:
+            text = ensure_exact_turn_ending(turn, insert_control_sentence(text, required_control_sentence))
+            note = "control_sentence_inserted:" + "+".join(codes)
+        return text, raw, latency, note
 
     dialogue, dialogue_raw, dialogue_latency, dialogue_attempts = run_validated_stage(
         "dialogue",
         dialogue_payload,
         parse_dialogue_candidate,
-        max_attempts=4 if turn in {3, 4} else 3,
+        max_attempts=3,
+        soft_accept=soft_accept_dialogue,
     )
 
     analysis_input = (
@@ -971,6 +1177,8 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         f"事前場面: {anchor['scenarioLabel']}\n"
         f"事前アンカー: {anchor['freeText']}\n"
         f"UI条件と調整値: {condition} / {json.dumps(delegation_context, ensure_ascii=False)}\n"
+        f"前ターンの価値状態（実質的に同じ価値には同じidを使う）: "
+        f"{json.dumps(previous_criteria, ensure_ascii=False) if previous_criteria else 'なし'}\n"
         f"対話全文:\n{transcript_text(history, user_text, dialogue)}"
     )
     analysis_payload = {
@@ -993,20 +1201,40 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     }
     analysis_fallback = False
     analysis_error: dict[str, Any] | None = None
+    analysis_repairs: list[str] = []
+    id_mapping: list[str] = []
+
+    def parse_and_repair(text: str) -> tuple[Any, list[str]]:
+        value, codes = parse_analysis(text, turn, anchor["scenarioId"])
+        if codes and value is not None and isinstance(value.get("criteria"), list) and len(value["criteria"]) == 3 \
+                and set(codes) <= REPAIRABLE_ANALYSIS_CODES:
+            local: list[str] = []
+            repaired = repair_analysis(value, turn, anchor["scenarioId"], required_control_sentence, local)
+            _, remaining = parse_analysis(json.dumps(repaired, ensure_ascii=False), turn, anchor["scenarioId"])
+            # 登録文から作ったカードは A13 の語彙チェックに依存しない
+            if any(r.startswith("event_meaning") for r in local):
+                remaining = [c for c in remaining if c != "A13_EVENT_NOT_VISIBLE"]
+            if not remaining:
+                analysis_repairs.extend(local)
+                return repaired, []
+        return value, codes
+
     try:
         analysis, analysis_raw, analysis_latency, analysis_attempts = run_validated_stage(
             "analysis",
             analysis_payload,
-            lambda text: parse_analysis(text, turn, anchor["scenarioId"]),
-            max_attempts=3,
+            parse_and_repair,
+            max_attempts=2,
         )
     except ExperimentError as exc:
         analysis_fallback = True
-        analysis = fallback_analysis(turn, anchor)
+        analysis = fallback_with_event(turn, anchor, required_control_sentence)
         analysis_raw = {}
         analysis_latency = 0.0
         analysis_attempts = exc.attempts
         analysis_error = {"exceptionCode": exc.code, "stage": exc.stage, "retryable": exc.retryable}
+    if not analysis_fallback:
+        reconcile_ids(previous_criteria, analysis["criteria"], id_mapping)
 
     return {
         "dialogue": dialogue,
@@ -1037,9 +1265,13 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
             "sessionSchemaVersion": SESSION_SCHEMA_VERSION,
             "controlEvent": control_event,
             "experimentVariant": experiment_variant,
-            "validationStatus": "analysis_fallback" if analysis_fallback else "passed",
+            "validationStatus": "analysis_fallback" if analysis_fallback else (
+                "repaired" if analysis_repairs or any(a.get("attempt") == "soft_accept" for a in dialogue_attempts) else "passed"),
             "analysisFallback": analysis_fallback,
             "analysisError": analysis_error,
+            "analysisRepairs": analysis_repairs,
+            "idReconciliation": id_mapping,
+            "requiredControlSentence": required_control_sentence or None,
         },
     }
 

@@ -525,10 +525,8 @@ async function submitTurn() {
   els.loadingDetail.textContent = "続いて「AIが読み取ったこと」を更新します";
   const loadingTimer = window.setInterval(() => {
     const elapsedSeconds = Math.floor((Date.now() - loadingStartedAt) / 1000);
-    if (elapsedSeconds >= 20) {
-      els.loadingTitle.textContent = "回答内容を再確認中";
-      els.loadingDetail.textContent = `入力は保存されています（${elapsedSeconds}秒経過）`;
-    }
+    // v1.7: 待ち時間の長さで表示文言を変えない（条件間・ターン間で刺激を一定に保つ）。
+    if (elapsedSeconds >= 20) round.longWaitShown = true;
   }, 5000);
   els.messageInput.disabled = true;
   els.sendButton.disabled = true;
@@ -546,7 +544,9 @@ async function submitTurn() {
         history,
         pretaskAnchor: session.pretaskAnchor,
         delegation: session.condition === "UI_B" ? round.delegation : {},
-        delegationSourceCriteria: session.condition === "UI_B" ? (previousAnalysis?.criteria || []) : []
+        delegationSourceCriteria: session.condition === "UI_B" ? (previousAnalysis?.criteria || []) : [],
+        // v1.7: 両条件とも前ターンのカードを分析AIだけに渡す（ID維持のため。会話AIには渡らない）。
+        previousCriteria: (previousAnalysis?.criteria || []).map(({ id, title, meaning, priority }) => ({ id, title, meaning, priority }))
       })
     });
     const result = await response.json();
