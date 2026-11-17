@@ -254,5 +254,60 @@ check("repair targets prioritized-value card", by_id["dish"]["focus"] and by_id[
       and by_id["talk"]["title"] == "自然に話せる時間" and not by_id["talk"]["focus"] and by_id["talk"]["priority"] == "維持",
       str(crit))
 
+# 15) v1.8 終止文の二重表示（2026-11-17 線上 UI_A gratitude t6）
+dup = "食後、お茶を注ぎながら「いつもありがとう」と短く添えてそこで終えます。現状の方針は以上です。未決定の部分は残したまま、実行に必要な内容だけを整理しました。"
+fixed = core.ensure_exact_turn_ending(6, dup)
+check("near-duplicate ending removed", fixed.count("方針は以上です") == 1 and fixed.endswith(core.TURN_ENDINGS[6]), fixed)
+nopunct = core.ensure_exact_turn_ending(5, "相手が休める流れにします。気を遣わせることは避けたいです")
+check("missing 。 added before ending", "避けたいです。\n" in nopunct, nopunct)
+
+# 16) v1.8 参加者の一人称まとめ文を除く（線上 UI_A busy t5）
+t5 = ("特別感は控えめにして、相手がゆっくり休める流れを最優先にします。私は、この夕食で相手の負担を減らして安心して休めることを大切にし、"
+      "気を遣わせたり急かしたりすることは避けたいです\n最後に、この夕食で大切にしたいことや避けたいことを、自分の言葉でまとめてください。")
+out = core.ensure_exact_turn_ending(5, core.drop_participant_voice(t5))
+check("participant-voice summary removed", "私は" not in out and out.endswith(core.TURN_ENDINGS[5]) and "最優先にします。" in out, out)
+
+# 17) v1.8 第3回の焦点カード（線上の実例）
+s_busy = core.controlled_fixation_sentence(ANCHORS["busy"], [], "x")
+s_reu = core.controlled_fixation_sentence(ANCHORS["reunion"], [], "x")
+judge = [
+    (s_busy, "準備の負担を見せない工夫", "準備が大変そうに見えない形にして、会話は少なめで静かに休める形に寄せる。", ["A16_FIXATION_UNCLEAR", "A17_FIXATION_TITLE_UNCLEAR"]),
+    (s_reu, "気負わず会話が続く時間", "自然に話せることを、照明や音の刺激を減らした静かな環境として扱う。", ["A17_FIXATION_TITLE_UNCLEAR"]),
+    (s_busy, "静かに休める時間", "気を遣わせないことを、会話を少なくして静かに休めることとして扱う。", []),
+]
+for sentence, title, meaning, expect in judge:
+    v = {"criteria": [{"title": title, "meaning": meaning, "focus": True}]}
+    got = core.turn3_fixation_codes(v, sentence)
+    check(f"turn3 judge {title}", got == expect, str(got))
+for sc in ANCHORS:
+    s = core.controlled_fixation_sentence(ANCHORS[sc], [], "x")
+    a, n, tt, std = core.fixation_terms(s)
+    v = {"criteria": [{"title": std, "meaning": core.event_card_meaning(3, s), "focus": True}]}
+    check(f"turn3 standard card passes [{sc}]", core.turn3_fixation_codes(v, s) == [])
+s_alt = "控えめな特別感は、追加の装飾を使わず一皿の盛り付けだけで伝えることとして整えます。"
+v = {"criteria": [{"title": core.fixation_terms(s_alt)[3], "meaning": core.event_card_meaning(3, s_alt), "focus": True}]}
+check("turn3 milestone alt sentence passes", core.turn3_fixation_codes(v, s_alt) == [])
+
+# 18) 第3回：汎用カードは修復され、焦点はアンカー価値のカードに置かれる
+for sc in ANCHORS:
+    sentence = core.controlled_fixation_sentence(ANCHORS[sc], history(3), "静かで落ち着いた夕食にしたいです。")
+    core.call_openai = fake_by_stage([core.ensure_exact_turn_ending(3, "わかりました。" + sentence + PAD)] * 3, [analysis_json(GENERIC_CARDS)] * 2)
+    r = core.run_two_ais(body(3, sc))
+    focus = [c for c in r["analysis"]["criteria"] if c["focus"]]
+    check(f"turn3 repaired to readable fixation [{sc}]", len(focus) == 1 and core.turn3_fixation_codes(r["analysis"], sentence) == []
+          and len(r["meta"]["analysisAttempts"]) == 1, str(focus))
+
+# 19) UI B：事象の対象カードに付いていた調整値をログに残す
+src = [{"id": "talk", "title": "自然に話せる時間", "meaning": "会話を楽しむ。"},
+       {"id": "dish", "title": "料理を少し凝る", "meaning": "料理の特別感を出す。"},
+       {"id": "mild", "title": "優しい味", "meaning": "辛いものを避ける。"}]
+b = body(4, "reunion", condition="UI_B")
+b["delegationSourceCriteria"] = src
+b["delegation"] = {"talk": "self", "dish": "ai", "mild": "consult"}
+core.call_openai = fake_by_stage([core.ensure_exact_turn_ending(4, "わかりました。" + core.controlled_priority_sentence("reunion") + PAD)] * 3,
+                                 [analysis_json(GENERIC_CARDS)] * 2)
+ed = core.run_two_ais(b)["meta"]["eventDelegation"]
+check("event delegation logged", ed and ed["compressed"]["state"] == "self" and ed["prioritized"]["state"] == "ai", str(ed))
+
 print(f"\n{len(failures)} failure(s)")
 sys.exit(1 if failures else 0)

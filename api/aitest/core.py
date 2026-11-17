@@ -44,7 +44,7 @@ RATE_LIMIT_LOCK = threading.Lock()
 API_URL = "https://api.openai.com/v1/responses"
 DIALOGUE_MODEL = os.environ.get("OPENAI_DIALOGUE_MODEL", "gpt-5.4-nano")
 ANALYSIS_MODEL = os.environ.get("OPENAI_ANALYSIS_MODEL", "gpt-5.4-nano")
-PROMPT_VERSION = "judgment-delegation-guided-turns-v1.7.3"
+PROMPT_VERSION = "judgment-delegation-guided-turns-v1.8"
 SESSION_SCHEMA_VERSION = 6
 MAX_USER_CHARS = 500
 ALLOWED_CONDITIONS = {"UI_A", "UI_B"}
@@ -319,7 +319,22 @@ def ensure_exact_turn_ending(turn: int, text: str) -> str:
     without_marker = required.removeprefix("最後に、")
     if without_marker != required and stripped.endswith(without_marker):
         return stripped[: -len(without_marker)] + required
+    # v1.8: 末尾に終止文の言い換え（「現状の方針は以上です…」等）があれば二重表示しない。
+    sentences = [x for x in re.split(r"(?<=[。！])", stripped) if x.strip()]
+    required_parts = [x for x in re.split(r"(?<=[。！])", required) if x.strip()]
+    while sentences and any(text_similarity(sentences[-1].strip(), part) >= 0.6 for part in required_parts):
+        sentences.pop()
+    stripped = "".join(sentences).rstrip()
+    if stripped and stripped[-1] not in "。！!」』":
+        stripped += "。"
     return f"{stripped}\n{required}"
+
+
+def drop_participant_voice(text: str) -> str:
+    """AI が参加者の一人称でまとめ文を先に書いてしまった文（「私は、…」）を除く（v1.8）。"""
+    parts = re.split(r"(?<=[。！\n])", text)
+    kept = [x for x in parts if not re.match(r"^\s*(私は|わたしは|自分は)", x)]
+    return "".join(kept)
 
 
 def validate_anchor(raw: Any) -> dict[str, str]:
@@ -904,7 +919,7 @@ REPAIRABLE_ANALYSIS_CODES = {
 }
 EVENT_CARD_TITLES = {
     (3, "busy"): "静かに休める時間", (3, "reunion"): "刺激の少ない静かな場",
-    (3, "milestone"): "控えめな特別感の形", (3, "gratitude"): "感謝の伝え方",
+    (3, "milestone"): "短いコースで特別感", (3, "gratitude"): "食後のカードで感謝",
     (4, "busy"): "少し特別な感じを優先", (4, "reunion"): "料理の特別感を優先",
     (4, "milestone"): "節目の特別感を優先", (4, "gratitude"): "感謝を伝えることを優先",
 }
@@ -921,7 +936,42 @@ TURN4_RELATION_TERMS = {
 PRIORITY_NEGATIONS = ["優先しない", "優先せず", "優先ではな", "優先しすぎ", "優先しなく", "優先はしな"]
 COMPRESS_MARKERS = ["抑え", "限", "短い", "短く", "後回し", "控え", "だけ", "少なく"]
 TITLE_BALANCE_WORDS = ["両方", "両立", "同時", "どちらも", "バランス"]
-REPAIRABLE_ANALYSIS_CODES |= {"A14_PRIORITY_RELATION_UNCLEAR", "A15_PRIORITY_TITLE_UNCLEAR"}
+REPAIRABLE_ANALYSIS_CODES |= {"A14_PRIORITY_RELATION_UNCLEAR", "A15_PRIORITY_TITLE_UNCLEAR",
+                              "A16_FIXATION_UNCLEAR", "A17_FIXATION_TITLE_UNCLEAR"}
+
+# 第3回（標準刺激）：焦点カードが「元の価値（A）を、狭い意味（N）として扱う」と読めるか。
+# 登録文ごとに A・N・タイトル語を定める。
+TURN3_FIXATION_TERMS = {
+    "会話を少なくして静かに休める": (["気を遣わせ", "気を遣わな"], ["会話を少なく", "静かに休"], ["静か", "休"], "静かに休める時間"),
+    "照明や音の刺激を減らした静かな環境": (["自然に話"], ["刺激を減ら", "静かな環境"], ["静か", "刺激"], "刺激の少ない静かな場"),
+    "前菜と主菜に分ける短いコース": (["特別感", "大げさ"], ["コース"], ["コース"], "短いコースで特別感"),
+    "一皿の盛り付けだけで伝える": (["特別感", "大げさ"], ["盛り付け"], ["盛り付け", "一皿"], "盛り付けだけで特別感"),
+    "短いカードを食後に置いて": (["感謝", "重く"], ["カード"], ["カード"], "食後のカードで感謝"),
+}
+
+
+def fixation_terms(required_sentence: str):
+    for key, value in TURN3_FIXATION_TERMS.items():
+        if key in required_sentence:
+            return value
+    return None
+
+
+def turn3_fixation_codes(value: Any, required_sentence: str) -> list[str]:
+    terms = fixation_terms(required_sentence)
+    if not terms or not isinstance(value, dict) or not isinstance(value.get("criteria"), list):
+        return []
+    focus = [c for c in value["criteria"] if isinstance(c, dict) and c.get("focus") is True]
+    if len(focus) != 1:
+        return []
+    a_terms, n_terms, title_terms, _ = terms
+    title, meaning = str(focus[0].get("title", "")), str(focus[0].get("meaning", ""))
+    codes = []
+    if not (any(t in meaning for t in n_terms) and any(t in title + meaning for t in a_terms)):
+        codes.append("A16_FIXATION_UNCLEAR")
+    if not any(t in title for t in title_terms):
+        codes.append("A17_FIXATION_TITLE_UNCLEAR")
+    return codes
 
 
 def _first(text: str, terms: list[str], start: int = 0) -> int:
@@ -1022,6 +1072,9 @@ def event_target_score(card: dict[str, Any], turn: int, scenario_id: str, requir
         p_terms, c_terms = TURN4_RELATION_TERMS[scenario_id]
         side = (any(t in title for t in p_terms) - any(t in title for t in c_terms)) * 2 + \
                (any(t in meaning for t in p_terms) - any(t in meaning for t in c_terms))
+    if turn == 3 and fixation_terms(required_sentence):
+        a_terms, n_terms, _, _ = fixation_terms(required_sentence)
+        side = any(t in title + meaning for t in a_terms) * 2 + any(t in title + meaning for t in n_terms)
     return (side, text_similarity(title + meaning, required_sentence), bool(card.get("focus")))
 
 
@@ -1070,6 +1123,15 @@ def repair_analysis(value: dict[str, Any], turn: int, scenario_id: str, required
             if "A13_EVENT_NOT_VISIBLE" in (parse_analysis(json.dumps({"summary": "", "criteria": criteria}, ensure_ascii=False), turn, scenario_id)[1]):
                 target["meaning"] = meaning
                 repairs.append(f"event_meaning:{target['id']}")
+            if turn == 3 and fixation_terms(required_sentence):
+                a_terms, n_terms, title_terms, std_title = fixation_terms(required_sentence)
+                t_title, t_meaning = str(target.get("title", "")), str(target.get("meaning", ""))
+                if not (any(t in t_meaning for t in n_terms) and any(t in t_title + t_meaning for t in a_terms)):
+                    target["meaning"] = meaning
+                    repairs.append(f"fixation_meaning:{target['id']}")
+                if not any(t in str(target.get("title", "")) for t in title_terms):
+                    target["title"] = std_title
+                    repairs.append(f"fixation_title:{target['id']}")
             if turn == 4:
                 for c in criteria:
                     if c is not target and c.get("priority") == "中心":
@@ -1116,7 +1178,8 @@ def fallback_with_event(turn: int, anchor: dict[str, str], required_sentence: st
         keep_id = base["criteria"][replace_at]["id"] if len(carried) == 3 else f"event-turn-{turn}"
         base["criteria"][replace_at] = {
             "id": keep_id,
-            "title": EVENT_CARD_TITLES.get((turn, anchor["scenarioId"]), "AIが今回置いた方針"),
+            "title": (fixation_terms(required_sentence)[3] if turn == 3 and fixation_terms(required_sentence)
+                      else EVENT_CARD_TITLES.get((turn, anchor["scenarioId"]), "AIが今回置いた方針")),
             "meaning": event_card_meaning(turn, required_sentence),
             "priority": "中心" if turn == 4 else "維持",
             "delegationState": "CO_DECIDE",
@@ -1244,7 +1307,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         "safety_identifier": safety_id,
     }
     def parse_dialogue_candidate(text: str) -> tuple[str, list[str]]:
-        normalized = ensure_exact_turn_ending(turn, text)
+        normalized = ensure_exact_turn_ending(turn, drop_participant_voice(text))
         return (
             normalized,
             dialogue_validation_codes(
@@ -1313,11 +1376,13 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     analysis_repairs: list[str] = []
     id_mapping: list[str] = []
 
-    strict_relation = turn == 4 and experiment_variant == "standard"
+    strict_relation = turn in {3, 4} and experiment_variant == "standard"
 
     def full_codes(value: Any, base: list[str]) -> list[str]:
         if strict_relation and value is not None and "A02_CRITERIA_COUNT" not in base and "A01_INVALID_JSON" not in base:
-            return list(dict.fromkeys(base + turn4_relation_codes(value, anchor["scenarioId"])))
+            extra = (turn4_relation_codes(value, anchor["scenarioId"]) if turn == 4
+                     else turn3_fixation_codes(value, required_control_sentence))
+            return list(dict.fromkeys(base + extra))
         return base
 
     def parse_and_repair(text: str) -> tuple[Any, list[str]]:
@@ -1330,7 +1395,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
             _, remaining = parse_analysis(json.dumps(repaired, ensure_ascii=False), turn, anchor["scenarioId"])
             remaining = full_codes(repaired, remaining)
             # 登録文から作ったカードは A13 の語彙チェックに依存しない
-            if any(r.startswith(("event_meaning", "relation_meaning")) for r in local):
+            if any(r.startswith(("event_meaning", "relation_meaning", "fixation_meaning")) for r in local):
                 remaining = [c for c in remaining if c != "A13_EVENT_NOT_VISIBLE"]
             if not remaining:
                 analysis_repairs.extend(local)
@@ -1353,6 +1418,19 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         analysis_error = {"exceptionCode": exc.code, "stage": exc.stage, "retryable": exc.retryable}
     if not analysis_fallback:
         reconcile_ids(previous_criteria, analysis["criteria"], id_mapping)
+    event_delegation = None
+    if condition == "UI_B" and turn in {3, 4} and source_criteria and required_control_sentence:
+        def state_of(terms: list[str]):
+            hits = [c for c in source_criteria if any(t in c["title"] + c["meaning"] for t in terms)]
+            if not hits:
+                return None
+            c = hits[0]
+            return {"id": c["id"], "title": c["title"], "state": delegation.get(c["id"], "consult")}
+        if turn == 4 and anchor["scenarioId"] in TURN4_RELATION_TERMS:
+            p_terms, c_terms = TURN4_RELATION_TERMS[anchor["scenarioId"]]
+            event_delegation = {"prioritized": state_of(p_terms), "compressed": state_of(c_terms)}
+        elif turn == 3 and fixation_terms(required_control_sentence):
+            event_delegation = {"fixatedValue": state_of(fixation_terms(required_control_sentence)[0])}
 
     return {
         "dialogue": dialogue,
@@ -1389,6 +1467,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
             "analysisError": analysis_error,
             "analysisRepairs": analysis_repairs,
             "idReconciliation": id_mapping,
+            "eventDelegation": event_delegation,
             "requiredControlSentence": required_control_sentence or None,
         },
     }
