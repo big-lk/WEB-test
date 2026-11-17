@@ -44,7 +44,7 @@ RATE_LIMIT_LOCK = threading.Lock()
 API_URL = "https://api.openai.com/v1/responses"
 DIALOGUE_MODEL = os.environ.get("OPENAI_DIALOGUE_MODEL", "gpt-5.4-nano")
 ANALYSIS_MODEL = os.environ.get("OPENAI_ANALYSIS_MODEL", "gpt-5.4-nano")
-PROMPT_VERSION = "judgment-delegation-guided-turns-v2.5"
+PROMPT_VERSION = "judgment-delegation-guided-turns-v2.5.1"
 SESSION_SCHEMA_VERSION = 6
 MAX_USER_CHARS = 500
 ALLOWED_CONDITIONS = {"UI_A", "UI_B"}
@@ -1290,6 +1290,25 @@ def participant_touched_relation(user_text: str, scenario_id: str) -> bool:
     return any(t in user_text for t in words)
 
 
+GENERIC_RELATION_RE = re.compile(r"^(.+?)を優先し、(.+?)。?$")
+
+
+def generic_relation_card(cards: list[dict[str, Any]]) -> tuple[dict[str, Any] | None, str, str]:
+    """v2.5: 泛用 E2（未順位部分への一般的優先）の事象カードを前ターンのカードから探す。"""
+    for c in cards:
+        m = GENERIC_RELATION_RE.match(str(c.get("meaning", "")).strip())
+        if m and "よりも" not in m.group(1) and str(c.get("title", "")).endswith("優先"):
+            return c, m.group(1), m.group(2)
+    return None, "", ""
+
+
+def generic_relation_touched(user_text: str, preferred: str, action: str) -> bool:
+    """参加者がその優先や具体策に触れたか（広めに判定し、修正を打ち消さない）。"""
+    if "優先" in user_text:
+        return True
+    return text_similarity(user_text, preferred) >= 0.25 or text_similarity(user_text, action) >= 0.25
+
+
 def keep_uncorrected_relation(previous: list[dict[str, Any]], criteria: list[dict[str, Any]], scenario_id: str,
                               repairs: list[str]) -> None:
     """前ターンにあった優先関係カードが、修正なしに消えた場合だけ前の内容へ戻す（id は同じ）。"""
@@ -1492,6 +1511,22 @@ def generate_generic_stimulus(turn: int, variant: str, anchor: dict[str, str], h
     return build_generic_sentence(turn, variant, parts), info
 
 
+def generic_event_title(turn: int, parts: dict[str, str]) -> str:
+    """v2.5: 事象カードの見出しを、途中で切れない読める形にする。
+    第3回：「語句＝一般的な形（最後の節）」、第4回：「〜方を優先」。"""
+    if turn == 3:
+        phrase = parts.get("phrase", "")
+        core = parts.get("generic", "").rstrip("。").removesuffix("こと")
+        last = core.split("、")[-1]
+        for title in (f"{phrase}＝{last}", last, f"{phrase}＝{core.split('、')[0]}"):
+            if len(title) <= 20:
+                return title
+        return last[:20]
+    core = parts.get("preferred", "").rstrip("。").removesuffix("こと")
+    title = f"{core}方を優先"
+    return title if len(title) <= 20 else f"{core[:16]}を優先"
+
+
 def enforce_generic_panel(turn: int, criteria: list[dict[str, Any]], parts: dict[str, str], repairs: list[str],
                           card_mode: str = "merge", locked_ids: set[str] | None = None) -> None:
     """一般的解釈の事象カードを右側に読める形で置く（第3回：語句と一般的意味、第4回：優先関係）。
@@ -1503,12 +1538,11 @@ def enforce_generic_panel(turn: int, criteria: list[dict[str, Any]], parts: dict
         if turn == 3:
             phrase, generic = parts["phrase"], parts["generic"].rstrip("。")
             meaning = f"「{phrase}」を、{generic}として扱う。"[:100]
-            core_generic = generic.removesuffix("こと")
-            title = core_generic if len(core_generic) <= 18 else (core_generic.split("、")[0][:18])
+            title = generic_event_title(3, parts)
         elif "action" in parts:
             preferred, action = parts["preferred"].rstrip("。"), parts["action"].rstrip("。")
             meaning = f"{preferred}を優先し、{action}。"[:100]
-            title = f"{preferred.removesuffix('こと')}を優先"[:18]
+            title = generic_event_title(4, parts)
         else:
             demoted, preferred, limit = parts["demoted"].rstrip("。"), parts["preferred"].rstrip("。"), parts["limit"].rstrip("。")
             meaning = f"{demoted}よりも{preferred}を優先し、{limit}。"[:100]
@@ -1538,9 +1572,7 @@ def enforce_generic_panel(turn: int, criteria: list[dict[str, Any]], parts: dict
             text = str(c.get("title", "")) + str(c.get("meaning", ""))
             return (phrase in text, text_similarity(text, phrase + generic), bool(c.get("focus")))
         ok = lambda c: phrase in str(c.get("title", "")) + str(c.get("meaning", "")) and text_similarity(str(c.get("meaning", "")), generic) >= 0.3
-        core_generic = generic.removesuffix("こと")
-        short = core_generic.split("、")[0]
-        title = (short if len(short) <= 18 else phrase[:18]) if len(core_generic) > 18 else core_generic
+        title = generic_event_title(3, parts)
     elif "action" in parts:
         preferred, action = parts["preferred"].rstrip("。"), parts["action"].rstrip("。")
         meaning = f"{preferred}を優先し、{action}。"[:100]
@@ -1548,7 +1580,7 @@ def enforce_generic_panel(turn: int, criteria: list[dict[str, Any]], parts: dict
             text = str(c.get("title", "")) + str(c.get("meaning", ""))
             return (text_similarity(text, preferred + action), bool(c.get("focus")))
         ok = lambda c: "優先" in str(c.get("meaning", "")) and text_similarity(str(c.get("meaning", "")), preferred) >= 0.2
-        title = f"{preferred.removesuffix('こと')}を優先"[:18]
+        title = generic_event_title(4, parts)
     else:
         demoted, preferred, limit = parts["demoted"].rstrip("。"), parts["preferred"].rstrip("。"), parts["limit"].rstrip("。")
         meaning = f"{demoted}よりも{preferred}を優先し、{limit}。"[:100]
@@ -1700,11 +1732,32 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     relation_untouched = (experiment_variant == "standard" and turn == 6
                           and not any(participant_touched_relation(t, anchor["scenarioId"]) for t in later_user_texts))
 
+    # v2.5: 泛用 E2 も、参加者が触れなかった場合は最終方針（第6回）まで具体策を残す
+    gen_rel_card, gen_preferred, gen_action = (generic_relation_card(previous_criteria)
+                                               if experiment_variant in UNRANKED_VARIANTS and turn in {5, 6} else (None, "", ""))
+    gen_rel_untouched = bool(gen_rel_card) and not any(generic_relation_touched(t, gen_preferred, gen_action)
+                                                       for t in later_user_texts)
+
     final_relation_inserted: list[str] = []
 
     def parse_dialogue_candidate(text: str) -> tuple[str, list[str]]:
         normalized = ensure_exact_turn_ending(turn, drop_participant_voice(text, turn))
         extra = []
+        if turn in {3, 4} and required_control_sentence and required_control_sentence not in normalized:
+            # v2.5: 必須文がほぼそのまま書かれ、括弧などが欠けた場合は、その文を登録文に置き換える
+            parts_ = re.split(r"(?<=[。！\n])", normalized)
+            best = max(range(len(parts_)), key=lambda i: text_similarity(parts_[i].strip(), required_control_sentence), default=None)
+            if best is not None and text_similarity(parts_[best].strip(), required_control_sentence) >= 0.7:
+                lead = re.match(r"^\s*", parts_[best]).group(0)
+                parts_[best] = lead + required_control_sentence
+                normalized = "".join(parts_)
+        if turn == 6 and gen_rel_untouched:
+            sentences_ = [x for x in re.split(r"(?<=[。！])", normalized) if x.strip()]
+            if not any(text_similarity(x, gen_action) >= 0.45 for x in sentences_):
+                body = normalized[: -len(TURN_ENDINGS[6])].rstrip()
+                clause = gen_action.rstrip("。") + "。"
+                normalized = f"{body}{clause}{TURN_ENDINGS[6]}"
+                final_relation_inserted.append(clause)
         if relation_untouched and not any(k in normalized for k in FINAL_RELATION_KEYS.get(anchor["scenarioId"], [])):
             # 再生成で時間を使わず、登録文の「縮める」側の節を計画文として終止文の直前に入れる（v1.9.5）
             clause = compression_clause(anchor["scenarioId"])
@@ -1848,6 +1901,18 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         if (turn in {5, 6} and experiment_variant == "standard" and previous_criteria
                 and not any(participant_touched_relation(t, anchor["scenarioId"]) for t in later_user_texts)):
             keep_uncorrected_relation(previous_criteria, analysis["criteria"], anchor["scenarioId"], analysis_repairs)
+        if gen_rel_untouched and gen_rel_card is not None:
+            now_card, _, _ = generic_relation_card(analysis["criteria"])
+            if now_card is None:
+                target = next((c for c in analysis["criteria"] if c.get("id") == gen_rel_card.get("id")), None)
+                if target is not None:
+                    target["title"] = str(gen_rel_card.get("title", target.get("title", "")))[:20]
+                    target["meaning"] = str(gen_rel_card.get("meaning", ""))[:100]
+                    target["priority"] = "中心"
+                    for c in analysis["criteria"]:
+                        if c is not target and c.get("priority") == "中心":
+                            c["priority"] = "維持"
+                    analysis_repairs.append(f"generic_relation_kept:{target['id']}")
     if generic_info and generic_info.get("parts"):
         locked_ids = {cid for cid, state in delegation.items() if state == "self"} if panel_lock else set()
         for quoted, state in delegation_requests(" ".join([user_text] + [r["content"] for r in history if r["role"] == "user"])):
@@ -1915,6 +1980,16 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
             current["delegationState"] = "USER_DECIDE"
         analysis_repairs.extend(f"lock_{x}" for x in lock_kept)
     event_delegation = None
+    # v2.5: 事象（E1/E2）が右側のどのカードに出たかを、両UIで同じ方法で記録する（UI B はその時点のボタン状態も）
+    event_target = None
+    if turn in {3, 4} and required_control_sentence and not analysis_fallback:
+        focus_card = next((c for c in analysis["criteria"] if c.get("focus")), None)
+        if focus_card is not None:
+            prev_same = next((c for c in previous_criteria if c.get("id") == focus_card.get("id")), None)
+            event_target = {"id": focus_card["id"], "title": focus_card.get("title", ""),
+                            "previousTitle": prev_same.get("title") if prev_same else None,
+                            "replacedExistingCard": prev_same is not None,
+                            "buttonState": delegation.get(focus_card["id"], "consult") if condition == "UI_B" else None}
     if condition == "UI_B" and turn in {3, 4} and source_criteria and required_control_sentence:
         def state_of(terms: list[str]):
             hits = [c for c in source_criteria if any(t in c["title"] + c["meaning"] for t in terms)]
@@ -1972,6 +2047,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
             "analysisRepairs": analysis_repairs,
             "idReconciliation": id_mapping,
             "eventDelegation": event_delegation,
+            "eventTarget": event_target,
             "genericStimulus": generic_info,
             "eventCardMode": card_mode,
             "panelLock": panel_lock,

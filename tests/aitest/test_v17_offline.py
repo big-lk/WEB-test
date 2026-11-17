@@ -584,5 +584,39 @@ r3 = core.run_two_ais(b_nolock)
 check("default UI B: no lock restore, panel stays AI reading",
       not any(c["id"] == "gapao" for c in r3["analysis"]["criteria"]) and not any(x.startswith("lock_") for x in r3["meta"]["analysisRepairs"]))
 
+# 33) v2.5.1 必須文の括弧欠けを登録文に置き換える／事象カードの見出し／事象の位置の記録
+b = body(3, "busy", condition="UI_B"); b["experimentVariant"] = "generic_unranked"; b["history"] = busy_hist
+b["previousCriteria"] = [{k: c[k] for k in ("id", "title", "meaning", "priority")} for c in GENERIC_CARDS]
+b["delegationSourceCriteria"] = b["previousCriteria"]; b["delegation"] = {"calm-time": "self"}
+call, seen = router("{}", lambda p: core.ensure_exact_turn_ending(3, "わかりました。" + sent_from(p).lstrip("「") + PAD), analysis_json(GENERIC_CARDS))
+core.call_openai = call
+r = core.run_two_ais(b)
+sent = r["meta"]["requiredControlSentence"]
+check("near-match control sentence restored verbatim", sent in r["dialogue"] and r["dialogue"].count(sent) == 1, r["dialogue"][:120])
+foc = next(c for c in r["analysis"]["criteria"] if c.get("focus"))
+check("E1 title readable (phrase＝form, not cut)", "＝" in foc["title"] and len(foc["title"]) <= 20, foc["title"])
+et = r["meta"]["eventTarget"]
+check("eventTarget logged with button state", et and et["id"] == foc["id"] and et["buttonState"] in {"self", "consult", "ai"}, str(et))
+check("generic_event_title turn4", core.generic_event_title(4, {"preferred": "食卓を少し特別に整えること"}) == "食卓を少し特別に整える方を優先")
+
+# 34) v2.5.1 泛用 E2 は参加者が触れなければ第6回まで残る（パネルと最終文）
+rel_prev = [{"id": "rest", "title": "食卓を少し特別に整える方を優先", "meaning": "食卓を少し特別に整えることを優先し、いつもより一品多くして、器も少し良いものにします。", "priority": "中心"},
+            {"id": "joy", "title": "小さな楽しさ", "meaning": "今日はいい日と思える楽しさ。", "priority": "維持"},
+            {"id": "after", "title": "食後に元気", "meaning": "食後に少し元気が戻る。", "priority": "維持"}]
+lost = [{"id": "rest", "title": "気楽な夜", "meaning": "気楽に過ごす夜にする。", "priority": "中心", "delegationState": "CO_DECIDE", "source": "USER_STATED", "evidenceTurns": [1], "focus": True},
+        {"id": "joy", "title": "小さな楽しさ", "meaning": "今日はいい日と思える楽しさ。", "priority": "維持", "delegationState": "CO_DECIDE", "source": "USER_STATED", "evidenceTurns": [2], "focus": False},
+        {"id": "after", "title": "食後に元気", "meaning": "食後に少し元気が戻る。", "priority": "維持", "delegationState": "CO_DECIDE", "source": "USER_STATED", "evidenceTurns": [1], "focus": False}]
+b = body(6, "busy", previous=rel_prev); b["experimentVariant"] = "generic_unranked"
+b["userText"] = "最後は、相手が気楽に過ごせることを大事にしたい。かしこまった演出は避けたい。"
+core.call_openai = fake_by_stage([core.ensure_exact_turn_ending(6, "わかりました。" + PAD[:150])] * 3, [analysis_json(lost)] * 2)
+r = core.run_two_ais(b)
+card = next(c for c in r["analysis"]["criteria"] if c["id"] == "rest")
+check("generic E2 card kept at turn 6 when untouched", "優先し" in card["meaning"] and card["priority"] == "中心", str(card))
+check("generic E2 action inserted into final plan", "いつもより一品多くして、器も少し良いものにします。" in r["dialogue"] and r["meta"]["finalRelationInserted"], r["dialogue"][-160:])
+b["userText"] = "特別な食卓より、気楽さを優先してほしい。"
+core.call_openai = fake_by_stage([core.ensure_exact_turn_ending(6, "わかりました。" + PAD[:150])] * 3, [analysis_json(lost)] * 2)
+r = core.run_two_ais(b)
+check("generic E2 not forced when participant touched it", "一品多く" not in r["dialogue"] and not r["meta"]["finalRelationInserted"])
+
 print(f"\n{len(failures)} failure(s)")
 sys.exit(1 if failures else 0)
