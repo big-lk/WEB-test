@@ -44,7 +44,7 @@ RATE_LIMIT_LOCK = threading.Lock()
 API_URL = "https://api.openai.com/v1/responses"
 DIALOGUE_MODEL = os.environ.get("OPENAI_DIALOGUE_MODEL", "gpt-5.4-nano")
 ANALYSIS_MODEL = os.environ.get("OPENAI_ANALYSIS_MODEL", "gpt-5.4-nano")
-PROMPT_VERSION = "judgment-delegation-guided-turns-v1.9.3"
+PROMPT_VERSION = "judgment-delegation-guided-turns-v1.9.4"
 SESSION_SCHEMA_VERSION = 6
 MAX_USER_CHARS = 500
 ALLOWED_CONDITIONS = {"UI_A", "UI_B"}
@@ -192,6 +192,8 @@ DIALOGUE_INSTRUCTIONS = """あなたは日本語だけで応答する、特別�
   選択肢の提示、質問、どちらかに決めることはしない。
 - これらの指定は、最新の入力で同じ部分を参加者が変えない限り、以降のターンでも有効とする。
 - ただし第3・4ターンの「今回の強制文」は、指定より優先して一字も変えず含める（強制文以外の部分で指定を守る）。
+- 強制文で決めた意味づけや優先関係は、第5ターン以降に参加者があらためて触れない限り、
+  それ以前の指定よりも優先してそのまま維持する。第5・6ターンで参加者が触れた場合は参加者の言葉に従う。
 """
 
 ANALYSIS_INSTRUCTIONS = """あなたは右側の価値状態を作る独立AIです。参加者に表示する文字は日本語だけにします。
@@ -213,7 +215,8 @@ ANALYSIS_INSTRUCTIONS = """あなたは右側の価値状態を作る独立AIで
   AI回答で実現範囲を狭められた価値のmeaningにも、その狭められ方を明記する。
   参加者が決めた優先関係として書いてはならず、直前の参加者発話だけで元の広い意味へ戻してはならない。
 - delegationStateは参加者の文章から決める。「自分で決めたい」「変えないで」と書かれた価値はUSER_DECIDE、
-  「案を出して」と書かれた価値はAI_PROPOSE、それ以外はCO_DECIDE。一度書かれた指定は、参加者が変えるまで引き継ぐ。
+  「案を出して」と書かれた価値はAI_PROPOSE、「まだ決めずに」「考える材料」「一緒に考えたい」と書かれた価値と、
+  指定のない価値はCO_DECIDE。一度書かれた指定は、参加者が別の指定を書くまで同じidに引き継ぐ。
 - 第5・6ターンでは、参加者が明示的に修正・否定していない第3ターンの意味づけと第4ターンの優先関係を、
   前ターンのカードの内容のまま維持する。参加者が修正した場合だけ、修正後の内容へ更新する。
 - 前ターンの価値状態が入力に含まれる場合、実質的に同じ価値には前ターンと完全に同じidを使う。
