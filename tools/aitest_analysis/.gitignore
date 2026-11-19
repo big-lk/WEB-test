@@ -4,3 +4,4 @@ output/
 dummy/
 *.csv
 *.json
+!package.json
