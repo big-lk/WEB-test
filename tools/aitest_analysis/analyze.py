@@ -133,6 +133,10 @@ def add_tobii(df: pd.DataFrame, tobii_path: Path) -> pd.DataFrame:
 # ------------------------------------------------------------------ 3) 検定
 def welch(a: pd.Series, b: pd.Series) -> dict:
     a, b = a.dropna().astype(float), b.dropna().astype(float)
+    if a.var(ddof=1) == 0 and b.var(ddof=1) == 0:  # 両群とも全員同じ値（天井・床）：検定できない
+        nan = float("nan")
+        return {"nA": len(a), "MA": a.mean(), "SDA": 0.0, "nB": len(b), "MB": b.mean(), "SDB": 0.0, "diff": b.mean() - a.mean(),
+                "ci_low": nan, "ci_high": nan, "t": nan, "df": nan, "p": 1.0, "d": nan, "note": "両群とも分散0のため検定不可"}
     t, p = stats.ttest_ind(b, a, equal_var=False)  # B − A
     va, vb, na, nb = a.var(ddof=1), b.var(ddof=1), len(a), len(b)
     se = np.sqrt(va / na + vb / nb)
@@ -207,6 +211,9 @@ def run(args) -> None:
               "| 仮説 | 指標 | UI A M (SD) | UI B M (SD) | 差 [95%CI] | t (df) | p | Holm p | d |",
               "|---|---|---|---|---|---|---|---|---|"]
     for (code, label, r), pa in zip(res, adj):
+        if r.get("note"):
+            lines.append(f"| {code} | {label} | {r['MA']:.2f} ({r['SDA']:.2f}) | {r['MB']:.2f} ({r['SDB']:.2f}) | {r['note']} | – | – | – | – |")
+            continue
         lines.append(f"| {code} | {label} | {r['MA']:.2f} ({r['SDA']:.2f}) | {r['MB']:.2f} ({r['SDB']:.2f}) | "
                      f"{r['diff']:.2f} [{r['ci_low']:.2f}, {r['ci_high']:.2f}] | {r['t']:.2f} ({r['df']:.1f}) | "
                      f"{fmt_p(r['p'])} | {fmt_p(pa)} | {r['d']:.2f} |")
