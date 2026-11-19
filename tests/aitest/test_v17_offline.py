@@ -656,5 +656,18 @@ for variant in ("generic_embedded", "generic_near"):
             check(f"{variant} t{t}: explicit sentence kept", ("として整えます" in sent) if t == 3 else ("優先" in sent), sent)
 check("near picks closer candidate than unranked", core.most_overlapping(["静かに過ごす", "二人で台所に立つ"], "二人で台所に立って作りたい") == "二人で台所に立つ")
 
+# 38) v2.7 示し方の参加者内要因（明示1回・内容のみ1回、順番は入れ替え）
+expect = {("mixed_e1explicit", 3): "explicit", ("mixed_e1explicit", 4): "content",
+          ("mixed_e1content", 3): "content", ("mixed_e1content", 4): "explicit"}
+for (variant, t), kind in expect.items():
+    b = body(t, "busy", condition="UI_B"); b["experimentVariant"] = variant; b["history"] = busy_hist if t == 3 else history(4)
+    b["previousCriteria"] = [{k: c[k] for k in ("id", "title", "meaning", "priority")} for c in GENERIC_CARDS]
+    call, seen = router("{}", lambda p, t=t: core.ensure_exact_turn_ending(t, "わかりました。" + sent_from(p) + PAD), analysis_json(GENERIC_CARDS))
+    core.call_openai = call
+    r = core.run_two_ais(b)
+    sent = r["meta"]["requiredControlSentence"]
+    explicit = ("として整えます" in sent) if t == 3 else ("優先" in sent)
+    check(f"{variant} t{t} is {kind}", sent in r["dialogue"] and explicit == (kind == "explicit"), sent)
+
 print(f"\n{len(failures)} failure(s)")
 sys.exit(1 if failures else 0)

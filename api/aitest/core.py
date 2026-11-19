@@ -44,24 +44,33 @@ RATE_LIMIT_LOCK = threading.Lock()
 API_URL = "https://api.openai.com/v1/responses"
 DIALOGUE_MODEL = os.environ.get("OPENAI_DIALOGUE_MODEL", "gpt-5.4-nano")
 ANALYSIS_MODEL = os.environ.get("OPENAI_ANALYSIS_MODEL", "gpt-5.4-nano")
-PROMPT_VERSION = "judgment-delegation-guided-turns-v2.6"
+PROMPT_VERSION = "judgment-delegation-guided-turns-v2.7"
 SESSION_SCHEMA_VERSION = 6
 MAX_USER_CHARS = 500
 ALLOWED_CONDITIONS = {"UI_A", "UI_B"}
 ALLOWED_DELEGATION_VALUES = {"ai", "consult", "self"}
 ALLOWED_EXPERIMENT_VARIANTS = {"standard", "strong_ambiguity", "generic_marked", "generic_implicit",
-                               "generic_unranked", "generic_unranked_marked", "generic_embedded", "generic_near"}
+                               "generic_unranked", "generic_unranked_marked", "generic_embedded", "generic_near",
+                               "mixed_e1explicit", "mixed_e1content"}
 # v2.0 比較用：参加者の言葉に対して「多くの人が想定する一般的な意味・優先」を当てはめる刺激。
 # marked = 「一般的には」と出どころを示す / implicit = 参加者の意味として言い切る。
 GENERIC_VARIANTS = {"generic_marked", "generic_implicit", "generic_unranked", "generic_unranked_marked",
-                    "generic_embedded", "generic_near"}
+                    "generic_embedded", "generic_near", "mixed_e1explicit", "mixed_e1content"}
 MARKED_VARIANTS = {"generic_marked", "generic_unranked_marked"}
 # v2.2 E2 の別案：参加者が述べた優先順位は倒さず、まだ順位を述べていない部分に「多くの人の優先」を当てはめて決める
-UNRANKED_VARIANTS = {"generic_unranked", "generic_unranked_marked", "generic_embedded", "generic_near"}
+UNRANKED_VARIANTS = {"generic_unranked", "generic_unranked_marked", "generic_embedded", "generic_near",
+                     "mixed_e1explicit", "mixed_e1content"}
 # v2.6 比較用（11/19）：
 #   generic_embedded（方案A）= 回答本文ではずれを解釈・優先の説明として書かず、具体案の一文として埋め込む。解釈は右側パネルにだけ明示される。
 #   generic_near（方案B）= 明示文は残し、候補は参加者の文章に最も近いもの（重なりが最大）を選んで、ずれを目立ちにくくする。
 EMBEDDED_VARIANTS = {"generic_embedded"}
+# v2.7（11/19）：示し方を参加者内の要因にする。1人が「明示」1回・「内容のみ」1回を受け、どちらを先にするかは半数ずつ入れ替える。
+#   mixed_e1explicit = 第3回（E1）明示・第4回（E2）内容のみ ／ mixed_e1content = 第3回 内容のみ・第4回 明示
+MIXED_EMBEDDED_TURN = {"mixed_e1explicit": 4, "mixed_e1content": 3}
+
+
+def is_embedded_turn(variant: str, turn: int) -> bool:
+    return variant in EMBEDDED_VARIANTS or MIXED_EMBEDDED_TURN.get(variant) == turn
 NEAR_VARIANTS = {"generic_near"}
 UNRANKED_PRIORITY_CANDIDATES = {
     "busy": [("相手をゆっくり休ませること", "食事の準備と片付けはすべてこちらでします"),
@@ -1428,7 +1437,7 @@ def most_overlapping(candidates: list[str], participant_text: str) -> str:
 
 def build_generic_sentence(turn: int, variant: str, parts: dict[str, str]) -> str:
     marked = variant in MARKED_VARIANTS
-    if variant in EMBEDDED_VARIANTS:
+    if is_embedded_turn(variant, turn):
         if turn == 4 and "action" in parts:
             return parts["action"].rstrip("。") + "。"
         if turn == 3:
@@ -1778,7 +1787,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         f"固定control_event: {control_event}\n"
         f"実験バリアント: {experiment_variant}\n"
         f"バリアント規則: {variant_directive}\n"
-        f"このターンの実現規則:\n{((EMBEDDED_TURN_DIRECTIVES if experiment_variant in EMBEDDED_VARIANTS else GENERIC_TURN_DIRECTIVES)[turn] if generic_dialogue else TURN_DIRECTIVES[turn]).strip()}\n"
+        f"このターンの実現規則:\n{((EMBEDDED_TURN_DIRECTIVES if is_embedded_turn(experiment_variant, turn) else GENERIC_TURN_DIRECTIVES)[turn] if generic_dialogue else TURN_DIRECTIVES[turn]).strip()}\n"
         f"{'今回の強制文（一字も変えず、可視回答に正確に含める）: ' + required_control_sentence if required_control_sentence else ''}\n"
         f"可視回答の長さ: {visible_length_target}、1〜2段落。"
         f"{' 強制文は最新入力への短い応答に続く第2文として、冒頭160字以内に置く。' if required_control_sentence else ''}\n"
