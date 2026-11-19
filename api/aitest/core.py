@@ -44,7 +44,7 @@ RATE_LIMIT_LOCK = threading.Lock()
 API_URL = "https://api.openai.com/v1/responses"
 DIALOGUE_MODEL = os.environ.get("OPENAI_DIALOGUE_MODEL", "gpt-5.4-nano")
 ANALYSIS_MODEL = os.environ.get("OPENAI_ANALYSIS_MODEL", "gpt-5.4-nano")
-PROMPT_VERSION = "judgment-delegation-guided-turns-v2.5.2"
+PROMPT_VERSION = "judgment-delegation-guided-turns-v2.5.3"
 SESSION_SCHEMA_VERSION = 6
 MAX_USER_CHARS = 500
 ALLOWED_CONDITIONS = {"UI_A", "UI_B"}
@@ -1302,9 +1302,24 @@ def generic_relation_card(cards: list[dict[str, Any]]) -> tuple[dict[str, Any] |
     return None, "", ""
 
 
+RELATION_STOP_TOKENS = {"食後", "食事", "食卓", "二人", "時間", "今回", "優先", "少し", "一緒", "相手", "大切", "気持", "夕食", "料理"}
+
+
+def relation_content_tokens(*texts: str) -> set[str]:
+    """具体策・優先の中身を表す語（漢字・カタカナ2字以上、「お＋漢字」）。"""
+    tokens: set[str] = set()
+    for text in texts:
+        tokens.update(t for t in re.findall(r"[一-龥ァ-ヶー]{2,}", text) if t not in RELATION_STOP_TOKENS)
+        tokens.update(re.findall(r"お[一-龥]", text))
+    return tokens
+
+
 def generic_relation_touched(user_text: str, preferred: str, action: str) -> bool:
-    """参加者がその優先や具体策に触れたか（広めに判定し、修正を打ち消さない）。"""
+    """参加者がその優先や具体策に触れたか（広めに判定し、修正を打ち消さない）。
+    v2.5.3: 具体策の語（写真・お礼・一言・準備など）に一つでも触れたら「触れた」とする。"""
     if "優先" in user_text:
+        return True
+    if any(tok in user_text for tok in relation_content_tokens(preferred, action)):
         return True
     return text_similarity(user_text, preferred) >= 0.25 or text_similarity(user_text, action) >= 0.25
 

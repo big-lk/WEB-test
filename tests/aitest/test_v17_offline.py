@@ -627,5 +627,12 @@ anc["freeText"] = "仕事で疲れている恋人と、気をつかわずにゆ�
 sent, info = core.generate_generic_stimulus(3, "generic_unranked", anc, h, "笑える軽さもほしい。")
 check("quoted E1 uses participant's own wording", sent.startswith("「気をつかわず」は"), sent)
 
+# 36) v2.5.3 具体策の語に触れた修正は「触れた」と判定（写真・お礼・準備）
+for txt, pref, act in [("写真は頼んでいません。写真はなしで。", "節目らしさを形に残すこと", "食後に二人で写真を一枚撮る時間をつくります"),
+                       ("食後のお礼の一言もなしで。", "感謝をきちんと届けること", "食後に一言、改めてお礼を伝える時間をつくります"),
+                       ("準備や片付けを全部こっちでやるのも違うかな。", "相手をゆっくり休ませること", "食事の準備と片付けはすべてこちらでします")]:
+    check(f"touched: {txt[:10]}", core.generic_relation_touched(txt, pref, act))
+check("not touched by unrelated text", not core.generic_relation_touched("最初に温かいスープを出したい。", "節目らしさを形に残すこと", "食後に二人で写真を一枚撮る時間をつくります"))
+
 print(f"\n{len(failures)} failure(s)")
 sys.exit(1 if failures else 0)

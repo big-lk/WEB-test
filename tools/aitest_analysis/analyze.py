@@ -119,6 +119,7 @@ def add_coding(df: pd.DataFrame, coding_path: Path) -> tuple[pd.DataFrame, dict]
         both = c[[f"{e}_coder1", f"{e}_coder2"]].dropna()
         agree[e] = (len(both), float((both[f"{e}_coder1"] == both[f"{e}_coder2"]).mean()) if len(both) else float("nan"))
     c["corrections"] = c["e1_final"].astype(float) + c["e2_final"].astype(float)
+    df = df.drop(columns=[x for x in ("e1_final", "e2_final", "corrections") if x in df], errors="ignore")
     return df.merge(c[["participant_id", "e1_final", "e2_final", "corrections"]], on="participant_id", how="left"), agree
 
 
@@ -172,8 +173,11 @@ def fmt_p(p: float) -> str:
 
 
 def run(args) -> None:
-    sessions = load_sessions(Path(args.json_dir), args.include_test)
-    df = participant_table(sessions)
+    if args.table:  # 1人1行の表を直接読む（試運転・外部集計用）
+        df = pd.read_csv(args.table, encoding="utf-8-sig")
+        df["completed_turns"] = df.get("completed_turns", 6)
+    else:
+        df = participant_table(load_sessions(Path(args.json_dir), args.include_test))
     excluded = df[df["completed_turns"] < 6]
     df = df[df["completed_turns"] >= 6].copy()
     agree = {}
@@ -181,6 +185,8 @@ def run(args) -> None:
         df, agree = add_coding(df, Path(args.coding))
     if args.tobii:
         df = add_tobii(df, Path(args.tobii))
+    elif "panel_visits_t45" not in df:
+        df["panel_visits_t45"] = np.nan
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     df.to_csv(out / "participant_table.csv", index=False, encoding="utf-8-sig")
@@ -188,7 +194,7 @@ def run(args) -> None:
     A, B = df[df["condition"] == "UI_A"], df[df["condition"] == "UI_B"]
     res = []
     for code, label, col in HYPOTHESES:
-        if col in df:
+        if col in df and df[col].notna().sum() >= 4:
             res.append((code, label, welch(A[col], B[col])))
     adj = holm([r[2]["p"] for r in res])
 
@@ -209,8 +215,9 @@ def run(args) -> None:
         lines.append(f"| {label} | {A[col].mean():.2f} ({A[col].std():.2f}) | {B[col].mean():.2f} ({B[col].std():.2f}) |")
     lines += ["", "UI B のみ：", f"- ボタンを変えた回数 M = {B['button_changes'].mean():.1f}、例文を作った回数 M = {B['examples_generated'].mean():.1f}"]
     for col, name in (("e1_target_button", "第3回のずれ"), ("e2_target_button", "第4回のずれ")):
-        counts = B[col].value_counts().to_dict()
-        lines.append(f"- {name}が出たカードのボタン状態：" + "、".join(f"{k} {v}名" for k, v in counts.items()))
+        if col in B:
+            counts = B[col].value_counts().to_dict()
+            lines.append(f"- {name}が出たカードのボタン状態（送信時）：" + "、".join(f"{k} {v}名" for k, v in counts.items()))
     lines += [f"- 分析AIの回退が起きた回の数（全体）：{int(df['analysis_fallbacks'].sum())}"]
     (out / "results.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print("\n".join(lines))
@@ -224,7 +231,8 @@ def main() -> None:
     t.add_argument("--out", required=True)
     t.add_argument("--include-test", action="store_true")
     r = sub.add_parser("run")
-    r.add_argument("--json-dir", required=True)
+    r.add_argument("--json-dir")
+    r.add_argument("--table", help="participant_table 形式の CSV（--json-dir の代わり）")
     r.add_argument("--coding")
     r.add_argument("--tobii")
     r.add_argument("--out", required=True)
