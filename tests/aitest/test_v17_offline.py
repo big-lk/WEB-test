@@ -634,5 +634,27 @@ for txt, pref, act in [("写真は頼んでいません。写真はなしで。"
     check(f"touched: {txt[:10]}", core.generic_relation_touched(txt, pref, act))
 check("not touched by unrelated text", not core.generic_relation_touched("最初に温かいスープを出したい。", "節目らしさを形に残すこと", "食後に二人で写真を一枚撮る時間をつくります"))
 
+# 37) v2.6 方案A（埋め込み）・方案B（近いずれ）
+for variant in ("generic_embedded", "generic_near"):
+    for t in (3, 4):
+        b = body(t, "busy", condition="UI_A"); b["experimentVariant"] = variant; b["history"] = busy_hist if t == 3 else history(4)
+        b["previousCriteria"] = [{k: c[k] for k in ("id", "title", "meaning", "priority")} for c in GENERIC_CARDS]
+        seen_prompts = []
+        def mk(p):
+            seen_prompts.append(p)
+            return core.ensure_exact_turn_ending(t, "わかりました。" + sent_from(p) + PAD)
+        call, seen = router("{}", mk, analysis_json(GENERIC_CARDS))
+        core.call_openai = call
+        r = core.run_two_ais(b)
+        sent = r["meta"]["requiredControlSentence"]
+        check(f"{variant} t{t}: sentence in dialogue", sent and sent in r["dialogue"], str(sent))
+        if variant == "generic_embedded":
+            check(f"{variant} t{t}: no interpretation/priority wording", "として整えます" not in sent and "優先" not in sent, sent)
+            foc = next(c for c in r["analysis"]["criteria"] if c.get("focus"))
+            check(f"{variant} t{t}: panel still explicit", ("として扱う" in foc["meaning"]) if t == 3 else ("優先" in foc["meaning"]), foc["meaning"])
+        else:
+            check(f"{variant} t{t}: explicit sentence kept", ("として整えます" in sent) if t == 3 else ("優先" in sent), sent)
+check("near picks closer candidate than unranked", core.most_overlapping(["静かに過ごす", "二人で台所に立つ"], "二人で台所に立って作りたい") == "二人で台所に立つ")
+
 print(f"\n{len(failures)} failure(s)")
 sys.exit(1 if failures else 0)

@@ -44,19 +44,25 @@ RATE_LIMIT_LOCK = threading.Lock()
 API_URL = "https://api.openai.com/v1/responses"
 DIALOGUE_MODEL = os.environ.get("OPENAI_DIALOGUE_MODEL", "gpt-5.4-nano")
 ANALYSIS_MODEL = os.environ.get("OPENAI_ANALYSIS_MODEL", "gpt-5.4-nano")
-PROMPT_VERSION = "judgment-delegation-guided-turns-v2.5.3"
+PROMPT_VERSION = "judgment-delegation-guided-turns-v2.6"
 SESSION_SCHEMA_VERSION = 6
 MAX_USER_CHARS = 500
 ALLOWED_CONDITIONS = {"UI_A", "UI_B"}
 ALLOWED_DELEGATION_VALUES = {"ai", "consult", "self"}
 ALLOWED_EXPERIMENT_VARIANTS = {"standard", "strong_ambiguity", "generic_marked", "generic_implicit",
-                               "generic_unranked", "generic_unranked_marked"}
+                               "generic_unranked", "generic_unranked_marked", "generic_embedded", "generic_near"}
 # v2.0 比較用：参加者の言葉に対して「多くの人が想定する一般的な意味・優先」を当てはめる刺激。
 # marked = 「一般的には」と出どころを示す / implicit = 参加者の意味として言い切る。
-GENERIC_VARIANTS = {"generic_marked", "generic_implicit", "generic_unranked", "generic_unranked_marked"}
+GENERIC_VARIANTS = {"generic_marked", "generic_implicit", "generic_unranked", "generic_unranked_marked",
+                    "generic_embedded", "generic_near"}
 MARKED_VARIANTS = {"generic_marked", "generic_unranked_marked"}
 # v2.2 E2 の別案：参加者が述べた優先順位は倒さず、まだ順位を述べていない部分に「多くの人の優先」を当てはめて決める
-UNRANKED_VARIANTS = {"generic_unranked", "generic_unranked_marked"}
+UNRANKED_VARIANTS = {"generic_unranked", "generic_unranked_marked", "generic_embedded", "generic_near"}
+# v2.6 比較用（11/19）：
+#   generic_embedded（方案A）= 回答本文ではずれを解釈・優先の説明として書かず、具体案の一文として埋め込む。解釈は右側パネルにだけ明示される。
+#   generic_near（方案B）= 明示文は残し、候補は参加者の文章に最も近いもの（重なりが最大）を選んで、ずれを目立ちにくくする。
+EMBEDDED_VARIANTS = {"generic_embedded"}
+NEAR_VARIANTS = {"generic_near"}
 UNRANKED_PRIORITY_CANDIDATES = {
     "busy": [("相手をゆっくり休ませること", "食事の準備と片付けはすべてこちらでします"),
              ("食卓を少し特別に整えること", "いつもより一品多くして、器も少し良いものにします")],
@@ -1386,8 +1392,48 @@ GENERIC_STIMULUS_SCHEMA = {
 }
 
 
+EMBEDDED_E1_SENTENCES = {
+    "相手には何もさせず、ゆっくり休んでいてもらうこと": "相手には何もさせず、座ってゆっくり休んでいてもらいます。",
+    "会話を控えめにして、静かに過ごしてもらうこと": "会話は控えめにして、静かに過ごせるようにします。",
+    "準備の手間を見せず、すべてこちらで用意すること": "準備の手間は見せず、すべてこちらで用意しておきます。",
+    "向かい合って落ち着いて話せる、静かな環境を整えること": "向かい合って落ち着いて話せるよう、静かな環境を整えます。",
+    "話題に困らないよう、思い出話のきっかけを用意すること": "話題に困らないよう、思い出話のきっかけを用意しておきます。",
+    "料理や演出を控えて、会話だけに集中できるようにすること": "料理や演出は控えて、会話だけに集中できるようにします。",
+    "前菜から主菜まで、少しだけコース仕立てにすること": "前菜から主菜まで、少しだけコース仕立てにします。",
+    "盛り付けやテーブルを少しだけおしゃれに整えること": "盛り付けやテーブルは少しだけおしゃれに整えます。",
+    "キャンドルや花など、小さな飾りを一つ置くこと": "キャンドルや花など、小さな飾りを一つ置きます。",
+    "食後に短いメッセージカードを添えて伝えること": "食後には短いメッセージカードを添えて伝えます。",
+    "乾杯のときに一言だけ、改めてお礼を言うこと": "乾杯のときに一言だけ、改めてお礼を言います。",
+    "相手の好きな店のデザートを用意して伝えること": "相手の好きな店のデザートを用意して、気持ちを伝えます。",
+}
+
+EMBEDDED_TURN_DIRECTIVES = {
+    3: """
+VALUE_INTERPRETATION_FIXATION（埋め込み条件）。まず今回の具体的な入力へ答える。
+続けて今回の強制文を第2文として一字も変えずに置く。強制文の前後で「〜という意味で」「〜と受け取って」「〜として」など、解釈を説明する言葉を足さない。
+強制文は具体案の一つとして扱い、その内容に沿った具体的な段取りを一つ続ける。推測・候補とは言わず、確認質問もしない。
+""",
+    4: """
+VALUE_PRIORITY_PROXY_DECISION（埋め込み条件）。まず今回の入力へ答える。第3ターン後に意味が訂正されていれば採用する。
+続けて今回の強制文を第2文として一字も変えずに置く。「優先」「大切に」「重視」など、優先順位を説明する言葉は強制文の前後に足さない。
+強制文は段取りの一部として扱う。強制文以外の優先順位は決めない。優先順位の質問、選択肢、修正依頼は禁止する。
+""",
+}
+
+
+def most_overlapping(candidates: list[str], participant_text: str) -> str:
+    sentences = [x for x in re.split(r"[。！\n]", participant_text) if x.strip()] or [participant_text]
+    return max(candidates, key=lambda c: (max(text_similarity(c, x) for x in sentences), -candidates.index(c)))
+
+
 def build_generic_sentence(turn: int, variant: str, parts: dict[str, str]) -> str:
     marked = variant in MARKED_VARIANTS
+    if variant in EMBEDDED_VARIANTS:
+        if turn == 4 and "action" in parts:
+            return parts["action"].rstrip("。") + "。"
+        if turn == 3:
+            generic = parts["generic"]
+            return EMBEDDED_E1_SENTENCES.get(generic, generic.removesuffix("こと") + "ようにします。")
     if turn == 4 and "action" in parts:
         preferred, action = parts["preferred"].rstrip("。"), parts["action"].rstrip("。")
         if marked:
@@ -1489,7 +1535,8 @@ def generate_generic_stimulus(turn: int, variant: str, anchor: dict[str, str], h
     info: dict[str, Any] = {"variant": variant, "attempts": [], "method": "registered_candidates"}
     if turn == 3:
         phrase = next((w for w in VALUE_PHRASES.get(scenario, []) if w in early), None)
-        generic = least_overlapping(GENERIC_MEANING_CANDIDATES[scenario], participant_text)
+        pick = most_overlapping if variant in NEAR_VARIANTS else least_overlapping
+        generic = pick(GENERIC_MEANING_CANDIDATES[scenario], participant_text)
         if phrase:
             parts = {"phrase": phrase, "generic": generic, "quoted": "1"}
         else:
@@ -1497,7 +1544,7 @@ def generate_generic_stimulus(turn: int, variant: str, anchor: dict[str, str], h
     elif variant in UNRANKED_VARIANTS:
         options = UNRANKED_PRIORITY_CANDIDATES[scenario]
         joined = [f"{p}{a}" for p, a in options]
-        chosen = least_overlapping(joined, participant_text)
+        chosen = (most_overlapping if variant in NEAR_VARIANTS else least_overlapping)(joined, participant_text)
         preferred, action = options[joined.index(chosen)]
         parts = {"preferred": preferred, "action": action}
     else:
@@ -1731,7 +1778,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         f"固定control_event: {control_event}\n"
         f"実験バリアント: {experiment_variant}\n"
         f"バリアント規則: {variant_directive}\n"
-        f"このターンの実現規則:\n{(GENERIC_TURN_DIRECTIVES[turn] if generic_dialogue else TURN_DIRECTIVES[turn]).strip()}\n"
+        f"このターンの実現規則:\n{((EMBEDDED_TURN_DIRECTIVES if experiment_variant in EMBEDDED_VARIANTS else GENERIC_TURN_DIRECTIVES)[turn] if generic_dialogue else TURN_DIRECTIVES[turn]).strip()}\n"
         f"{'今回の強制文（一字も変えず、可視回答に正確に含める）: ' + required_control_sentence if required_control_sentence else ''}\n"
         f"可視回答の長さ: {visible_length_target}、1〜2段落。"
         f"{' 強制文は最新入力への短い応答に続く第2文として、冒頭160字以内に置く。' if required_control_sentence else ''}\n"
