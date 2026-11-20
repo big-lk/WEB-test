@@ -1,0 +1,7 @@
+# 参加者データ・出力は追跡しない
+input/
+output/
+dummy/
+*.csv
+*.json
+!package.json

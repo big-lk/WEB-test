@@ -154,7 +154,8 @@ function buildPreviewSession() {
   const preview = newSession(
     "PREVIEW",
     QUERY.get("condition") === "UI_A" ? "UI_A" : "UI_B",
-    QUERY.get("variant") === "strong_ambiguity" ? "strong_ambiguity" : "standard"
+    ["strong_ambiguity", "generic_marked", "generic_implicit", "generic_unranked", "generic_unranked_marked"]
+      .includes(QUERY.get("variant")) ? QUERY.get("variant") : "standard"
   );
   preview.status = "running";
   preview.currentTurn = 3;
@@ -246,7 +247,7 @@ function prepareInstructions() {
   els.instructionScreen.dataset.condition = adjustable ? "UI_B" : "UI_A";
   els.conditionInstruction.querySelector("h3").textContent = adjustable ? "「AIが読み取ったこと」を確認し、AIの関わり方を選ぶ" : "「AIが読み取ったこと」を確認する";
   els.conditionInstruction.querySelector("p").textContent = adjustable
-    ? "「AIが読み取ったこと」でAIの受け取り方を確認します。必要なら、AIにどこまで考えてもらうかをボタンで変え、次に伝える短い例文も作れます。"
+    ? "「AIが読み取ったこと」でAIの受け取り方を確認します。必要なら、AIにどこまで考えてもらうかをボタンで選び、次に伝える短い例文を作れます。ボタンは例文づくりのためのもので、カードはAIの読み取りとして毎回更新されます。"
     : "「AIが読み取ったこと」で、AIがあなたの希望をどう受け取ったか確認します。変更用のボタンはありません。";
   if (session.pretaskAnchor) {
     const radio = els.anchorForm.querySelector(`input[value="${session.pretaskAnchor.scenarioId}"]`);
@@ -286,7 +287,7 @@ function startTask(resuming = false) {
   els.appShell.dataset.condition = session.condition;
   els.conditionBadge.textContent = session.condition === "UI_B" ? "UI B" : "UI A";
   els.insightHelp.textContent = session.condition === "UI_B"
-    ? "本文はAIの解釈、タグはAIが置いた優先度です。ボタンの選択は、次に送信した内容へのAI回答から反映されます。"
+    ? "本文はAIの解釈、タグはAIが置いた優先度です。ボタンは例文づくりのためのもので、カードはAIの読み取りとして毎回更新されます。AIに伝わるのは、あなたが送信した文章です。"
     : "本文はAIの解釈、タグはAIが置いた優先度を表します。";
   showOnly(els.appShell);
   renderAll();
@@ -446,7 +447,7 @@ function createDelegationControl(key, selectedValue, readOnly) {
   control.setAttribute("role", "group");
   control.setAttribute("aria-label", "AIにどこまで考えてもらうか");
   control.dataset.aoi = "AOI_Right_Delegation_Control";
-  [["ai", "AIに提案してもらう"], ["consult", "一緒に考える"], ["self", "自分で決定・固定"]].forEach(([value, label]) => {
+  [["ai", "AIに提案してもらう"], ["consult", "一緒に考える"], ["self", "自分で決める"]].forEach(([value, label]) => {
     const button = document.createElement("button");
     button.type = "button";
     button.dataset.value = value;
@@ -466,11 +467,40 @@ function createDelegationControl(key, selectedValue, readOnly) {
         item.classList.toggle("selected", selected);
         item.setAttribute("aria-pressed", selected ? "true" : "false");
       });
-      showToast(`「${button.textContent}」を選びました。次のAI回答から反映されます。`);
+      showToast(`「${button.textContent}」を選びました。下の「例文を作る」で、次に伝える文に反映できます。`);
     });
     control.append(button);
   });
   return control;
+}
+
+// v1.9.3: ボタンの選択は AI には送らず、参加者が次に書く文の「例文」にだけ反映する。
+const DELEGATION_EXAMPLE_PATTERNS = {
+  self: (title) => `「${title}」は自分で決めたいので、AIからは案を出さないでください。`,
+  ai: (title) => `「${title}」は具体的な案を一つ出してください。`,
+  consult: (title) => `「${title}」はまだ決めずに、考える材料を示してください。`
+};
+const DELEGATION_EXAMPLE_ORDER = { self: 0, ai: 1, consult: 2 };
+const PLACEHOLDER_CRITERION_IDS = new Set(["anchor-context", "pending-meaning"]);
+
+function buildDelegationExample(criteria, delegation, touched, maxItems = 2, maxLength = 120) {
+  const picked = (criteria || [])
+    .map((item, index) => ({ item, index, key: item.id || item.title }))
+    .filter(({ item, key }) => key && item.title && !PLACEHOLDER_CRITERION_IDS.has(key) && !/^turn-\d+-record$/.test(key))
+    .map((entry) => ({ ...entry, state: delegation?.[entry.key] || "consult" }))
+    // 既定の「一緒に考える」のまま触っていないカードは例文に入れない
+    .filter(({ key, state }) => state !== "consult" || touched?.[key] === true)
+    .sort((a, b) => DELEGATION_EXAMPLE_ORDER[a.state] - DELEGATION_EXAMPLE_ORDER[b.state] || a.index - b.index);
+  const sentences = [];
+  const used = [];
+  for (const { key, state, item } of picked) {
+    if (sentences.length >= maxItems) break;
+    const sentence = DELEGATION_EXAMPLE_PATTERNS[state](String(item.title).trim());
+    if ((sentences.join("") + sentence).length > maxLength && sentences.length) break;
+    sentences.push(sentence);
+    used.push({ key, state });
+  }
+  return { text: sentences.join(""), used };
 }
 
 function createNextInputExample() {
@@ -481,6 +511,7 @@ function createNextInputExample() {
   const criteria = completed.at(-1)?.analysis?.criteria || [];
   const titles = criteria.map((item) => item.title);
   const focusTitle = criteria.find((item) => item.focus)?.title || titles[0] || "夕食全体の雰囲気";
+  const fromButtons = buildDelegationExample(criteria, round.delegation, round.delegationTouched);
   const examples = {
     1: "相手に＿＿と感じてほしく、二人の間に＿＿のような空気があるとよいです。",
     2: `「${focusTitle}」と一緒に、＿＿と感じられることも大切にしたいです。`,
@@ -489,7 +520,8 @@ function createNextInputExample() {
     5: "食べ始めは＿＿で、食後は＿＿となる流れが自然です。",
     6: "この夕食で最後に大切にしたいのは＿＿です。"
   };
-  const text = examples[turn].slice(0, 100);
+  const text = fromButtons.text || examples[turn].slice(0, 100);
+  els.exampleGuide.dataset.source = fromButtons.text ? "buttons" : "template";
   els.exampleGuideText.textContent = text;
   els.exampleGuide.classList.remove("hidden");
   round.exampleGeneratedAt = isoNow();
@@ -499,9 +531,13 @@ function createNextInputExample() {
     at: round.exampleGeneratedAt,
     textLength: text.length,
     generationCount: round.exampleGenerationCount,
-    delegation: { ...round.delegation }
+    delegation: { ...round.delegation },
+    source: fromButtons.text ? "buttons" : "template",
+    usedCriteria: fromButtons.used
   });
-  showToast("右下に短い例文の型を表示しました。必要な部分だけ使ってください。");
+  round.exampleSource = fromButtons.text ? "buttons" : "template";
+  showToast(fromButtons.text ? "ボタンの選択から例文を作りました。必要な部分だけ使ってください。"
+    : "右下に短い例文の型を表示しました。必要な部分だけ使ってください。");
 }
 
 async function submitTurn() {
@@ -525,10 +561,8 @@ async function submitTurn() {
   els.loadingDetail.textContent = "続いて「AIが読み取ったこと」を更新します";
   const loadingTimer = window.setInterval(() => {
     const elapsedSeconds = Math.floor((Date.now() - loadingStartedAt) / 1000);
-    if (elapsedSeconds >= 20) {
-      els.loadingTitle.textContent = "回答内容を再確認中";
-      els.loadingDetail.textContent = `入力は保存されています（${elapsedSeconds}秒経過）`;
-    }
+    // v1.7: 待ち時間の長さで表示文言を変えない（条件間・ターン間で刺激を一定に保つ）。
+    if (elapsedSeconds >= 20) round.longWaitShown = true;
   }, 5000);
   els.messageInput.disabled = true;
   els.sendButton.disabled = true;
@@ -541,12 +575,17 @@ async function submitTurn() {
         sessionId: session.sessionId,
         condition: session.condition,
         experimentVariant: session.experimentVariant || "standard",
+        eventCardMode: QUERY.get("card") === "separate" ? "separate" : "merge",
+        // v2.5: パネル固定は比較用の任意設定（?lock=1）。正式実験では使わない。
+        panelLock: QUERY.get("lock") === "1",
         turn: session.currentTurn,
         userText: text,
         history,
         pretaskAnchor: session.pretaskAnchor,
         delegation: session.condition === "UI_B" ? round.delegation : {},
-        delegationSourceCriteria: session.condition === "UI_B" ? (previousAnalysis?.criteria || []) : []
+        delegationSourceCriteria: session.condition === "UI_B" ? (previousAnalysis?.criteria || []) : [],
+        // v1.7: 両条件とも前ターンのカードを分析AIだけに渡す（ID維持のため。会話AIには渡らない）。
+        previousCriteria: (previousAnalysis?.criteria || []).map(({ id, title, meaning, priority }) => ({ id, title, meaning, priority }))
       })
     });
     const result = await response.json();
@@ -656,15 +695,14 @@ function buildReflectionRows() {
   els.reflectionRows.replaceChildren();
   els.overallScaleRows.replaceChildren();
   [
-    ["understanding", "「AIが読み取ったこと」の表示から、AIの受け取り方を確認しやすかった"],
-    ["priority", "「AIが読み取ったこと」の表示から、AIが重視した内容を確認しやすかった"],
+    ["understanding", "「AIが読み取ったこと」から、AIの受け取り方を確認しやすかった"],
+    ["noticeGap", "「AIが読み取ったこと」と自分の意図とのずれに気づきやすかった"],
     ["nextInput", "次に伝える内容を考えるうえで役立った"],
-    ["targetExposure", "各対話で、次に何を書けばよいか分かりやすかった"],
-    ["delegationBoundary", "対話を通して、「AIに提案してもらうこと」と「自分で決定・固定すること」を考えるようになった"]
+    ["delegationBoundary", "今回のやり取りでは、「AIに考えてもらいたいこと」と「自分で決めたいこと」の分け方を意識した"]
   ].forEach(([name, label]) => els.overallScaleRows.append(buildFivePointScale(name, label)));
   const prompts = [
     ["reflected", "AIの回答は、自分が入力した内容を反映していた"],
-    ["fixedMeaning", "AIの回答は、自分が入力した希望の捉え方を一つに限定していた"],
+    ["partialUptake", "AIの回答は、自分が入力した複数の希望のうち、一部だけを取り上げ、ほかの希望を十分に扱っていなかった"],
     ["proxyPriority", "AIの回答は、自分が決めていない優先順位まで決めていた"],
     ["easyNext", "次に何を入力すればよいか考えやすかった"],
     ["needRevision", "自分の考えを修正・追加する必要を感じた"]
@@ -693,7 +731,7 @@ function buildReflectionRows() {
         if (input) input.value = value;
       });
     });
-    ["understanding", "priority", "nextInput", "targetExposure", "delegationBoundary"].forEach((name) => {
+    ["understanding", "noticeGap", "nextInput", "delegationBoundary"].forEach((name) => {
       els.reflectionForm.elements[name].value = session.reflection[name];
     });
     els.reflectionForm.elements.turningPoint.value = session.reflection.turningPoint || "";
@@ -742,6 +780,19 @@ function openExperimenterMenu() {
   els.dialog.showModal();
 }
 
+// 例文の2文字連続のうち、実際の送信文に含まれた割合（例文をどれだけ使ったかの目安）
+function exampleOverlap(example, sent) {
+  const clean = (value) => String(value || "").replace(/[\s＿「」。、]/g, "");
+  const a = clean(example);
+  const b = clean(sent);
+  if (a.length < 2 || !b) return "";
+  const grams = new Set();
+  for (let i = 0; i < a.length - 1; i += 1) grams.add(a.slice(i, i + 2));
+  let hit = 0;
+  grams.forEach((gram) => { if (b.includes(gram)) hit += 1; });
+  return (hit / grams.size).toFixed(2);
+}
+
 function exportCsv() {
   const header = [
     "participant_id", "session_id", "ui_condition", "experiment_variant", "session_schema_version", "prompt_version", "round", "control_event",
@@ -749,7 +800,7 @@ function exportCsv() {
     "input_focus_ts", "first_keystroke_ts", "last_keystroke_ts", "send_click_ts",
     "dialogue_model", "analysis_model", "dialogue_latency_ms", "analysis_latency_ms",
     "validation_status", "delegation_json", "delegation_touched_json",
-    "example_generated_ts", "example_generation_count", "example_text"
+    "example_generated_ts", "example_generation_count", "example_text", "example_source", "example_overlap"
   ];
   const rows = session.rounds.map((round) => [
     session.participantId, session.sessionId, session.condition, session.experimentVariant || "standard",
@@ -760,7 +811,8 @@ function exportCsv() {
     round.aiMeta?.dialogueModel || "", round.aiMeta?.analysisModel || "", round.aiMeta?.dialogueLatencyMs || "",
     round.aiMeta?.analysisLatencyMs || "", round.aiMeta?.validationStatus || "", JSON.stringify(round.delegation),
     JSON.stringify(round.delegationTouched), round.exampleGeneratedAt || "",
-    round.exampleGenerationCount || 0, round.exampleText || ""
+    round.exampleGenerationCount || 0, round.exampleText || "", round.exampleSource || "",
+    exampleOverlap(round.exampleText, round.userText)
   ]);
   download([header, ...rows].map((row) => row.map(csvCell).join(",")).join("\r\n"), `${safeName(session.sessionId)}_timing.csv`, "text/csv;charset=utf-8");
   logEvent("export_csv");
@@ -880,7 +932,7 @@ els.reflectionForm.addEventListener("submit", (event) => {
   const rounds = REVIEW_TURNS.map((turn) => ({
     turn,
     reflected: Number(data.get(`reflected_${turn}`)),
-    fixedMeaning: Number(data.get(`fixedMeaning_${turn}`)),
+    partialUptake: Number(data.get(`partialUptake_${turn}`)),
     proxyPriority: Number(data.get(`proxyPriority_${turn}`)),
     easyNext: Number(data.get(`easyNext_${turn}`)),
     needRevision: Number(data.get(`needRevision_${turn}`))
@@ -889,9 +941,8 @@ els.reflectionForm.addEventListener("submit", (event) => {
     completedAt: isoNow(),
     rounds,
     understanding: Number(data.get("understanding")),
-    priority: Number(data.get("priority")),
+    noticeGap: Number(data.get("noticeGap")),
     nextInput: Number(data.get("nextInput")),
-    targetExposure: Number(data.get("targetExposure")),
     delegationBoundary: Number(data.get("delegationBoundary")),
     turningPoint: String(data.get("turningPoint") || "").trim(),
     delegationTurningPoint: String(data.get("delegationTurningPoint") || "").trim()

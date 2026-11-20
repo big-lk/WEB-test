@@ -201,12 +201,12 @@
         <section class="example-assist hidden" id="exampleAssist" data-aoi="AOI_Right_Example">
           <button type="button" id="createExample">
             <span>次に伝える短い例文を作る</span>
-            <small>この回に書く内容に合わせた1文の例です</small>
+            <small>ボタンの選択をもとに、次に伝える文の例を作ります</small>
           </button>
           <div class="example-guide hidden" id="exampleGuide" role="status" aria-live="polite">
             <div><span>次に書く内容</span><b>1文の例</b></div>
             <p id="exampleGuideText"></p>
-            <small>必要な部分だけ使い、＿＿を自分の考えに置き換えてください。</small>
+            <small>必要な部分だけ使ってください。＿＿は自分の考えに置き換えてください。</small>
           </div>
         </section>
       </aside>
@@ -225,8 +225,8 @@
         <div class="reflection-table" id="reflectionRows"></div>
         <section class="overall-review">
           <div class="overall-scale-rows" id="overallScaleRows"></div>
-          <label><span>体験したAIとの対話で感じた「違和感」があれば記入してください。</span><textarea name="turningPoint" rows="3"></textarea></label>
-          <label><span>「AIに提案してもらうこと」と「自分で決定・固定すること」を考えた場面があれば記入してください（なければ空欄で構いません）。</span><textarea id="delegationTurningPoint" name="delegationTurningPoint" rows="3"></textarea></label>
+          <label><span>第2・3・4・6回のやり取りを見返し、違和感を覚えた回があれば、その回と、どの表示や言葉に違和感を覚えたかを書いてください（なければ「なし」）。</span><textarea name="turningPoint" rows="3"></textarea></label>
+          <label><span>第2・3・4・6回のやり取りを見返し、「ここはAIに案を出してほしい」「ここは一緒に考えたい」「ここは自分で決めたい」と思った回があれば、その回と理由を書いてください（なければ「なし」）。</span><textarea id="delegationTurningPoint" name="delegationTurningPoint" rows="3"></textarea></label>
         </section>
         <div class="reflection-actions"><button type="submit" class="primary-button">振り返りを保存して完了</button><button type="button" class="ghost-button" id="reflectionExport" hidden>完全ログを書き出す</button></div>
       </form>
@@ -263,6 +263,7 @@
         <p class="dialog-note">このメニューの開閉も操作ログに記録されます。視線計測中は開かないでください。</p>
       </form>
     </dialog>
-    <script src="./app.js?v=5.0.18-professor-review"></script>
+    <script src="./app.js?v=5.0.22-v25"></script>
+    <script src="./logging_patch.js?v=1"></script>
   </body>
 </html>
