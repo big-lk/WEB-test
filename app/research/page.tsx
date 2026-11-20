@@ -33,7 +33,7 @@ const copy: Record<'en' | 'ja' | 'zh', {
       { project: 'AI co-creation', href: '/works/ai-judgement', question: 'How to narrow the gap between a person’s own reading and the AI’s common one', text: 'People read “premium” or “cozy” differently, yet AI generates from the common reading, so results turn ordinary and users cannot see how they were understood. The interface shows the AI’s reading first and prompts users to enter their own judgment for the AI to adjust to.', methods: ['Scenario comparison survey (47 people)', 'Interface scenario study', 'Eye tracking (planned)'], stage: 'Stage 1 survey done · interface study in progress · eye-tracking study planned' },
       { project: 'AI predictive-image oven', href: '/works/oven-state-timing', question: 'People think in results; the machine asks for parameters', text: 'A predicted image of the finished dish replaces time and temperature, so users judge by eye while the oven gets the parameters it needs.', methods: ['Visualizing sensations (color / shape / firmness)', 'AI image generation', 'Interface prototype', '66-person concept survey'], stage: 'Concept + 66-person survey, presented at the Japan Society of Kansei Engineering · not tested on a real oven' },
       { project: 'FrameTrace', href: '/works/frametrace', question: 'At a good spot, where should I stand and which way should I shoot?', text: 'Other photographers’ positions, directions, and focal lengths are placed back in the scene, and a two-hand gesture works as a viewfinder.', methods: ['106-response concept survey (main analysis N=82)', 'Scenario design', 'Quest 3 prototype'], stage: 'Quest 3 prototype · no field test yet' },
-      { project: 'Driving HMI', href: '/works/driving-attention', question: 'The steadier driver assistance gets, the less drivers watch the road', text: 'The system shows distance and speed, but not what it is worried about. The topic is how showing the AI’s attention keeps drivers watching the road, and how that idea fits Chinese display rules on a real HUD.', methods: ['Driving-scenario breakdown', 'Concept images', 'VR test scenes + eye tracking', 'Regulation review', 'Long-drive experiment (planned)'], stage: 'Concept + VR test scenes · experiment not started' },
+      { project: 'Driving HMI', href: '/works/driving-attention', question: 'The steadier driver assistance gets, the less drivers watch the road', text: 'The car slows and moves aside early, but drivers do not know why and do not look for themselves. The topic is whether a cue that gives the reason before each precaution leads drivers to look toward such places even without cues, within Chinese display rules.', methods: ['Driving-scenario breakdown', 'Concept images', 'VR test scenes + head-direction logging', 'Regulation review', 'Three-part study and questionnaires (planned)'], stage: 'Concept + VR test scenes · study in preparation' },
     ],
     boundaryTitle: 'What has and hasn’t been tested',
     boundary: 'Most topics are still at the prototype or concept stage. The pages only describe what has been done; interface comparisons, eye tracking, and field tests are the next steps.',
@@ -54,7 +54,7 @@ const copy: Record<'en' | 'ja' | 'zh', {
       { project: 'AI 共創', href: '/works/ai-judgement', question: '個人の理解と AI の一般的な理解のずれをどう縮めるか', text: '「高級感」「温かみ」の受け取り方は人それぞれだが、AI は一般的な解釈で生成し、結果はありきたりになる。画面でまず AI の解釈を見せ、ユーザー独自の判断を入力するよう促し、AI がそれに合わせて調整する。', methods: ['場面比較調査（47名）', 'UI シナリオ比較', '視線計測（計画）'], stage: '第1段階の調査完了・UI 比較を実施中・視線計測実験を計画中' },
       { project: 'AI 予測画像オーブン', href: '/works/oven-state-timing', question: '人は結果で考え、機械はパラメータを求める', text: '時間と温度の代わりに焼き上がりの予測画像を見せ、ユーザーは見た目で判断し、機械は必要な設定値を得る。', methods: ['感覚の可視化（色・形・硬さ）', 'AI 画像生成', '画面プロトタイプ', '66名のコンセプト調査'], stage: 'コンセプト＋66名調査、日本感性工学会で発表・実機では未検証' },
       { project: 'FrameTrace', href: '/works/frametrace', question: '良い場所に着いても、どこに立ちどちらを撮ればいいか分からない', text: '他の撮影者の位置・向き・焦点距離を現地に戻し、両手のジェスチャーを取景器として使う。', methods: ['106件のコンセプト調査（主分析 N=82）', 'シナリオ設計', 'Quest 3 プロトタイプ'], stage: 'Quest 3 プロトタイプ・現地テストは未実施' },
-      { project: '運転 HMI', href: '/works/driving-attention', question: '運転支援が安定するほど、人は道路を見なくなる', text: 'システムは距離や速度を示すが、何を気にしているかは伝えない。AIの注目を見せることで運転者が道路を見続けられるか、そしてそれを実際のHUDで中国の表示規則にどう合わせるかを考える。', methods: ['運転場面の分解', 'コンセプト図', 'VRテスト場面＋視線計測', '法規の整理', '長時間運転実験（計画）'], stage: 'コンセプト＋VRテスト場面・実験は未実施' },
+      { project: '運転 HMI', href: '/works/driving-attention', question: '運転支援が安定するほど、人は道路を見なくなる', text: '車は早めに減速したり避けたりするが、運転者は理由が分からず、自分から見ることもない。予防動作の前に理由を示す提示によって、提示がなくても手がかりの方向を自分から見るようになるかを、中国の表示規則の範囲で確かめる。', methods: ['運転場面の分解', 'コンセプト図', 'VRテスト場面＋頭部方向の記録', '法規の整理', '3区間の実験と質問紙（計画）'], stage: 'コンセプト＋VRテスト場面・実験準備中' },
     ],
     boundaryTitle: '検証できていること・いないこと',
     boundary: '多くのテーマはまだ試作やコンセプトの段階です。ページには実際に行ったことだけを書き、比較 UI、アイトラッキング、現地テストは次のステップとしています。',
@@ -75,7 +75,7 @@ const copy: Record<'en' | 'ja' | 'zh', {
       { project: 'AI 共创', href: '/works/ai-judgement', question: '个人的理解和 AI 的通用理解，隔阂怎么缩小', text: '每个人对“高级感”“温馨”的理解不同，AI 却按大众理解生成，结果趋于平庸，用户也看不到 AI 是怎么理解的。界面先显示 AI 的理解，引导用户输入自己独特的判断，AI 再据此调整。', methods: ['场景比较调查（47 人）', '界面剧本比较', '眼动追踪（计划）'], stage: '第 1 阶段调查完成 · 界面比较进行中 · 眼动实验计划中' },
       { project: 'AI 预测图像烤箱', href: '/works/oven-state-timing', question: '人想的是结果，机器要的是参数', text: '用烤制成品的预测图代替时间和温度，用户凭眼睛判断，机器由此得到需要的参数。', methods: ['感觉的视觉化（颜色 / 形状 / 软硬）', 'AI 图像生成', '界面原型', '66 人概念调研'], stage: '概念 + 66 人调研，已在日本感性工学会发表 · 未用真实设备测试' },
       { project: 'FrameTrace', href: '/works/frametrace', question: '到了值得拍的地方，却不知道站哪、朝哪拍', text: '把他人的机位、朝向和焦距放回现场，并用双手手势当取景器。', methods: ['106 份概念问卷（主分析 N=82）', '场景设计', 'Quest 3 原型'], stage: 'Quest 3 原型 · 尚未实地测试' },
-      { project: '驾驶 HMI', href: '/works/driving-attention', question: '辅助驾驶越稳定，人越容易放松观察', text: '系统只显示距离、速度，人不知道它“在担心什么”。研究让人看见 AI 的关注能否让驾驶者继续看路，以及这个想法放到真实 HUD 上怎样符合国内显示法规。', methods: ['驾驶场景拆解', '概念图', 'VR 测试场景 + 眼动', '法规梳理', '长时间驾驶实验（计划）'], stage: '概念 + VR 测试场景 · 实验未开始' },
+      { project: '驾驶 HMI', href: '/works/driving-attention', question: '辅助驾驶越稳定，人越容易放松观察', text: '车会提前减速、让开，人却不知道为什么，也不会自己去看。研究在预防动作前说明原因的提示，能否让驾驶者在没有提示时也主动看线索位置，同时符合国内显示法规。', methods: ['驾驶场景拆解', '概念图', 'VR 测试场景 + 头部朝向记录', '法规梳理', '三段式实验与问卷（计划）'], stage: '概念 + VR 测试场景 · 实验准备中' },
     ],
     boundaryTitle: '验证到哪一步',
     boundary: '多数课题还在雏形或概念阶段。页面只写已经做到的部分；界面比较、眼动和实地测试是下一步。',
@@ -91,32 +91,32 @@ export default function ResearchPage() {
 
   return (
     <main className="mx-auto max-w-6xl px-5 py-14 md:px-8 md:py-18">
-      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#b57900] dark:text-[#f7b718]">{t.eyebrow}</p>
-      <h1 className="mt-4 max-w-4xl text-4xl font-semibold tracking-normal md:text-6xl">{t.title}</h1>
+      <p className="text-xs font-semibold uppercase tracking-[0.22em] font-mono text-[#A87A07] dark:text-[#EEAF1C]">{t.eyebrow}</p>
+      <h1 className="mt-4 max-w-4xl text-4xl font-semibold tracking-[-0.015em] md:text-6xl">{t.title}</h1>
       <p className="mt-5 max-w-3xl text-lg leading-8 text-neutral-600 dark:text-neutral-300">{t.intro}</p>
 
       <section className="mt-14">
-        <h2 className="text-2xl font-semibold tracking-normal">{t.topicsTitle}</h2>
+        <h2 className="text-2xl font-semibold tracking-[-0.015em]">{t.topicsTitle}</h2>
         <div className="mt-6 grid gap-4">
           {t.topics.map((topic, index) => (
-            <article key={topic.href} className="grid gap-5 rounded-lg border border-[#f7b718]/32 bg-white p-5 md:grid-cols-[0.9fr_1.1fr] md:p-6 dark:border-[#f7b718]/25 dark:bg-neutral-900">
+            <article key={topic.href} className="grid gap-5 rounded-2xl border border-[#EEAF1C]/32 bg-white/60 backdrop-blur-xl p-5 md:grid-cols-[0.9fr_1.1fr] md:p-6 dark:border-white/10 dark:bg-neutral-900">
               <div>
-                <span className="text-sm font-semibold text-[#b57900] dark:text-[#f7b718]">0{index + 1} · {topic.project}</span>
+                <span className="text-sm font-semibold text-[#A87A07] dark:text-[#EEAF1C]">0{index + 1} · {topic.project}</span>
                 <h3 className="mt-3 text-xl font-semibold leading-snug">{topic.question}</h3>
-                <Link href={topic.href} className="mt-4 inline-block text-sm font-medium text-[#b57900] no-underline hover:text-neutral-950 dark:text-[#f7b718] dark:hover:text-white">{t.viewCase} →</Link>
+                <Link href={topic.href} className="mt-4 inline-block text-sm font-medium text-[#A87A07] no-underline hover:text-neutral-950 dark:text-[#EEAF1C] dark:hover:text-white">{t.viewCase} →</Link>
               </div>
               <div>
                 <p className="leading-7 text-neutral-600 dark:text-neutral-300">{topic.text}</p>
                 <dl className="mt-4 grid gap-3 text-sm">
-                  <div className="grid gap-2 border-t border-[#f7b718]/30 pt-3 md:grid-cols-[4rem_1fr]">
+                  <div className="grid gap-2 border-t border-black/[0.08] pt-3 md:grid-cols-[4rem_1fr]">
                     <dt className="font-semibold">{t.methodLabel}</dt>
                     <dd className="flex flex-wrap gap-1.5">
                       {topic.methods.map((method) => (
-                        <span key={method} className="rounded border border-[#f7b718]/40 bg-[#fff4cf]/55 px-2 py-0.5 text-neutral-700 dark:border-[#f7b718]/25 dark:bg-neutral-950 dark:text-neutral-300">{method}</span>
+                        <span key={method} className="rounded border border-[#EEAF1C]/40 bg-[#F6ECD2]/55 px-2 py-0.5 text-neutral-700 dark:border-white/10 dark:bg-[#0F1013] dark:text-neutral-300">{method}</span>
                       ))}
                     </dd>
                   </div>
-                  <div className="grid gap-2 border-t border-[#f7b718]/30 pt-3 md:grid-cols-[4rem_1fr]">
+                  <div className="grid gap-2 border-t border-black/[0.08] pt-3 md:grid-cols-[4rem_1fr]">
                     <dt className="font-semibold">{t.stageLabel}</dt>
                     <dd className="text-neutral-600 dark:text-neutral-400">{topic.stage}</dd>
                   </div>
@@ -128,14 +128,14 @@ export default function ResearchPage() {
       </section>
 
       <section className="mt-14 grid gap-4 md:grid-cols-2">
-        <div className="rounded-lg border border-[#f7b718]/40 bg-[#fff4cf]/45 p-5 dark:border-[#f7b718]/25 dark:bg-neutral-900">
+        <div className="rounded-2xl border border-[#EEAF1C]/40 bg-[#F6ECD2]/45 p-5 dark:border-white/10 dark:bg-neutral-900">
           <h2 className="text-lg font-semibold">{t.boundaryTitle}</h2>
           <p className="mt-2 leading-7 text-neutral-600 dark:text-neutral-300">{t.boundary}</p>
         </div>
-        <div className="rounded-lg border border-[#f7b718]/32 bg-white p-5 dark:border-[#f7b718]/25 dark:bg-neutral-900">
+        <div className="rounded-2xl border border-[#EEAF1C]/32 bg-white/60 backdrop-blur-xl p-5 dark:border-white/10 dark:bg-neutral-900">
           <h2 className="text-lg font-semibold">{t.earlyTitle}</h2>
           <p className="mt-2 leading-7 text-neutral-600 dark:text-neutral-300">{t.early}</p>
-          <Link href="/timeline" className="mt-3 inline-block text-sm font-medium text-[#b57900] no-underline hover:text-neutral-950 dark:text-[#f7b718] dark:hover:text-white">{t.timelineLink} →</Link>
+          <Link href="/timeline" className="mt-3 inline-block text-sm font-medium text-[#A87A07] no-underline hover:text-neutral-950 dark:text-[#EEAF1C] dark:hover:text-white">{t.timelineLink} →</Link>
         </div>
       </section>
     </main>

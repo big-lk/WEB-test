@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: '孔维鹏｜产品设计作品集',
     description: portfolioDescription,
-    images: ['/og-generated.png'],
+    images: ['/og-kansei.png'],
     type: 'website',
     url: '/',
   },
@@ -32,14 +32,14 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: '孔维鹏｜产品设计作品集',
     description: portfolioDescription,
-    images: ['/og-generated.png'],
+    images: ['/og-kansei.png'],
   },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="zh-CN">
-      <body className="min-h-screen antialiased bg-[#fffaf0] text-neutral-950 dark:bg-neutral-950 dark:text-neutral-100">
+      <body className="min-h-screen antialiased text-[#14161B] dark:text-neutral-100">
         <SiteChrome>{children}</SiteChrome>
       </body>
     </html>

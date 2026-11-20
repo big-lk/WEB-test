@@ -7,7 +7,16 @@ const config: Config = {
     './components/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        ink: '#14161B',
+        paper: '#F1EFEA',
+        gold: { DEFAULT: '#A87A07', light: '#EEAF1C', soft: '#F6ECD2' },
+      },
+      fontFamily: {
+        mono: ['"SF Mono"', 'ui-monospace', 'Menlo', 'monospace'],
+      },
+    },
   },
   plugins: [],
 }

@@ -25,6 +25,8 @@ export type PortfolioWork = {
   }
   delivery?: [string, string][]
   image?: string
+  /** 卡片封面（作品列表、首页、时间线）；不填则用 image */
+  cover?: string
   detailImage?: string
   gallery?: { image: string; alt: string; caption: string; wide?: boolean }[]
   videos?: { src: string; poster?: string; caption: string }[]
@@ -74,9 +76,6 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
       ],
       image: '/works/portfolio/ai-cocreation-steps-en.svg',
       gallery: [
-        { image: '/works/portfolio/generated/ai-cocreation-chat-v2.png', alt: 'Early concept chat interface', caption: 'Early concept (AI-generated illustration): choose between “AI decides / discuss together / I decide”. The current design puts these three choices on each value item and shows the AI’s reading first.' },
-        { image: '/works/portfolio/generated/ai-story-triptych.png', alt: 'Early concept usage scenes', caption: 'Usage scenes of the early concept (AI-generated illustration).' },
-        { image: '/works/portfolio/generated/ai-cocreation-overlay.png', alt: 'Early concept judgment roles', caption: 'The three judgment roles of the early concept (AI-generated illustration).' },
       ],
       research: { sample: 'Stage 1 scenario comparison: 47 people read four AI conversations about the same dinner plan (gives a conclusion / thinks it through together × food only / extends to the dining atmosphere), rated each, then ranked them. They were split into three groups by whether they valued the food or the atmosphere more.', metrics: [
           ['47', 'Scenario comparison', '4 conversation conditions × 5 ratings'],
@@ -108,6 +107,9 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
             { src: '/works/portfolio/ai-test-ui-turn1.jpg', alt: 'Test interface: three value items after turn 1', caption: 'After turn 1: the AI splits the message into three value items (test build, mixed Chinese and Japanese)', wide: true },
             { src: '/works/portfolio/ai-test-ui-turn3.jpg', alt: 'Test interface: checking a gap at turn 3', caption: 'Turn 3: checking the gap between portion and the original criteria (Japanese build)', wide: true },
           ] },
+        { kicker: 'Vision', title: 'From one correction to an AI that asks first', text: 'The master’s research tests only the first layer: whether the interface lets people notice where the AI misread them and fix it on the spot. The original idea went further: log each correction, distil them into a personal kansei profile, and read the next conversation through it; with consent, the before-and-after pairs could also become training data, teaching a model to show its reading and ask first on vague kansei words. This part is outside the study and kept as a direction.', stacked: true, images: [
+            { src: '/works/portfolio/redraw/ai-cocreation-pipeline-en.jpg', alt: 'Full flow: study, extension and training vision', wide: true },
+          ] },
       ],
       href: '/works/ai-judgement',
     },
@@ -118,23 +120,23 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
       category: 'Intelligent driving / HMI concept and prototype',
       year: '2025-2026',
       period: 'Graduate study · Driving HMI',
-      status: 'Concept · VR test scenes',
+      status: 'Concept · VR study in preparation',
       role: 'Solo: concept, scenarios and risk levels, HUD visual language, VR test scenes, regulation review, study design',
-      methods: 'Driving-scenario breakdown, AI concept images, VR driving test scenes (Quest 3), eye tracking to record attention (planned), review of Chinese regulations and standards',
-      next: 'Concept and VR test scenes done (three scenarios × three cue designs, exported to Quest 3); the eye-tracking study has not started.',
-      description: 'The more reliable driver assistance gets, the easier it is to drift off. This HMI shows the driver who the AI is watching and what worries it, so person and system watch the road together. The concept explains risk with a face and a short phrase; the built version switches to graphics to stay within regulations, and VR driving scenes record where drivers look, to test whether the cues keep them watching the road.',
+      methods: 'Driving-scenario breakdown, AI concept images, VR driving test scenes (Quest 3), head-direction logging, three-part controlled study with questionnaires (planned), review of Chinese regulations and standards',
+      next: 'Concept, visual language and VR test scenes are done; the three-part study program and questionnaires are being built and debugged, and no participants have been recruited yet.',
+      description: 'The more reliable driver assistance gets, the easier it is to drift off. This HMI shows the driver what the AI is watching: when the car slows or moves aside early, a cue in that direction gives the reason. If the driver looked there first, no cue appears, and cue types the driver has learned are phased out. The aim is a driver who looks without being told. Cues are graphic, stay in the display zones regulations allow, and are tested in VR driving scenes.',
       question: 'The steadier driver assistance gets, the more drivers relax their watch. The system shows distance and speed, but not what it is worried about, so when a risk appears there is little time to understand it.',
       process: [
         ['Mark one object', 'By risk priority, mark only the one that matters most right now: a child at the curb, or a car moving into the lane.'],
         ['Say what worries it', 'In the concept, a face and a short phrase such as “may run into the road”; in the prototype, icon, color and direction.'],
         ['Scale with risk', 'Low risk gets a light cue to keep attention; as risk rises, color and rhythm grow stronger; at the highest level only a clear warning and take-over request remain.'],
-        ['Fit the regulations', 'Check Chinese driver-assistance and HUD standards to decide what is allowed and what must give way to standard warnings, then build it into three VR test scenes.'],
+        ['Precaution as demonstration', 'When the AI slows or moves aside early, a cue in that direction gives the reason; if the driver looked first there is no cue, and learned cue types are phased out.'],
       ],
-      processIcons: ['target', 'message', 'alert', 'check'],
+      processIcons: ['target', 'message', 'alert', 'eye'],
       outcomes: [
-        'The driver sees at a glance which side the risk is on and how urgent it is, without looking away from the road.',
-        'The concept idea of letting people see what the AI is worried about became a wordless visual language that fits Chinese display rules, built into three VR test scenes.',
-        'Next, a long-drive VR study with eye tracking will record whether attention stays on the road ahead.',
+        'The driver knows why the car slowed and which way to look, without looking away from the road.',
+        'Cues give only the reason, do not appear when the driver looked first, and are phased out for cue types already learned; the monitoring and warnings required by regulation stay unchanged.',
+        'Next, a three-part VR study and an online picture test will check whether people look toward these cues on their own once the prompts are gone.',
       ],
       image: '/works/portfolio/hmi/hero.jpg',
       videos: [
@@ -149,12 +151,11 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
             'High risk: only a clear, standard warning remains.',
           ], images: [
             { src: '/works/portfolio/generated/hmi-risk-overlay.png', alt: 'Concept: risk cues for a nearby car and a child', caption: 'Concept (AI-generated illustration): the car “may change lanes”, the child “may run into the road”', wide: true },
-            { src: '/works/portfolio/generated/hmi-story-triptych.png', alt: 'Cue intensity triptych', caption: 'Three intensities (AI-generated illustration): a light cue for low risk, a marked object for medium risk, a clear warning for high risk', wide: true },
           ] },
         { kicker: 'Built version', title: 'On the HUD, graphics replace words', text: 'Under the real limits of L2 driver assistance, little can go on the windshield: cues must stay out of the forward view, and text pulls attention away. So “what it is worried about” is carried by a visual language: the icon in a capsule badge says what it is, the color how urgent, the position which side. The only words are “L2” and “Take over”.', stacked: true, images: [
             { src: '/works/portfolio/hmi/attribute.jpg', alt: 'Visual language: capsule badge, four icons, three colors', caption: 'Visual language (labels in Chinese): pedestrian / vehicle / static obstacle / system × cyan / amber / red; only red blinks', wide: true },
           ] },
-        { kicker: 'Three schemes', title: 'One language, three places', text: 'To compare which keeps eyes on the road best, the same cues were built as three schemes and placed in three scenarios: a child running out, a car cutting in, and roadworks ahead.', stacked: true, points: [
+        { kicker: 'Display position', title: 'One language, three places', text: 'First came the question of where to put the cues: the same graphics were built in three versions and placed in three scenarios, a child running out, a car cutting in, and roadworks ahead. The band at the lower edge of the view covers the least, and the later study uses it.', stacked: true, points: [
             'S1 HUD direction band (main scheme): a band along the lower edge of the view, lit in the direction of the risk. Works with a production HUD and covers the least.',
             'S2 AR ground ring: circles the hazard and predicts where it is heading. Most direct, but it needs a larger-field HUD and covers more of the road.',
             'S3 center-screen top view: what many cars do today, kept as the control to measure how much keeping cues ahead helps.',
@@ -163,11 +164,12 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
             { src: '/works/portfolio/hmi/s2_merge_l3.jpg', alt: 'S2 AR ground ring', caption: 'S2: the cutting-in car is circled, with its path ahead' },
             { src: '/works/portfolio/hmi/s3_child_l3.jpg', alt: 'S3 center-screen top view', caption: 'S3: a top-down risk card pops up on the navigation screen' },
           ] },
-        { kicker: 'VR study', title: 'Recording where the driver’s attention goes', text: 'Long tests on real roads are risky and hard to repeat, so the study runs in VR driving scenes: the same road and the same hazards, driven by different people under different cues. Unlike a screen-based simulator, VR lets people turn their heads and look around freely instead of facing straight ahead, so attention drifts as naturally as on a real ride. Participants are told it is a self-driving travel experience and are never asked to watch the road, so they do not stare ahead on purpose; the real aim is explained afterwards. Quest 3 with an eye-tracking add-on records where the driver looks and for how long. Each condition lasts about 20 minutes of mostly steady driving, with hazards early, midway and late; every 5 minutes the share of gaze on the road ahead and reaction times are compared, to see how much attention drops late in the drive. Compared with related studies, four things differ:', stacked: true, points: [
-            'Longer time span: take-over studies usually measure the reaction to a single hazard; this one asks whether attention slowly drifts off the road during long assisted driving.',
-            'Different content: most warnings only say there is danger; here the driver sees which object the AI is watching, with cues starting as soon as a risk appears instead of at the last moment.',
-            'Designed for production conditions: cues stay in the display zones Chinese rules allow, and the main scheme fits a production HUD, so the results apply to cues that could actually ship.',
-            'Natural behavior: participants think they are on a self-driving trip and can look at the scenery, so whether their eyes return to the road depends on whether the cues pull them back.',
+        { kicker: 'Core idea', title: 'Turning the AI’s precautions into a demonstration', text: 'Driver-assistance AI already drives defensively: passing a parked car, a bus stop or a junction with a blocked view, it slows early or moves slightly aside. Most drivers lack this habit and do not know why the car does it. The study treats these precautions as demonstrations: one second before the manoeuvre, a graphic appears on the lower-edge band in the matching direction, giving only the reason. If the driver has already looked that way, there is no cue, only a check mark; after three such early looks in a row for one cue type, that type is no longer prompted.', stacked: true, images: [] },
+        { kicker: 'VR study', title: 'Do people still look once the prompts are gone?', text: 'A city route in VR carries six kinds of cue: the front of a parked car, a bus stop, a junction with a blocked view, the door zone of a roadside car, a cyclist, and the car ahead of the lead car braking. The headset logs head direction, so where and when people turn is recorded; in VR they can look around freely instead of facing straight ahead, so attention drifts as it does on a real ride. One drive has three parts with no stop between them: 5 minutes without cues, 12 minutes under the assigned scheme, then 5 minutes without cues again. Two schemes are compared: in A the car takes the same precautions without explanation, and C adds the cues above. The main measure is how much more often people look toward cue locations in part three than in part one. A headset-free online version shows a driving video, with a “where would you look next” picture test before and after. Participants are not told what is being compared until the end. Compared with related studies:', stacked: true, points: [
+            'It measures learning: take-over studies usually time the reaction to one hazard; this asks whether people still look on their own after the prompts are removed.',
+            'The cues get fewer: most warnings keep flagging detected hazards; here the cue gives the reason for a precaution, is skipped when the driver looked first, and stops for types already learned.',
+            'The cost is measured too: questionnaires check whether people come to believe that no cue means safe, along with trust, workload and motion sickness.',
+            'The regulated part is untouched: driver-monitoring reminders, warnings and “Take over” are identical in every scheme, so only the added layer is compared.',
           ], images: [] },
       ],
       comparison: { title: 'Chinese regulations and trade-offs', intro: 'Regulations govern that the driver must keep watching the road, that the system must warn, and what may appear on the windshield; this HMI only adds within those limits. Based on official announcements and published commentary; the full standard texts were not checked clause by clause.', columns: ['Requirement (summary)', 'Trade-off in this concept'], rows: [
@@ -371,19 +373,19 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
       modules: [
         { kicker: 'Trial and error · A year of changing direction', title: 'From “set by image” to “adjust while watching”', stacked: true, text: 'It started with the ALIVE microwave in 2023: tap a phone image card to the knob to send settings. Next came translating taste, warmth and texture into color, shape and firmness, and a detour into scoring cooking steps, before coming back to one idea: let people set the oven by watching the finished result. The survey went through three revisions.', images: [
             { src: '/works/portfolio/oven-state-timing/iteration-timeline-en.svg', alt: 'Iteration timeline of the AI oven', caption: 'Iteration timeline (from the progress reports)', wide: true },
-            { src: '/works/portfolio/oven-state-timing/slide-texture-color.jpg', alt: 'Visualizing temperature and texture', caption: '2024.11: colors and textures for warm, cold and crispy' },
-            { src: '/works/portfolio/oven-state-timing/slide-taste-shape.jpg', alt: 'Shapes and colors of the five tastes', caption: '2024.11: shapes and colors of the five tastes' },
-            { src: '/works/portfolio/oven-state-timing/sim-test-plan.jpg', alt: 'Simulation test plan', caption: 'Simulation plan: compare 4 displays on a virtual microwave' },
+            { src: '/works/portfolio/redraw/oven-texture-color-en.jpg', alt: 'Visualizing temperature and texture', caption: '2024.11: colors and textures for warm, cold and crispy' },
+            { src: '/works/portfolio/redraw/oven-taste-shape-en.jpg', alt: 'Shapes and colors of the five tastes', caption: '2024.11: shapes and colors of the five tastes' },
+            { src: '/works/portfolio/redraw/oven-sim-test-plan-en.jpg', alt: 'Simulation test plan', caption: 'Simulation plan: compare 4 displays on a virtual microwave' },
           ] },
         { kicker: 'Interaction · Adjust while watching', title: 'People judge by eye, the oven keeps the numbers', text: 'The predicted image sits above the temperature and time controls. Change a value and the image follows; or pick a feature such as heat, firmness or browning and press + / − to have the values recalculated. Feelings like dryness also become adjustable sliders. Press start when it looks right.', points: [
             'The AI offers several results at once, from soft to firm and pale to brown, each with its time and temperature',
             'Two-way: from image to settings, or from settings to image',
           ], images: [
             { src: '/works/portfolio/oven-state-timing/screen-features.jpg', alt: 'Prediction screen with feature tabs', caption: 'Switch features and press + / −; time and temperature follow' },
-            { src: '/works/portfolio/oven-state-timing/state-grid.jpg', alt: 'Several AI-generated baking results', caption: 'Several results at once, each with its time and temperature' },
+            { src: '/works/portfolio/redraw/oven-state-grid-en.jpg', alt: 'Several AI-generated baking results', caption: 'Several results at once, each with its time and temperature' },
           ], stacked: true },
         { kicker: 'All-in-one · In-oven monitoring', title: 'While baking, a camera checks against the prediction', text: 'Put in raw dough and an in-oven camera photographs it to generate the prediction. During baking it keeps watching and compares with the prediction, adjusting or stopping near the target instead of simply running out the timer. Imaging inside a hot oven is hard, but not impossible.', images: [
-            { src: '/works/portfolio/oven-state-timing/original-state-options.png', alt: 'Insert food, auto-capture, generate prediction', caption: 'Insert → auto-capture → prediction and suggested settings', wide: true },
+            { src: '/works/portfolio/redraw/oven-ai-steps-en.jpg', alt: 'Insert food, auto-capture, generate prediction', caption: 'Insert → auto-capture → prediction and suggested settings', wide: true },
             { src: '/works/portfolio/oven-state-timing/ai-prediction-interface.jpg', alt: 'Oven concept with a prediction screen', caption: 'All-in-one concept (AI-generated illustration)' },
             { src: '/works/portfolio/oven-state-timing/bake-sequence.jpg', alt: 'Predicted sequence from raw to baked', caption: 'Predicted sequence from raw to baked (AI-generated)' },
           ] },
@@ -440,12 +442,12 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
             'Standard specs and interfaces to reduce waste',
           ], images: [
             { src: '/works/portfolio/alive-2023/power-color-en.svg', alt: 'Color by power', caption: 'Color by power (redrawn from the original portfolio)', wide: true },
-            { src: '/works/portfolio/alive-2023/power-pie.jpg', alt: 'Household appliance power pie chart', caption: 'Household appliances by power: low power dominates' },
+            { src: '/works/portfolio/redraw/alive-power-pie-en.jpg', alt: 'Household appliance power pie chart', caption: 'Household appliances by power: low power dominates' },
             { src: '/works/portfolio/alive-2023/strip-sketch-use.jpg', alt: 'Use sketches: tap to wake, find the plug by power', caption: 'Use sketches: tap to wake, find the plug by power' },
             { src: '/works/portfolio/alive-2023/strip-exploded.jpg', alt: 'Power strip exploded view', caption: 'Inside: lights, buttons and protection, sensing, control, power conversion', wide: true },
           ] },
         { kicker: 'System · Between machines', title: 'Rings change together, so appliances feel alive', text: 'All three appliances share one light-ring language. While a device runs, its ring changes in sync with its socket’s ring on the strip, giving separate machines a sense of linkage, as if they were alive and answering each other.', images: [
-            { src: '/works/portfolio/alive-2023/three-nodes.jpg', alt: 'What each of the three appliances displays', caption: 'What each of the three appliances displays', wide: true },
+            { src: '/works/portfolio/redraw/alive-three-nodes-en.jpg', alt: 'What each of the three appliances displays', caption: 'What each of the three appliances displays', wide: true },
             { src: '/works/portfolio/alive-2023/ring-sketch.jpg', alt: 'Light-ring structure sketch: diffuser ring above, LED base ring and driver below', caption: 'Light-ring structure sketch: diffuser ring above, LED base ring and driver below', wide: true },
           ] },
         { kicker: 'Kettle · Ergonomics', title: 'People look down, so information goes on top', text: 'Kettles usually sit below eye level, so people look down at them. A side water window means bending knees and back to read it, and people can only sense 100 °C by the boil, not other temperatures. So water level and temperature move to a ring on the lid, and the base ring changes too, answering “is it powered, is it heating?”', images: [
@@ -511,8 +513,6 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
           ] },
         { kicker: 'Brand upgrade · From “Jinxin” to “Xinfeng”', title: 'The mark finally matches the company name', text: 'Before, the company used a rotating hook mark that read “Jinxin”, with green-and-gold business cards: the name did not match, the thin lines blurred at nameplate size, and the colors felt like a trading firm or jeweler. In the new mark three sectors stand for the three 金 of 鑫 with 丰 below; a deep red with a touch of black, alongside ink black and steel gray, reads as an industrial equipment maker.', images: [
             { src: '/works/portfolio/xinfeng/vi-upgrade.jpg', alt: 'Before and after (VI applications extended while preparing this portfolio; same below)', caption: 'Before and after (VI applications extended while preparing this portfolio; same below)', wide: true },
-            { src: '/works/portfolio/xinfeng/logo-construction.jpg', alt: 'Original construction drawing', caption: '2023 original: mono version and construction' },
-            { src: '/works/portfolio/xinfeng/logo-combination.jpg', alt: 'Original Chinese and English lockup', caption: '2023 original: lockup and color code' },
           ] },
         { kicker: 'Brand planning · One master brand', title: 'Set the rules, then carry them to the machine and every touchpoint', stacked: true, text: 'The originals already paired the mark with “Xinfeng Chemical” and “Xinfeng Metallurgy”; I made that a rule: one mark, only the name changes. Equipment is coded by category (EL electrolysis, IN casting, EX extraction), with consumables as support. On the same electrolysis unit I compared three stages: old mark, logo swapped only, and unified identity. Only the last tells people which Xinfeng category and which unit it is. Fixing rules first and staying consistent later carried into product planning.', points: [
             'Machine: mark fixed at top left, category and model at right, divided by a red rule',
@@ -549,11 +549,11 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
         'Developed a graphic mark from a text-led logo and set basic identity standards and applications.',
         'Completed the logo, construction drawings, and a 43-page VI manual.',
       ],
-      image: '/works/portfolio/factory-safety-vi/vi-cover.jpg',
+      image: '/works/portfolio/redraw/vi-cover.jpg',
       gallery: [
-        { image: '/works/portfolio/factory-safety-vi/logo-rationale.jpg', alt: 'Logo concept rationale showing the geometric K mark and its construction', caption: 'Logo development: a text-led identity becomes a geometric K mark with a rising triangle.' },
-        { image: '/works/portfolio/factory-safety-vi/logo-grid.jpg', alt: 'Geometric construction grid for the corporate logo', caption: 'Logo standardization: proportion and grid rules for consistent reproduction.' },
-        { image: '/works/portfolio/factory-safety-vi/logo-combinations.jpg', alt: 'Chinese and English corporate logo combinations', caption: 'Logo combinations: Chinese and English wordmarks paired with the graphic symbol.' },
+        { image: '/works/portfolio/redraw/vi-rationale-en.jpg', alt: 'Logo concept rationale showing the geometric K mark and its construction', caption: 'Logo development: a text-led identity becomes a geometric K mark with a rising triangle.' },
+        { image: '/works/portfolio/redraw/vi-grid-en.jpg', alt: 'Geometric construction grid for the corporate logo', caption: 'Logo standardization: proportion and grid rules for consistent reproduction.' },
+        { image: '/works/portfolio/redraw/vi-wordmark-en.jpg', alt: 'Chinese and English corporate logo combinations', caption: 'Logo combinations: Chinese and English wordmarks paired with the graphic symbol.' },
       ],
       href: '/works/corporate-vi',
     },
@@ -594,10 +594,11 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
         'Order drives efficiency: one rule, new on the right and old on the left, plus two steps of light, so people don\'t need to remember where each item is.',
       ],
       image: '/works/portfolio/fridge-timeline-system.png',
+      cover: '/works/portfolio/fridge-2023/render-cmf.jpg',
       gallery: [
         { image: '/works/portfolio/fridge-2023/render-kitchen.jpg', alt: 'Fridge in a kitchen render', caption: '2023 render: fridge right beside the counter' },
         { image: '/works/portfolio/fridge-2023/render-cmf.jpg', alt: 'Four color options', caption: 'CMF: four body colors' },
-        { image: '/works/portfolio/generated/fridge-story-triptych.png', alt: 'AI re-creation of usage scenes', caption: '2026 AI re-creation of the scenes, not the original design' },
+        { image: '/works/portfolio/redraw/fridge-storyboard-en.jpg', alt: 'One full storing run (frames from the 2023 C4D flow animation)', caption: 'One full storing run (frames from the 2023 C4D flow animation)', wide: true },
       ],
       videos: [
         { src: '/works/portfolio/fridge-2023/flow-demo.mp4', poster: '/works/portfolio/fridge-2023/flow-demo-poster.jpg', caption: 'C4D flow animation (2023): take the scanner → scan on the counter → inner light guidance → angled door light.' },
@@ -670,8 +671,7 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
             'The far left is the oldest, so eat that first',
           ], images: [
             { src: '/works/portfolio/fridge-2023/order-rule-en.svg', alt: 'Pickup-code rule and the new-right old-left arrangement', caption: 'Pickup code → arrangement rule inside the fridge (redrawn)', wide: true },
-            { src: '/works/portfolio/fridge-2023/midterm-concept.jpg', alt: 'Midterm review: starting concept', caption: 'Midterm: parcel storage → smart storage → light guidance' },
-            { src: '/works/portfolio/fridge-2023/midterm-courier-analogy.jpg', alt: 'Courier scanning and labels', caption: 'Reference: courier scanning and labels' },
+            { src: '/works/portfolio/redraw/fridge-midterm-concept-en.jpg', alt: 'Midterm review: starting concept', caption: 'Midterm: parcel storage → smart storage → light guidance' },
           ], stacked: true },
         { kicker: 'Light · Two-step guidance', title: 'Outside: which door. Inside: which spot.', text: 'Once a spot is assigned, the strip on the matching door lights up; it runs along the hidden handle and its shape hints at the opening direction. Inside, the matching shelf zone lights up. Taking items out works the same way: drag an item to “take out” on the phone or door screen, and its door light blinks.', points: [
             'Handle zone set from raised-hand heights of the 5th-percentile Chinese woman to the 95th-percentile man',
@@ -723,9 +723,6 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
       ],
       image: '/works/portfolio/ai-cocreation-steps-ja.svg',
       gallery: [
-        { image: '/works/portfolio/generated/ai-cocreation-chat-v2.png', alt: '初期構想の対話画面', caption: '初期構想（AI生成のイメージ）：「AIが判断／一緒に検討／自分で判断」の3モードから選ぶ。現在の案では、この三つの選択を価値項目ごとに置き、先にAIの解釈を示す。' },
-        { image: '/works/portfolio/generated/ai-story-triptych.png', alt: '初期構想の利用場面', caption: '初期構想の利用場面（AI生成のイメージ）。' },
-        { image: '/works/portfolio/generated/ai-cocreation-overlay.png', alt: '初期構想の判断役割', caption: '初期構想の3つの判断役割（AI生成のイメージ）。' },
       ],
       research: { sample: '第1段階の場面比較調査：47名が同じ夕食構想について4種類のAI対話（結論型／共議型 × 料理中心／会話・雰囲気まで拡張）を読み、個別に評価した後、4場面を比較して順位づけた。料理と食事場面のどちらを重視するかで三群に分けて比較した。', metrics: [
           ['47名', '場面比較調査', '4条件 × 5項目の評価'],
@@ -749,6 +746,9 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
             { src: '/works/portfolio/ai-test-ui-turn1.jpg', alt: 'テスト画面：ターン1後の三つの価値項目', caption: 'ターン1後：AIが発話を三つの価値項目に分ける（テスト版、中日混在）', wide: true },
             { src: '/works/portfolio/ai-test-ui-turn3.jpg', alt: 'テスト画面：ターン3でずれを確認', caption: 'ターン3：料理の重さと最初の基準のずれを確認する（日本語版）', wide: true },
           ] },
+        { kicker: 'ビジョン', title: '一度の修正から、先に尋ねるAIへ', text: '修士研究で検証するのは最初の層だけ：画面によって、AIの解釈のズレに気づき、その場で直せるか。当初の構想はもっと先まである。修正を1件ずつ記録してその人の感性プロファイルにまとめ、次の対話ではそれに沿って解釈する。ユーザーの同意があれば、修正前後の対比は学習データにもなり、曖昧な感性語ではまず解釈を示し、必要なら先に尋ねるモデルにつながる。この部分は研究範囲外で、方向性として残している。', stacked: true, images: [
+            { src: '/works/portfolio/redraw/ai-cocreation-pipeline-ja.jpg', alt: '研究・拡張・学習ビジョンの全体フロー', wide: true },
+          ] },
       ],
       href: '/works/ai-judgement',
     },
@@ -759,23 +759,23 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
       category: '知能運転 / HMIコンセプトと試作',
       year: '2025-2026',
       period: '大学院期・運転HMI',
-      status: 'コンセプト・VRテスト場面',
+      status: 'コンセプト・VR実験準備中',
       role: '個人制作：コンセプト立案、場面とリスク段階の設定、HUDの図形言語、VRテスト場面の構築、法規の整理、実験設計',
-      methods: '運転場面の分解、AIによるコンセプト図、VR運転テスト場面（Quest 3）、視線計測による注意の記録（計画）、中国国内の法規・規格の整理',
-      next: 'コンセプトとVRテスト場面は完成（3場面×3つの提示方式、Quest 3へ書き出し済み）。視線計測実験は未実施。',
-      description: '運転支援が頼もしくなるほど、人は気が緩む。このHMIは、AIがいま誰を見て何を気にしているかを運転者に見せ、人とシステムが一緒に道路を見る。コンセプトでは表情と短い言葉でリスクを伝え、実装では法規の範囲に合わせて図形に置き換え、VRの運転場面で視線を記録し、提示によって道路を見続けられるかを確かめる。',
+      methods: '運転場面の分解、AIによるコンセプト図、VR運転テスト場面（Quest 3）、頭部方向の記録、3区間の比較実験と質問紙（計画）、中国国内の法規・規格の整理',
+      next: 'コンセプト、図形言語、VRテスト場面は完成。3区間の実験プログラムと質問紙は開発・調整中で、参加者の募集はまだ行っていない。',
+      description: '運転支援が頼もしくなるほど、人は気が緩む。このHMIは、AIがいま何に注意しているかを運転者に見せる。車が早めに減速したり横に避けたりするとき、その方向に理由を示す。運転者が先に見ていれば提示は出さず、覚えた種類の手がかりは段階的に消していく。目標は、提示がなくても自分で見るようになること。提示は図形で表し、法規が認める表示領域に置き、VRの運転場面で確かめる。',
       question: '運転支援が安定するほど、運転者は観察を緩めてしまう。システムが示すのは距離や速度だけで、何を気にしているかは分からず、危険が現れたときに理解が間に合わない。',
       process: [
         ['対象は一つだけ', 'リスクの優先度に従い、いま最も注意すべき一つだけを示す。歩道脇の子ども、あるいは車線に寄ってくる隣の車。'],
         ['何を気にしているかを伝える', 'コンセプトでは表情と「道路に飛び出すかも」のような短い言葉で、試作では図形・色・方向で伝える。'],
         ['リスクに応じて強弱', '低リスクは軽い提示で注意を保ち、リスクが上がると色とリズムが強まる。最も危険なときは明確な警告と交代要求だけを残す。'],
-        ['法規の中で実装', '国内の運転支援とHUDの規格を確認し、できることと標準警告に譲ることを決め、3つのVRテスト場面に組み込む。'],
+        ['予防動作を手本に', 'AIが早めに減速したり避けたりするとき、その方向に理由を示す。運転者が先に見ていれば提示せず、覚えた種類は段階的に消す。'],
       ],
-      processIcons: ['target', 'message', 'alert', 'check'],
+      processIcons: ['target', 'message', 'alert', 'eye'],
       outcomes: [
-        '危険がどちら側にあり、どれほど急ぐのかが一目で分かり、視線を道路から外さずに済む。',
-        '「AIが何を気にしているかを見せる」というコンセプトを、文字に頼らず国内の表示規則に合う図形言語にし、3つのVRテスト場面に組み込んだ。',
-        '次はVRと視線計測で長時間運転の実験を行い、注意が前方に保たれ続けるかを記録する。',
+        '車がなぜ減速したのか、どちらを見ればよいのかが分かり、視線を道路から外さずに済む。',
+        '提示は理由だけを示し、運転者が先に見ていれば出さず、覚えた種類は段階的に消す。法規が求める監視と警告は変えない。',
+        '次は3区間のVR実験とオンラインの画像テストで、提示がなくなった後も自分から手がかりの方向を見るかを確かめる。',
       ],
       image: '/works/portfolio/hmi/hero.jpg',
       videos: [
@@ -790,12 +790,11 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
             '高リスク：明確で標準化された警告だけを残す。',
           ], images: [
             { src: '/works/portfolio/generated/hmi-risk-overlay.png', alt: 'コンセプト図：隣の車と子どものリスク提示', caption: 'コンセプト図（AI生成のイメージ）：隣の車は「車線変更するかも」、子どもは「道路に飛び出すかも」', wide: true },
-            { src: '/works/portfolio/generated/hmi-story-triptych.png', alt: '提示強度の三連図', caption: '三段階の強度（AI生成のイメージ）：低リスクは軽い提示、中リスクは対象表示、高リスクは明確な警告', wide: true },
           ] },
         { kicker: '実装', title: 'HUDでは、文字の代わりに図形で', text: 'L2運転支援の実際の制約に置くと、フロントガラスに出せるものは限られる。前方の視界を避ける必要があり、文字は注意をそらす。そこで「何を気にしているか」を図形言語に任せた。カプセル型バッジの図形が種類を、色が緊急度を、位置が方向を示す。文字は「L2」と「運転を交代」の2つだけ。', stacked: true, images: [
             { src: '/works/portfolio/hmi/attribute.jpg', alt: '図形言語：カプセル型バッジ、図形4種、色3段階', caption: '図形言語（図中は中国語）：歩行者／車両／静止障害物／システム × 青緑／琥珀／赤。点滅するのは赤だけ', wide: true },
           ] },
-        { kicker: '3つの案', title: '同じ言語を、3つの場所に', text: 'どの方法が最も視線を道路に保てるかを比べるため、同じ提示を3案にし、子どもの飛び出し・割り込み・前方工事の3場面に置いた。', stacked: true, points: [
+        { kicker: '表示位置', title: '同じ言語を、3つの場所に', text: 'まず提示をどこに置くかを比べた。同じ図形を3つの版にし、子どもの飛び出し・割り込み・前方工事の3場面に置いた。視野下端のバーが最も視界を遮らず、以降の実験ではこれを使う。', stacked: true, points: [
             'S1 HUD方位バー（主案）：視野下端のバーが、危険のある方向に点灯する。量産級HUDで実現でき、遮る面積が最も小さい。',
             'S2 ARの路面リング：危険な対象を直接囲み、行き先を予測する。最も直感的だが、より大きな視野のHUDが必要で、路面も遮りやすい。',
             'S3 センター画面の俯瞰：多くの車の現行方式。対照として残し、提示を前方に置く効果がどれほどかを確かめる。',
@@ -804,11 +803,12 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
             { src: '/works/portfolio/hmi/s2_merge_l3.jpg', alt: 'S2 ARの路面リング', caption: 'S2：割り込み車を囲み、行き先を示す' },
             { src: '/works/portfolio/hmi/s3_child_l3.jpg', alt: 'S3 センター画面の俯瞰', caption: 'S3：ナビ画面に俯瞰のリスクカードが出る' },
           ] },
-        { kicker: 'VR実験', title: '運転者の注意がどこに向くかを記録する', text: '実際の道路での長時間テストは危険で、同じ条件の再現も難しい。そこでVRの運転場面を構築した。同じ道路・同じ危険を、異なる人が異なる提示方式で走行できる。画面を見るシミュレーターと違い、VRでは自由に首を回して周りを見られ、正面を見続ける必要がないため、実際の乗車と同じように注意がそれる。参加者には「自動運転での旅行体験」と説明し、道路を見るようには促さず、意識的に前を見続けることを避ける。実験後に本当の目的を説明する。Quest 3と視線計測モジュールで、どこをどれだけ見たかを記録する。各条件は約20分で平穏な走行が中心、危険は前半・中盤・後半に配置する。5分ごとに前方への視線の割合とイベントへの反応時間を集計し、後半の注意が前半よりどれだけ落ちるかを比べる。関連研究との違いは次の四点。', stacked: true, points: [
-            '時間の長さ：運転交代の研究は一度の危険への反応を測ることが多い。本研究は長時間の運転支援中に、注意が少しずつ道路から離れるかを見る。',
-            '提示の内容：多くの警告は「危険がある」ことだけを伝える。本研究ではAIが見ている対象を示し、危険が現れた時点から提示を始め、最後の瞬間まで待たない。',
-            '量産条件での設計：提示は国内法規が認める表示領域に置き、主案は量産級HUDの視野に合わせたので、結果を実際に搭載できる提示に生かせる。',
-            '自然な状態を測る：参加者は自動運転の旅行を体験していると思い、景色を自由に眺められる。視線が道路に戻るかどうかは、提示が人を引き戻せるかにかかっている。',
+        { kicker: '中心となる考え', title: 'AIの予防動作を手本にする', text: '運転支援のAIはすでに防衛運転をしている。駐車車両、バス停、見通しの悪い交差点の手前では、早めに減速したり少し横に避けたりする。多くの運転者にはこの習慣がなく、車がなぜそう動くのかも分からない。本研究ではこの予防動作を手本として扱う。動作の1秒前に、視野下端のバーの対応する方向へ図形を出し、理由だけを示す。運転者がすでにその方向を見ていれば提示は出さず、チェックマークだけを示す。同じ種類で3回続けて先に見られたら、その種類は以後提示しない。', stacked: true, images: [] },
+        { kicker: 'VR実験', title: '提示がなくなっても、自分から見るか', text: 'VRの市街地ルートに6種類の手がかりを配置した。駐車車両の前、バス停、見通しの悪い交差点、路上駐車のドアが開く範囲、自転車、前の前の車のブレーキ。ヘッドセットで頭部の向きを記録し、どこをいつ見たかを残す。VRでは自由に首を回せて正面を見続ける必要がないため、実際の乗車と同じように注意がそれる。1回の走行は停車なしの3区間で、最初の5分は提示なし、次の12分は割り当てられた方式、最後の5分は再び提示なし。比べるのは2方式で、Aは同じ予防動作を説明なしで行い、Cは上の提示を加える。主な指標は、第3区間で手がかりの方向を見た割合が第1区間からどれだけ増えたか。ヘッドセットを使わないオンライン版もあり、走行映像の前後に「次にどこを見るか」の画像テストを行う。参加者には何を比べているかを事前に伝えず、終了後に説明する。関連研究との違い：', stacked: true, points: [
+            '学習を測る：運転交代の研究は一度の危険への反応時間を測ることが多い。本研究は提示を外した後も自分から見るかを見る。',
+            '提示が減っていく：多くの警告は検知した危険を示し続ける。ここでは予防の理由を示し、運転者が先に見ていれば出さず、覚えた種類は出さなくなる。',
+            '代償も測る：「提示がなければ安全」という誤解が生まれないか、信頼・負荷・VR酔いとあわせて質問紙で確かめる。',
+            '法規の部分は変えない：ドライバーモニタリングの注意・警告と「運転を交代」は全方式で同じで、比べるのは追加した層だけ。',
           ], images: [] },
       ],
       comparison: { title: '中国国内の法規と取捨選択', intro: '法規が定めるのは「運転者は道路を見続ける」「システムは警告する」「フロントガラスに何を出せるか」であり、このHMIはその範囲内で補うだけにする。公表資料と解説に基づき、規格本文は逐条確認していない。', columns: ['法規の要求（要約）', '本案の取捨選択'], rows: [
@@ -978,19 +978,19 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
       modules: [
         { kicker: '試行錯誤 · 1年で何度も方向転換', title: '「画像で設定」から「見ながら調整」へ', stacked: true, text: '出発点は2023年のALIVEの電子レンジ。スマホの画像カードをつまみにかざして設定を送る案だった。その後、味・温かさ・触感を色・形・硬さに置き換える試みや、調理工程を採点する寄り道を経て、一つの考えに戻った。仕上がりを見ながらオーブンを設定すること。アンケートは3回改訂した。', images: [
             { src: '/works/portfolio/oven-state-timing/iteration-timeline-ja.svg', alt: 'AIオーブン案の変遷', caption: '変遷のタイムライン（各回の報告から整理）', wide: true },
-            { src: '/works/portfolio/oven-state-timing/slide-texture-color.jpg', alt: '温度と触感の表現', caption: '2024.11：温かい・冷たい・サクサクを色と質感で表す' },
-            { src: '/works/portfolio/oven-state-timing/slide-taste-shape.jpg', alt: '五味の形と色', caption: '2024.11：五味の形と色' },
-            { src: '/works/portfolio/oven-state-timing/sim-test-plan.jpg', alt: '模擬実験の計画', caption: '模擬実験の計画：仮想の電子レンジで4種類の表示を比較' },
+            { src: '/works/portfolio/redraw/oven-texture-color-ja.jpg', alt: '温度と触感の表現', caption: '2024.11：温かい・冷たい・サクサクを色と質感で表す' },
+            { src: '/works/portfolio/redraw/oven-taste-shape-ja.jpg', alt: '五味の形と色', caption: '2024.11：五味の形と色' },
+            { src: '/works/portfolio/redraw/oven-sim-test-plan-ja.jpg', alt: '模擬実験の計画', caption: '模擬実験の計画：仮想の電子レンジで4種類の表示を比較' },
           ] },
         { kicker: '操作 · 見ながら調整', title: '人は感覚で判断し、数値は機械が覚える', text: '画面の上に予測画像、下に温度と時間。数値を変えれば画像が変わり、逆に「火加減」「硬さ」「焼き色」などの特徴を選んで + / − を押せば数値が換算される。乾燥度のような感覚も調整バーにした。欲しい姿になったらスタート。', points: [
             'AIは柔らかい〜硬い、白い〜焼き色の濃いまで複数の結果を同時に示し、それぞれに時間と温度が付く',
             '双方向：画像から数値へ、数値から画像へ',
           ], images: [
             { src: '/works/portfolio/oven-state-timing/screen-features.jpg', alt: '特徴を切り替える予測画面', caption: '特徴を切り替えて + / −、温度と時間が連動' },
-            { src: '/works/portfolio/oven-state-timing/state-grid.jpg', alt: 'AIが生成した複数の焼き上がり', caption: '複数の結果を同時に生成、それぞれに時間と温度' },
+            { src: '/works/portfolio/redraw/oven-state-grid-ja.jpg', alt: 'AIが生成した複数の焼き上がり', caption: '複数の結果を同時に生成、それぞれに時間と温度' },
           ], stacked: true },
         { kicker: '一体型 · 庫内の見守り', title: '焼いている間、カメラが予測画像と見比べる', text: '生地を入れると庫内カメラが自動で撮影し、予測画像を生成する。焼成中も撮り続けて予測と比べ、目標に近づけば調整や停止を行う。設定時間をただ消化するのではない。高温の庫内での撮影は難しいが、不可能ではない。', images: [
-            { src: '/works/portfolio/oven-state-timing/original-state-options.png', alt: '入れる・自動撮影・予測画像の生成', caption: '入れる → 自動撮影 → 予測画像と推奨設定', wide: true },
+            { src: '/works/portfolio/redraw/oven-ai-steps-ja.jpg', alt: '入れる・自動撮影・予測画像の生成', caption: '入れる → 自動撮影 → 予測画像と推奨設定', wide: true },
             { src: '/works/portfolio/oven-state-timing/ai-prediction-interface.jpg', alt: '予測画面付きオーブンの概念図', caption: '一体型のコンセプト（AI生成のイメージ）' },
             { src: '/works/portfolio/oven-state-timing/bake-sequence.jpg', alt: '生から焼き上がりまでの予測', caption: '生から焼き上がりまでの予測（AI生成）' },
           ] },
@@ -1033,12 +1033,12 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
             '規格とインターフェースは汎用品に合わせ、無駄を減らす',
           ], images: [
             { src: '/works/portfolio/alive-2023/power-color-ja.svg', alt: '色とパワーの対応', caption: '色とパワーの対応（元の作品集をもとに再描画）', wide: true },
-            { src: '/works/portfolio/alive-2023/power-pie.jpg', alt: '家電の電力分布の円グラフ', caption: '家電の電力分布：低電力が多数' },
+            { src: '/works/portfolio/redraw/alive-power-pie-ja.jpg', alt: '家電の電力分布の円グラフ', caption: '家電の電力分布：低電力が多数' },
             { src: '/works/portfolio/alive-2023/strip-sketch-use.jpg', alt: '使い方スケッチ：触れて起動、消費電力でプラグを探す', caption: '使い方スケッチ：触れて起動、消費電力でプラグを探す' },
             { src: '/works/portfolio/alive-2023/strip-exploded.jpg', alt: 'タップ内部の分解図', caption: '内部構造：ライト、ボタンと保護、センサー、制御、電源変換', wide: true },
           ] },
         { kicker: 'システム · 機器の間', title: 'リングが一緒に変わり、家電が「生きて」くる', text: '三つの家電は同じライトリングの言語を共有する。機器が動くと、本体のリングとタップの対応する差込口のリングが同期して変わり、独立した機器同士に連動感が生まれ、生きているように呼応し合う。', images: [
-            { src: '/works/portfolio/alive-2023/three-nodes.jpg', alt: '3つの家電がそれぞれ表示する内容', caption: '3つの家電がそれぞれ表示する内容', wide: true },
+            { src: '/works/portfolio/redraw/alive-three-nodes-ja.jpg', alt: '3つの家電がそれぞれ表示する内容', caption: '3つの家電がそれぞれ表示する内容', wide: true },
             { src: '/works/portfolio/alive-2023/ring-sketch.jpg', alt: 'ライトリングの構造スケッチ：上が導光リング、下がLEDベースと駆動部', caption: 'ライトリングの構造スケッチ：上が導光リング、下がLEDベースと駆動部', wide: true },
           ] },
         { kicker: '電気ケトル · 人間工学', title: '人は上から見る。だから情報は上面に', text: 'ケトルは目線より低い台に置かれることが多く、人は上から見下ろす。側面の水位窓は膝と腰を曲げないと見えず負担になる。また人は沸騰で100 ℃を感じられても、他の温度は判断しにくい。そこで水量と温度を蓋のリングに表示し、台座のリングも同期して「通電しているか、沸かしているか」に応える。', images: [
@@ -1088,8 +1088,6 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
           ] },
         { kicker: 'ブランド刷新 · 「金鑫」から「鑫豊」へ', title: 'マークと社名がようやく一致した', text: '以前は「金鑫」と読める回転する鉤形のマークと、緑地に金文字の名刺を使っていた。社名と一致せず、細い線は銘板サイズでつぶれ、配色も商社や宝飾店のよう。新しいマークは三つの扇形が「鑫」の三つの「金」を表し、下に「丰」を置く。黒みのある赤に墨黒と鋼グレーを合わせ、設備メーカーらしい印象にした。', images: [
             { src: '/works/portfolio/xinfeng/vi-upgrade.jpg', alt: '刷新前後の比較（VIの展開ページはポートフォリオ制作時に追加、以下同）', caption: '刷新前後の比較（VIの展開ページはポートフォリオ制作時に追加、以下同）', wide: true },
-            { src: '/works/portfolio/xinfeng/logo-construction.jpg', alt: 'インターン時の作図', caption: '2023年の原稿：モノクロと作図' },
-            { src: '/works/portfolio/xinfeng/logo-combination.jpg', alt: 'インターン時の和英組み合わせ', caption: '2023年の原稿：組み合わせと色番号' },
           ] },
         { kicker: 'ブランド計画 · 一つのマスターブランド', title: '先にルールを決め、機械とすべての接点に展開する', stacked: true, text: '原稿にはすでに「鑫豊化工／鑫豊冶金」の組み合わせがあり、それをルールにした。マークは同じで名称だけを替える。設備はカテゴリーで番号を振り（EL 電解、IN 溶解、EX 抽出）、消耗品は周辺に位置づける。同じ電解設備で三段階を比べた：旧マーク、ロゴだけ差し替え、統一した識別。最後の段階で初めて「鑫豊のどの種類の、どの一台か」が分かる。先にルールを決めて一貫させる考え方は、後の製品計画にも生きている。', points: [
             '機体：マークは左上に固定、カテゴリーと型番は右、赤い線で区切る',
@@ -1126,11 +1124,11 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
         '文字中心のロゴから図形マークを展開し、企業識別の基本規定と応用を整えた。',
         'ロゴ、標準作図、43ページのVIマニュアルを制作した。',
       ],
-      image: '/works/portfolio/factory-safety-vi/vi-cover.jpg',
+      image: '/works/portfolio/redraw/vi-cover.jpg',
       gallery: [
-        { image: '/works/portfolio/factory-safety-vi/logo-rationale.jpg', alt: '幾何学的なKマークの由来と構成を示すページ', caption: 'ロゴ展開：文字中心の識別から上向きの三角を備えた幾何学Kマークへ。' },
-        { image: '/works/portfolio/factory-safety-vi/logo-grid.jpg', alt: '企業ロゴの幾何学的な作図グリッド', caption: 'ロゴの標準化：比率とグリッドで再現性を確保。' },
-        { image: '/works/portfolio/factory-safety-vi/logo-combinations.jpg', alt: '企業ロゴの中国語・英語の組み合わせ', caption: 'ロゴの組み合わせ：中国語・英語の名称と図形マークの組み合わせ。' },
+        { image: '/works/portfolio/redraw/vi-rationale-ja.jpg', alt: '幾何学的なKマークの由来と構成を示すページ', caption: 'ロゴ展開：文字中心の識別から上向きの三角を備えた幾何学Kマークへ。' },
+        { image: '/works/portfolio/redraw/vi-grid-ja.jpg', alt: '企業ロゴの幾何学的な作図グリッド', caption: 'ロゴの標準化：比率とグリッドで再現性を確保。' },
+        { image: '/works/portfolio/redraw/vi-wordmark-ja.jpg', alt: '企業ロゴの中国語・英語の組み合わせ', caption: 'ロゴの組み合わせ：中国語・英語の名称と図形マークの組み合わせ。' },
       ],
       href: '/works/corporate-vi',
     },
@@ -1159,10 +1157,11 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
         '効率の核は秩序。「新しい物は右、古い物は左」という一つの規則と2段階のライトで、物の位置を覚えなくてよくなる。',
       ],
       image: '/works/portfolio/fridge-timeline-system.png',
+      cover: '/works/portfolio/fridge-2023/render-cmf.jpg',
       gallery: [
         { image: '/works/portfolio/fridge-2023/render-kitchen.jpg', alt: 'キッチンの冷蔵庫レンダリング', caption: '2023年のレンダリング：調理台のすぐ横に置く' },
         { image: '/works/portfolio/fridge-2023/render-cmf.jpg', alt: '4つの配色', caption: 'CMF：本体4色' },
-        { image: '/works/portfolio/generated/fridge-story-triptych.png', alt: 'AIによる利用シーンの再制作', caption: '2026年にAIで再制作した利用シーン（元のデザインではない）' },
+        { image: '/works/portfolio/redraw/fridge-storyboard-ja.jpg', alt: '一度の収納の流れ（2023年のC4Dフローアニメーションより）', caption: '一度の収納の流れ（2023年のC4Dフローアニメーションより）', wide: true },
       ],
       videos: [
         { src: '/works/portfolio/fridge-2023/flow-demo.mp4', poster: '/works/portfolio/fridge-2023/flow-demo-poster.jpg', caption: 'C4Dの流れアニメーション（2023）：スキャナーを外す → 卓上でスキャン → 庫内ライト誘導 → ドアの斜めのライト。' },
@@ -1207,8 +1206,7 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
             'いちばん左が最も古い物。まずそれから食べる',
           ], images: [
             { src: '/works/portfolio/fridge-2023/order-rule-ja.svg', alt: '受取番号の規則と冷蔵庫内の並べ方', caption: '受取番号 → 冷蔵庫内の並べ方（再作図）', wide: true },
-            { src: '/works/portfolio/fridge-2023/midterm-concept.jpg', alt: '中間発表：コンセプトの出発点', caption: '中間発表：宅配の倉庫管理 → スマート管理 → ライト誘導' },
-            { src: '/works/portfolio/fridge-2023/midterm-courier-analogy.jpg', alt: '宅配のスキャン登録', caption: '参考：宅配のスキャン登録とラベル' },
+            { src: '/works/portfolio/redraw/fridge-midterm-concept-ja.jpg', alt: '中間発表：コンセプトの出発点', caption: '中間発表：宅配の倉庫管理 → スマート管理 → ライト誘導' },
           ], stacked: true },
         { kicker: 'ライト · 2段階の誘導', title: '扉の外で場所を、扉の中で位置を示す', text: '位置が決まると、まず該当する扉のライトが点く。ライトは隠し取っ手に沿い、形で開ける向きを示す。扉を開けると該当する段のライトが点く。取り出しも同じで、スマホか扉の画面で食材を「取り出す」へドラッグすると、その扉のライトが点滅する。', points: [
             '取っ手の範囲は中国人成人女性5パーセンタイルから男性95パーセンタイルまでの手を上げた高さで決めた',
@@ -1257,9 +1255,6 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
       ],
       image: '/works/portfolio/ai-cocreation-steps-zh.svg',
       gallery: [
-        { image: '/works/portfolio/generated/ai-cocreation-chat-v2.png', alt: '早期概念的对话界面', caption: '早期概念（AI 生成示意）：在“AI 判断 / 共同协商 / 自己判断”三种模式间选择。现方案把这三个选项放到每个价值项目上，并先显示 AI 的理解。' },
-        { image: '/works/portfolio/generated/ai-story-triptych.png', alt: '早期概念的使用场景', caption: '早期概念的使用场景（AI 生成示意）。' },
-        { image: '/works/portfolio/generated/ai-cocreation-overlay.png', alt: '早期概念的判断角色', caption: '早期概念的三种判断角色（AI 生成示意）。' },
       ],
       research: { sample: '第 1 阶段场景比较调查：47 人阅读同一个晚餐构想的 4 种 AI 对话（给结论 / 一起商量 × 只谈料理 / 扩展到用餐氛围），先逐个评价，再一起排序。按更看重料理还是用餐氛围，把人分成三组比较。', metrics: [
           ['47 人', '场景比较调查', '4 种对话条件 × 5 项评价'],
@@ -1277,6 +1272,9 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
             { src: '/works/portfolio/ai-test-ui-turn1.jpg', alt: '测试界面：第 1 轮后右侧列出三个价值项目', caption: '第 1 轮后：AI 把用户的话拆成三个价值项目（测试版，中日混排）', wide: true },
             { src: '/works/portfolio/ai-test-ui-turn3.jpg', alt: '测试界面：第 3 轮确认偏差', caption: '第 3 轮：确认料理分量与最初标准之间的偏差（日文版）', wide: true },
           ] },
+        { kicker: '愿景', title: '从一次修正，到 AI 学会先问', text: '硕士研究只验证第一层：界面能不能让人发现 AI 理解的偏差，并顺手改过来。最初的设想更远：每次修正都记成一条记录，整理成这个人的感性档案，下次对话先按档案理解；在用户同意的前提下，修正前后的对照还能成为训练数据，让模型在模糊的感性词上先摆出理解、该问时先问。这部分不在研究范围内，保留为方向。', stacked: true, images: [
+            { src: '/works/portfolio/redraw/ai-cocreation-pipeline-zh.jpg', alt: '研究、延伸与训练愿景的完整流程', wide: true },
+          ] },
       ],
       href: '/works/ai-judgement',
     },
@@ -1287,23 +1285,23 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
       category: '智能驾驶 / HMI 概念与原型',
       year: '2025-2026',
       period: '研究生阶段 · 智能驾驶 HMI',
-      status: '概念方案 · VR 测试场景',
+      status: '概念方案 · VR 实验准备中',
       role: '独立完成：概念提出、场景与风险分级、HUD 图形语言、VR 测试场景搭建、法规梳理、实验设计',
-      methods: '驾驶场景拆解、AI 概念图、VR 驾驶测试场景（Quest 3）、眼动记录注意力（计划）、国内法规与标准梳理',
-      next: '概念与 VR 测试场景已完成（三个场景 × 三种提示方式，已导出到 Quest 3）；眼动实验尚未开始。',
-      description: '辅助驾驶越可靠，人越容易走神。这个 HMI 让驾驶者看见 AI 此刻在留意谁、担心什么，人和系统一起看路。概念阶段用表情和一句短语说明风险；落地时在法规边界内改用图形，并搭建 VR 驾驶场景记录驾驶者的视线，检验这些提示能否让人一直看路。',
+      methods: '驾驶场景拆解、AI 概念图、VR 驾驶测试场景（Quest 3）、头部朝向记录、三段式对照实验与问卷（计划）、国内法规与标准梳理',
+      next: '概念、图形语言和 VR 测试场景已完成；三段式实验程序和问卷在开发调试中，尚未招募参与者。',
+      description: '辅助驾驶越可靠，人越容易走神。这个 HMI 让驾驶者看见 AI 此刻在留意什么：车提前减速或让开时，在对应方位说明原因。驾驶者先看到就不提示，学会的线索逐步撤掉，目标是没有提示时人也会自己去看。提示用图形表达，放在法规允许的显示区域，并搭建 VR 驾驶场景来检验。',
       question: '辅助驾驶越稳定，驾驶者越容易放松观察；系统只显示距离、速度，人不知道它“在担心什么”，风险出现时来不及理解。',
       process: [
         ['只标一个对象', '按风险优先级，只标出此刻最需要注意的那一个：路边的孩子，或正在并线的邻车。'],
         ['说出担心什么', '概念里用表情和一句短语，比如“可能闯入马路”；原型里交给图形、颜色和方位。'],
         ['按风险分轻重', '低风险轻轻提示，维持关注；风险升高，颜色和节奏随之加强；最危险时只留明确警示和接管请求。'],
-        ['在法规内落地', '对照国内辅助驾驶与 HUD 标准，决定哪些能做、哪些让位给标准化警示，再搭进三个 VR 测试场景。'],
+        ['预防动作当示范', 'AI 提前减速或让开时，在对应方位说明原因；人先看到就不提示，学会的类型逐步撤掉。'],
       ],
-      processIcons: ['target', 'message', 'alert', 'check'],
+      processIcons: ['target', 'message', 'alert', 'eye'],
       outcomes: [
-        '驾驶者一眼看出风险在哪边、有多急，目光不用离开路面。',
-        '概念里“让人看见 AI 在担心什么”的想法，落地成一套不靠文字、符合国内显示法规的图形语言，并搭成三个 VR 测试场景。',
-        '接下来用 VR 和眼动做长时间驾驶实验，记录注意力能否一直留在前方。',
+        '驾驶者知道车为什么减速、该往哪边看，目光不用离开路面。',
+        '提示只说明原因，人先看到就不出现，学会的线索类型逐步撤掉；法规要求的监测与警告保持不变。',
+        '接下来用 VR 三段式实验和线上图片测试，检验提示撤掉以后人会不会主动看线索位置。',
       ],
       image: '/works/portfolio/hmi/hero.jpg',
       videos: [
@@ -1318,12 +1316,11 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
             '高风险：只保留明确、标准化的警示。',
           ], images: [
             { src: '/works/portfolio/generated/hmi-risk-overlay.png', alt: '概念图：邻车与儿童的风险提示', caption: '概念图（AI 生成示意）：邻车“可能变道”，孩子“可能闯入马路”', wide: true },
-            { src: '/works/portfolio/generated/hmi-story-triptych.png', alt: '提示强度三连图', caption: '三种强度（AI 生成示意）：低风险轻提示、中风险标出对象、高风险明确警示', wide: true },
           ] },
         { kicker: '落地', title: '在 HUD 上，用图形代替文字', text: '放进 L2 辅助驾驶的真实约束后，风挡上能放的东西很有限：要避开前方视线，文字也会分走注意力。于是“担心什么”交给一套图形语言：胶囊徽章里的图形说明是什么，颜色说明有多急，位置说明在哪一边。全程只留「L2」和「请接管」两处文字。', stacked: true, images: [
             { src: '/works/portfolio/hmi/attribute.jpg', alt: '图形语言：胶囊徽章、四类图形、三级颜色', caption: '图形语言：行人 / 车辆 / 静态障碍 / 系统 × 青 / 琥珀 / 红，只有红色会闪', wide: true },
           ] },
-        { kicker: '三个方案', title: '同一套语言，放在三个位置', text: '为了比较哪种方式最能把视线留在路上，同一套提示做成三个方案，放进儿童跑出、邻车加塞、前方施工三个场景。', stacked: true, points: [
+        { kicker: '显示位置', title: '同一套语言，放在三个位置', text: '先比较了提示放在哪里：同一套图形做成三个版本，放进儿童跑出、邻车加塞、前方施工三个场景。视野下缘的光带遮挡最少，后面的实验都用它。', stacked: true, points: [
             'S1 HUD 方位光带（主方案）：视野下缘的一条光带，亮在风险所在的方向。量产级 HUD 就能实现，遮挡最少。',
             'S2 AR 贴地光圈：直接圈住风险对象并预测它的去向，最直观，但需要更大视场的 HUD，也更容易挡住路面。',
             'S3 中控屏鸟瞰：很多车型现在的做法，留作对照，检验把提示留在前方到底差多少。',
@@ -1332,11 +1329,12 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
             { src: '/works/portfolio/hmi/s2_merge_l3.jpg', alt: 'S2 AR 贴地光圈', caption: 'S2：圈住切入的车，并画出它的去向' },
             { src: '/works/portfolio/hmi/s3_child_l3.jpg', alt: 'S3 中控屏鸟瞰', caption: 'S3：导航界面上弹出俯视风险卡片' },
           ] },
-        { kicker: 'VR 实验', title: '记录驾驶者的注意力去了哪里', text: '在真实道路上做长时间测试既危险，也很难重复，所以搭建了 VR 驾驶测试场景：同一段路、同样的风险，让不同的人在不同提示方式下各开一遍。和对着屏幕的模拟器不同，VR 里可以自由转头、四处张望，不必一直看正前方，走神会像真实乘车一样自然发生。实验对参与者说是一次“自动驾驶旅行体验”，不提醒要看路，避免他们刻意盯着前方；结束后再说明真实目的。Quest 3 加眼动模块，记录驾驶者看了哪里、看了多久。每个条件约 20 分钟，以平稳驾驶为主，风险事件分散在前、中、后段；每 5 分钟统计一次视线落在前方区域的比例和对事件的反应时间，看后段比前段衰减多少。和相关研究相比，有四点不同：', stacked: true, points: [
-            '时间更长：接管类研究多测单次风险事件里的反应时间；这里关心的是长时间辅助驾驶中，注意力会不会慢慢离开路面。',
-            '提示的内容不同：多数预警只告诉驾驶者“有危险”；这里让驾驶者看见 AI 正在留意的对象，从风险刚出现就开始提示，不等到最后一刻才报警。',
-            '按量产条件设计：提示放在国内法规允许的显示区域，主方案按量产级 HUD 视场设计，结论能用在真正可能上车的方案上。',
-            '测的是自然状态：参与者以为在体验自动驾驶旅行，可以随意看风景，视线回不回到路上，取决于提示能不能把人拉回来。',
+        { kicker: '核心', title: '把 AI 的预防动作变成示范', text: '辅助驾驶的 AI 已经会防御性驾驶：经过停着的车、公交站、视线被挡的路口，它会提前减速，或往旁边让一点。多数驾驶者没有这个习惯，也不知道车为什么这样做。实验把这些预防动作当作示范：动作开始前 1 秒，在视野下缘光带上对应的方位显示一个图形，只说明原因。驾驶者如果已经先看向那里，就不再提示，只给一个对勾；同一类线索连续三次都先看到，这一类之后不再提示。', stacked: true, images: [] },
+        { kicker: 'VR 实验', title: '提示撤掉以后，人还会不会自己看', text: '在 VR 里搭了一条城市路线，沿途布置六种线索：停着的车头前、公交站、视线被挡的路口、路边车的开门范围、骑车的人、前车的前车在刹车。头显记录头部朝向，转头看了哪里、什么时候看的都留下来；VR 里可以自由转头，不必一直看正前方，走神会像真实乘车一样发生。一次行驶分三段，中间不停车：先 5 分钟没有提示，再 12 分钟按分到的方案行驶，最后 5 分钟又没有提示。比较两个方案：A 的车照常做预防动作但不解释，C 加上面的提示。主要看第三段比第一段多看了多少线索位置。另有一个不用头显的线上版本：看一段行驶录像，前后各做一套“接下来看哪里”的图片题。参与者事先不知道实验在比较什么，结束后再说明。和相关研究相比：', stacked: true, points: [
+            '测的是学会没有：接管类研究多测一次风险里的反应时间；这里看提示撤掉以后，人还会不会主动去看。',
+            '提示会越来越少：多数预警一直提示检测到的危险；这里提示的是预防的原因，人先看到就不提示，学会的类型不再出现。',
+            '同时测代价：用问卷检查会不会让人以为“没有提示就是安全”，以及信任、负荷和晕动。',
+            '法规要求的部分不动：驾驶员监测的提醒、警告和「请接管」在各方案里完全相同，比较的只是多出来的这一层。',
           ], images: [] },
       ],
       comparison: { title: '国内法规与取舍', intro: '法规管的是“驾驶员必须盯路、系统必须提醒、风挡上能放什么”，这个 HMI 只在这些边界之内做补充。依据为公开发布与解读，未逐条核对标准原文。', columns: ['法规要求（摘要）', '本方案的取舍'], rows: [
@@ -1519,16 +1517,16 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
       modules: [
         { kicker: '试错 · 一年里换了几次方向', title: '从“用图像设定”到“看着图调参数”', stacked: true, text: '起点是 2023 年 ALIVE 的微波炉：手机上的图像卡片贴到旋钮上传参数。之后先试着把味道、温度、触感翻译成颜色、形状和软硬，也走过“给做菜过程打分”的岔路，最后收回到一件事：让人看着成品图来设定烤箱。问卷前后改了三轮。', images: [
             { src: '/works/portfolio/oven-state-timing/iteration-timeline-zh.svg', alt: 'AI 烤箱方案的迭代时间线', caption: '迭代时间线（根据各次报告整理）', wide: true },
-            { src: '/works/portfolio/oven-state-timing/slide-texture-color.jpg', alt: '温度与触感的视觉表现', caption: '2024.11：温暖、冰凉、酥脆分别对应什么颜色和纹理' },
-            { src: '/works/portfolio/oven-state-timing/slide-taste-shape.jpg', alt: '五味的形状与颜色', caption: '2024.11：五种味道的形状与颜色' },
-            { src: '/works/portfolio/oven-state-timing/sim-test-plan.jpg', alt: '模拟实验方案', caption: '模拟实验方案：在虚拟微波炉上比较 4 种信息显示' },
+            { src: '/works/portfolio/redraw/oven-texture-color-zh.jpg', alt: '温度与触感的视觉表现', caption: '2024.11：温暖、冰凉、酥脆分别对应什么颜色和纹理' },
+            { src: '/works/portfolio/redraw/oven-taste-shape-zh.jpg', alt: '五味的形状与颜色', caption: '2024.11：五种味道的形状与颜色' },
+            { src: '/works/portfolio/redraw/oven-sim-test-plan-zh.jpg', alt: '模拟实验方案', caption: '模拟实验方案：在虚拟微波炉上比较 4 种信息显示' },
           ] },
         { kicker: '交互 · 边调边看', title: '人凭直觉判断，机器记下参数', text: '图像屏上方是预想图，下方是温度和时间。调参数，图跟着变；反过来点“火候”“硬度”“焦色”等特征再按 + / −，参数自动换算。干燥度这类感觉也做成可调的进度条。看到想要的样子，按开始。', points: ['AI 同时给出几种结果：柔软到硬、白到焦，每种都带时间和温度', '双向调节：从图到参数，或从参数到图'], images: [
             { src: '/works/portfolio/oven-state-timing/screen-features.jpg', alt: '预想图界面：特征切换与温度时间', caption: '点特征切换，+ / − 调整，温度时间随之变化' },
-            { src: '/works/portfolio/oven-state-timing/state-grid.jpg', alt: 'AI 生成的多种烤制结果', caption: '一次生成多种结果，各自对应时间与温度' },
+            { src: '/works/portfolio/redraw/oven-state-grid-zh.jpg', alt: 'AI 生成的多种烤制结果', caption: '一次生成多种结果，各自对应时间与温度' },
           ], stacked: true },
         { kicker: '一体机 · 腔内监控', title: '烤的时候，用摄像头对照预想图', text: '放进生面团，腔内摄像头自动拍下食材，生成预想图。烤制中继续拍摄，和预想图对照，快到目标就调整或停止，而不是只按设定时间走完。高温下的腔内摄像有难度，但并非做不到。', images: [
-            { src: '/works/portfolio/oven-state-timing/original-state-options.png', alt: '放入食材、自动拍摄、生成预想图的步骤', caption: '放入 → 自动拍摄 → 生成预想图与推荐参数', wide: true },
+            { src: '/works/portfolio/redraw/oven-ai-steps-zh.jpg', alt: '放入食材、自动拍摄、生成预想图的步骤', caption: '放入 → 自动拍摄 → 生成预想图与推荐参数', wide: true },
             { src: '/works/portfolio/oven-state-timing/ai-prediction-interface.jpg', alt: '带预想图屏的烤箱概念图', caption: '一体机概念（AI 生成示意）' },
             { src: '/works/portfolio/oven-state-timing/bake-sequence.jpg', alt: '面包从生到熟的预想序列', caption: '从生到熟的预想序列（AI 生成）' },
           ] },
@@ -1564,12 +1562,12 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
       modules: [
         { kicker: '起点 · 智能插排', title: '颜色说出功耗，在乱线里找到插头', text: '调研归纳了 11 个插座使用问题，例如“线乱了找不到对应插头”“看不出哪个插孔在用电”。插孔灯环按功率变色：家里低功率电器更多，所以 0–300 W 区间的颜色变化更密集，方便区分。顺带也能一眼看出谁是耗电大头。', points: ['线材混乱时，按功耗推断对应插头', '闲置 10 秒休眠，震动唤醒，减少灯本身的耗电', '规格和接口沿用通用标准，减少浪费'], images: [
             { src: '/works/portfolio/alive-2023/power-color-zh.svg', alt: '颜色与功率的对应', caption: '颜色与功率的对应（据原作品集重绘）', wide: true },
-            { src: '/works/portfolio/alive-2023/power-pie.jpg', alt: '家用电器功率分布饼图', caption: '家用电器按功率分布：低功率占多数' },
+            { src: '/works/portfolio/redraw/alive-power-pie-zh.jpg', alt: '家用电器功率分布饼图', caption: '家用电器按功率分布：低功率占多数' },
             { src: '/works/portfolio/alive-2023/strip-sketch-use.jpg', alt: '使用方式草图：贴近唤醒、按功耗找插头', caption: '使用方式草图：贴近唤醒、按功耗找插头' },
             { src: '/works/portfolio/alive-2023/strip-exploded.jpg', alt: '插排内部结构拆解', caption: '内部结构：灯光、按键与保护、传感、控制与电源转换', wide: true },
           ] },
         { kicker: '系统 · 机器之间', title: '灯环一起变化，让家电“活”起来', text: '三件家电共用同一种灯环。设备运行时，机身灯环与插排上对应插孔的灯环同步变化，原本各管各的机器就有了联动感，像是活的。', images: [
-            { src: '/works/portfolio/alive-2023/three-nodes.jpg', alt: '三个家电节点各自显示的内容', caption: '三个家电节点各自显示的内容', wide: true },
+            { src: '/works/portfolio/redraw/alive-three-nodes-zh.jpg', alt: '三个家电节点各自显示的内容', caption: '三个家电节点各自显示的内容', wide: true },
             { src: '/works/portfolio/alive-2023/ring-sketch.jpg', alt: '灯环结构草图：上层导光环，下层 LED 底环与驱动', caption: '灯环结构草图：上层导光环，下层 LED 底环与驱动', wide: true },
           ] },
         { kicker: '热水壶 · 人机工程', title: '人是从上往下看的，所以信息放在顶面', text: '热水壶大多放在低于视线的台面上，人通常从上往下看。侧面的水位窗要弯腰屈膝才看得清，对膝盖和腰都是负担；而人只能凭沸腾感知 100 ℃，其他温度很难判断。所以把水量和温度都放到顶盖的灯环上；底座灯环同步变色，回应“通电了没有、是不是在烧”。', images: [
@@ -1619,8 +1617,6 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
           ] },
         { kicker: '品牌升级 · 从“金鑫”到“鑫丰”', title: '标志和公司名终于对上了', text: '升级前，公司用一个读作“金鑫”的旋转钩形标志，配绿底金字的名片：名字对不上，细线条缩到铭牌上会糊，配色也像商贸和金店。新标志的三块扇形对应“鑫”的三个“金”，下方是“丰”；深红带一点黑，配墨黑和钢灰，更像一家做设备的工业企业。', images: [
             { src: '/works/portfolio/xinfeng/vi-upgrade.jpg', alt: '升级前后对比（VI 应用为作品集整理时延展，下同）', caption: '升级前后对比（VI 应用为作品集整理时延展，下同）', wide: true },
-            { src: '/works/portfolio/xinfeng/logo-construction.jpg', alt: '实习时的标准制图', caption: '2023 原稿：黑白稿与标准制图' },
-            { src: '/works/portfolio/xinfeng/logo-combination.jpg', alt: '实习时的中英文组合', caption: '2023 原稿：中英文组合与色号' },
           ] },
         { kicker: '品牌规划 · 一个主品牌', title: '先定规则，再落到机器和每个触点', stacked: true, text: '原稿里已经做了“鑫丰化工 / 鑫丰冶金”的组合，我把它定成规则：同一个图形，只换后面的名称；设备按类别编号（EL 电解、IN 熔铸、EX 萃取），耗材作为配套。落地时用同一台电解设备比较三个阶段：旧标、只换 Logo、统一识别。最后一步才让人看清“这是鑫丰的哪类设备、哪一台”。先定规则、再处处照着用，这个经验后来做产品规划时也用得上。', points: [
             '机身：标志固定在左上，类别与型号在右，红线分隔',
@@ -1658,11 +1654,11 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
         '从文字标志发展出可以单独使用的图形符号。',
         '用网格制图和色彩、字体规范，保证不同载体上的一致性。',
       ],
-      image: '/works/portfolio/factory-safety-vi/vi-cover.jpg',
+      image: '/works/portfolio/redraw/vi-cover.jpg',
       gallery: [
-        { image: '/works/portfolio/factory-safety-vi/logo-rationale.jpg', alt: '由文字型标志发展出的几何 K 图形标志释义', caption: '标志演进：从文字型 Logo 到几何 K 图形，底部三角寓意向上发展。' },
-        { image: '/works/portfolio/factory-safety-vi/logo-grid.jpg', alt: '企业 Logo 的标准网格与比例制图', caption: '标准制图：通过网格与比例规范标志的使用。' },
-        { image: '/works/portfolio/factory-safety-vi/logo-combinations.jpg', alt: '企业中文和英文名称与图形标志的组合方式', caption: '标志组合：建立中文、英文名称与图形标志的多种组合。' },
+        { image: '/works/portfolio/redraw/vi-rationale-zh.jpg', alt: '由文字型标志发展出的几何 K 图形标志释义', caption: '标志演进：从文字型 Logo 到几何 K 图形，底部三角寓意向上发展。' },
+        { image: '/works/portfolio/redraw/vi-grid-zh.jpg', alt: '企业 Logo 的标准网格与比例制图', caption: '标准制图：通过网格与比例规范标志的使用。' },
+        { image: '/works/portfolio/redraw/vi-wordmark-zh.jpg', alt: '企业中文和英文名称与图形标志的组合方式', caption: '标志组合：建立中文、英文名称与图形标志的多种组合。' },
       ],
       href: '/works/corporate-vi',
     },
@@ -1691,10 +1687,11 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
         '秩序是效率的核心：一条“新右旧左”的规则加两步灯光，人不必记住每样东西放在哪。',
       ],
       image: '/works/portfolio/fridge-timeline-system.png',
+      cover: '/works/portfolio/fridge-2023/render-cmf.jpg',
       gallery: [
         { image: '/works/portfolio/fridge-2023/render-kitchen.jpg', alt: '厨房中的冰箱渲染', caption: '2023 渲染：冰箱紧挨厨房台面' },
         { image: '/works/portfolio/fridge-2023/render-cmf.jpg', alt: '四种配色方案', caption: 'CMF：四种机身配色' },
-        { image: '/works/portfolio/generated/fridge-story-triptych.png', alt: 'AI 二次创作的使用场景', caption: '2026 年 AI 二次创作的场景示意，非原设计' },
+        { image: '/works/portfolio/redraw/fridge-storyboard-zh.jpg', alt: '一次存入的完整过程（画面取自 2023 年 C4D 流程动画）', caption: '一次存入的完整过程（画面取自 2023 年 C4D 流程动画）', wide: true },
       ],
       videos: [
         { src: '/works/portfolio/fridge-2023/flow-demo.mp4', poster: '/works/portfolio/fridge-2023/flow-demo-poster.jpg', caption: 'C4D 流程动画（2023）：取下扫描终端 → 桌面扫描 → 门内灯区指引 → 门外角形灯带。' },
@@ -1736,8 +1733,7 @@ export const portfolioWorks: Record<Language, PortfolioWork[]> = {
           ], stacked: true },
         { kicker: '秩序 · 借用快递取件码', title: '新的放右边，旧的在左边', text: '快递站靠取件码 27-5-3002（货架—层—日期—序号）在上千件包裹里定位。冰箱里东西少得多，但同样需要秩序：按类型分层，同一层按放入先后从左到右排。人记不住每样东西的位置，却记得住一条规则。', points: ['按勤快程度给两种收纳：简约版整袋放进大盒子，按日期整盒往左推；细分版逐件分装、贴标签', '最左边就是放得最久的，先吃它'], images: [
             { src: '/works/portfolio/fridge-2023/order-rule-zh.svg', alt: '取件码规则与冰箱内的新右旧左排列', caption: '取件码 → 冰箱内的排列规则（重绘）', wide: true },
-            { src: '/works/portfolio/fridge-2023/midterm-concept.jpg', alt: '中期汇报：概念出发点', caption: '中期汇报：快递仓管 → 智能仓管 → 灯光引导' },
-            { src: '/works/portfolio/fridge-2023/midterm-courier-analogy.jpg', alt: '快递仓管的扫码录入', caption: '参考：快递站扫码录入与标签' },
+            { src: '/works/portfolio/redraw/fridge-midterm-concept-zh.jpg', alt: '中期汇报：概念出发点', caption: '中期汇报：快递仓管 → 智能仓管 → 灯光引导' },
           ], stacked: true },
         { kicker: '灯光 · 两步指引', title: '门外指区域，门内指位置', text: '系统分好位置后，先亮对应门上的灯条：灯条贴着暗把手，形状暗示开门方向；开门后再亮对应层架的灯区。取出也一样：在手机或门屏上把食材拖到“取出”，对应的门灯闪烁。', points: [
             '把手区域按中国成人 5% 女性到 95% 男性的抬手高确定',

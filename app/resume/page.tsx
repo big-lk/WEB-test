@@ -11,7 +11,7 @@ const resumeProjectVisuals: Record<string, string> = {
   'alive-energy-link': '/works/portfolio/alive-energy-link/cover-three-appliances.jpg',
   'smart-oven-timing': '/works/portfolio/oven-state-timing/cover-ai-oven.jpg',
   'factory-planning': '/works/portfolio/factory-safety-vi/factory-first-floor.jpg',
-  'corporate-vi': '/works/portfolio/factory-safety-vi/vi-cover.jpg',
+  'corporate-vi': '/works/portfolio/redraw/vi-cover.jpg',
 }
 
 const resumeCopy = {
@@ -132,19 +132,19 @@ export default function ResumePage() {
   const selectedWorks = works.filter((work) => resumeProjectIds.includes(work.id))
 
   return (
-    <main className="bg-[#fffaf0] dark:bg-neutral-950">
+    <main className="bg-transparent dark:bg-[#0F1013]">
       <section className="mx-auto max-w-5xl px-5 py-12 md:px-8 md:py-16">
-        <div className="rounded-lg border border-[#f7b718]/35 bg-white p-6 shadow-sm shadow-[#f7b718]/10 dark:border-[#f7b718]/25 dark:bg-neutral-900 md:p-10">
-          <header className="grid gap-8 border-b border-[#f7b718]/35 pb-8 md:grid-cols-[1fr_auto] md:items-start">
+        <div className="rounded-2xl border border-black/[0.08] bg-white/60 backdrop-blur-xl p-6 shadow-sm shadow-black/[0.06] dark:border-white/10 dark:bg-neutral-900 md:p-10">
+          <header className="grid gap-8 border-b border-black/[0.08] pb-8 md:grid-cols-[1fr_auto] md:items-start">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#b57900] dark:text-[#f7b718]">{t.eyebrow}</p>
-              <h1 className="mt-4 text-4xl font-semibold tracking-normal text-neutral-950 dark:text-white md:text-6xl">{t.name}</h1>
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] font-mono text-[#A87A07] dark:text-[#EEAF1C]">{t.eyebrow}</p>
+              <h1 className="mt-4 text-4xl font-semibold tracking-[-0.015em] text-neutral-950 dark:text-white md:text-6xl">{t.name}</h1>
               <p className="mt-3 text-base font-semibold text-neutral-950 dark:text-white">{t.graduation}</p>
               <p className="mt-4 text-lg font-medium text-neutral-800 dark:text-neutral-200">{t.headline}</p>
-              <p className="mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-[#b57900] dark:text-[#f7b718]">{t.download}</p>
+              <p className="mt-5 text-xs font-semibold uppercase tracking-[0.16em] font-mono text-[#A87A07] dark:text-[#EEAF1C]">{t.download}</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {t.downloadVariants.map(([label, href]) => (
-                  <a key={href} href={href} download className="rounded-md border border-[#f7b718]/45 bg-[#fff4cf]/55 px-3 py-2 text-sm font-semibold text-neutral-900 no-underline transition hover:border-[#b57900] hover:bg-[#fff4cf] dark:border-[#f7b718]/30 dark:bg-neutral-950 dark:text-neutral-100">
+                  <a key={href} href={href} download className="rounded-2xl border border-[#EEAF1C]/45 bg-[#F6ECD2]/55 px-3 py-2 text-sm font-semibold text-neutral-900 no-underline transition hover:border-[#A87A07] hover:bg-[#F6ECD2] dark:border-white/10 dark:bg-[#0F1013] dark:text-neutral-100">
                     {label}
                   </a>
                 ))}
@@ -155,7 +155,7 @@ export default function ResumePage() {
             </div>
             <ul className="grid gap-2 text-sm text-neutral-600 dark:text-neutral-300">
               {t.contact.map((item) => (
-                <li key={item} className="rounded-md border border-[#f7b718]/30 bg-[#fff4cf]/45 px-3 py-2 dark:border-[#f7b718]/20 dark:bg-neutral-950">
+                <li key={item} className="rounded-2xl border border-black/[0.08] bg-[#F6ECD2]/45 px-3 py-2 dark:border-white/10 dark:bg-[#0F1013]">
                   {item}
                 </li>
               ))}
@@ -168,7 +168,7 @@ export default function ResumePage() {
                 <h2 className="text-lg font-semibold">{t.sections.education}</h2>
                 <div className="mt-4 grid gap-5">
                   {t.education.map((item) => (
-                    <div key={item.school} className="border-t border-[#f7b718]/30 pt-4">
+                    <div key={item.school} className="border-t border-black/[0.08] pt-4">
                       <h3 className="font-semibold text-neutral-950 dark:text-white">{item.school}</h3>
                       <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-300">{item.detail}</p>
                       <p className="mt-1 text-xs uppercase tracking-[0.12em] text-neutral-500">{item.meta}</p>
@@ -181,7 +181,7 @@ export default function ResumePage() {
                 <h2 className="text-lg font-semibold">{t.sections.skills}</h2>
                 <div className="mt-4 flex flex-wrap gap-2">
                   {t.skills.map((skill) => (
-                    <span key={skill} className="rounded-md border border-[#f7b718]/35 bg-[#fff4cf]/60 px-3 py-2 text-sm text-neutral-800 dark:border-[#f7b718]/25 dark:bg-neutral-950 dark:text-neutral-300">
+                    <span key={skill} className="rounded-2xl border border-black/[0.08] bg-[#F6ECD2]/60 px-3 py-2 text-sm text-neutral-800 dark:border-white/10 dark:bg-[#0F1013] dark:text-neutral-300">
                       {skill}
                     </span>
                   ))}
@@ -192,14 +192,14 @@ export default function ResumePage() {
                 <h2 className="text-lg font-semibold">{t.sections.methods}</h2>
                 <ul className="mt-4 grid gap-2 text-sm leading-6 text-neutral-600 dark:text-neutral-300">
                   {t.methods.map((method) => (
-                    <li key={method} className="border-t border-[#f7b718]/25 pt-2">{method}</li>
+                    <li key={method} className="border-t border-black/[0.08] pt-2">{method}</li>
                   ))}
                 </ul>
               </section>
               <section>
                 <h2 className="text-lg font-semibold">{t.collaborationTitle}</h2>
                 <ul className="mt-4 grid gap-3 text-sm leading-6 text-neutral-600 dark:text-neutral-300">
-                  {t.collaboration.map((item) => <li key={item} className="border-t border-[#f7b718]/25 pt-3">{item}</li>)}
+                  {t.collaboration.map((item) => <li key={item} className="border-t border-black/[0.08] pt-3">{item}</li>)}
                 </ul>
               </section>
             </aside>
@@ -209,7 +209,7 @@ export default function ResumePage() {
                 <h2 className="text-xl font-semibold">{t.sections.focus}</h2>
                 <ul className="mt-4 grid gap-3">
                   {t.focus.map((item) => (
-                    <li key={item} className="rounded-md border border-[#f7b718]/30 bg-[#fffaf0] px-4 py-3 leading-7 text-neutral-700 dark:border-[#f7b718]/20 dark:bg-neutral-950 dark:text-neutral-300">
+                    <li key={item} className="rounded-2xl border border-black/[0.08] bg-white/40 backdrop-blur-xl px-4 py-3 leading-7 text-neutral-700 dark:border-white/10 dark:bg-[#0F1013] dark:text-neutral-300">
                       {item}
                     </li>
                   ))}
@@ -220,10 +220,10 @@ export default function ResumePage() {
                 <h2 className="text-xl font-semibold">{t.sections.projects}</h2>
                 <div className="mt-5 grid gap-8">
                   {selectedWorks.map((work) => (
-                    <article key={work.id} className="grid gap-5 border-t border-[#f7b718]/35 pt-5 md:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)] md:items-start">
+                    <article key={work.id} className="grid gap-5 border-t border-black/[0.08] pt-5 md:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)] md:items-start">
                       <a
                         href={work.href}
-                        className="block overflow-hidden rounded-md border border-[#f7b718]/30 bg-neutral-950 no-underline transition hover:border-[#b57900] dark:border-[#f7b718]/25"
+                        className="block overflow-hidden rounded-2xl border border-black/[0.08] bg-[#14161B] no-underline transition hover:border-[#A87A07] dark:border-white/10"
                         aria-label={work.title}
                       >
                         <img
@@ -234,13 +234,13 @@ export default function ResumePage() {
                         />
                       </a>
                       <div>
-                      <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.16em] text-neutral-500">
+                      <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.16em] font-mono text-neutral-500">
                         <span>{work.category}</span>
                         <span>{work.year}</span>
                       </div>
                       <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400">{work.period}</p>
-                      <h3 className="mt-2 text-2xl font-semibold tracking-normal">
-                        <a href={work.href} className="text-inherit no-underline transition hover:text-[#b57900]">{work.title}</a>
+                      <h3 className="mt-2 text-2xl font-semibold tracking-[-0.015em]">
+                        <a href={work.href} className="text-inherit no-underline transition hover:text-[#A87A07]">{work.title}</a>
                       </h3>
                       <p className="mt-2 leading-7 text-neutral-600 dark:text-neutral-300">{work.description}</p>
                       <dl className="mt-4 grid gap-3 text-sm">

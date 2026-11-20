@@ -1,9 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useMemo, useRef, useState, type WheelEvent } from 'react'
+import { useMemo } from 'react'
 import { useLanguage } from '../components/language-context'
 import { getOrderedPortfolioWorks } from '../lib/portfolio-data'
+import KanseiField from '../components/kansei-field'
 
 const copy = {
   en: {
@@ -117,224 +118,81 @@ export default function Home() {
   const { language } = useLanguage()
   const t = copy[language]
   const works = useMemo(() => getOrderedPortfolioWorks(language), [language])
-  const [heroIndex, setHeroIndex] = useState(0)
-  const [isHeroPaused, setIsHeroPaused] = useState(false)
-  const heroResumeTimer = useRef<number | null>(null)
-  const heroWorks = works
-  const heroWork = heroWorks[heroIndex % heroWorks.length]
-
-  useEffect(() => {
-    setHeroIndex(0)
-    setIsHeroPaused(false)
-  }, [language])
-
-  useEffect(() => {
-    return () => {
-      if (heroResumeTimer.current !== null) window.clearTimeout(heroResumeTimer.current)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (isHeroPaused) return
-
-    const timer = window.setInterval(() => {
-      setHeroIndex((current) => (current + 1) % heroWorks.length)
-    }, 4200)
-
-    return () => window.clearInterval(timer)
-  }, [heroWorks.length, isHeroPaused])
-
-  const pauseHero = () => {
-    setIsHeroPaused(true)
-    if (heroResumeTimer.current !== null) window.clearTimeout(heroResumeTimer.current)
-    heroResumeTimer.current = window.setTimeout(() => {
-      setIsHeroPaused(false)
-      heroResumeTimer.current = null
-    }, 6500)
-  }
-
-  const shiftHero = (direction: -1 | 1) => {
-    setHeroIndex((current) => (current + direction + heroWorks.length) % heroWorks.length)
-    pauseHero()
-  }
-
-  const handleWorksWheel = (event: WheelEvent<HTMLDivElement>) => {
-    const element = event.currentTarget
-    const isVerticalWheel = Math.abs(event.deltaY) > Math.abs(event.deltaX)
-    if (!isVerticalWheel) return
-
-    const canScrollLeft = element.scrollLeft > 0
-    const canScrollRight = element.scrollLeft + element.clientWidth < element.scrollWidth - 1
-    const movingLeft = event.deltaY < 0
-    const movingRight = event.deltaY > 0
-
-    if ((movingLeft && canScrollLeft) || (movingRight && canScrollRight)) {
-      event.preventDefault()
-      element.scrollLeft += event.deltaY
-    }
-  }
 
   return (
     <main>
-      <section className="border-b border-[#f7b718]/30 bg-[#fffaf0] dark:border-[#f7b718]/25 dark:bg-neutral-950">
-        <div className="mx-auto grid max-w-6xl gap-12 px-5 py-14 md:grid-cols-[1.05fr_0.95fr] md:px-8 md:py-20">
-          <div className="flex flex-col justify-center">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#b57900] dark:text-[#f7b718]">{t.eyebrow}</p>
-            <h1 className="mt-5 text-5xl font-semibold tracking-normal text-neutral-950 dark:text-white md:text-7xl">{t.title}</h1>
-            <p className="mt-6 max-w-2xl text-xl leading-relaxed text-neutral-700 dark:text-neutral-200">{t.role}</p>
-            <p className="mt-5 max-w-2xl text-base leading-8 text-neutral-600 dark:text-neutral-400">{t.intro}</p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/works" className="rounded-md bg-[#f7b718] px-5 py-3 text-sm font-semibold text-black no-underline shadow-sm shadow-[#f7b718]/25 transition hover:bg-[#e1a514]">{t.primary}</Link>
-              <Link href="/research" className="rounded-md border border-[#f7b718]/65 bg-white/45 px-5 py-3 text-sm font-medium text-neutral-900 no-underline transition hover:border-[#b57900] hover:bg-[#fff4cf] dark:bg-neutral-950 dark:text-neutral-100">{t.secondary}</Link>
-            </div>
-          </div>
+      <KanseiField hero={t} />
 
-          <div className="relative min-h-[420px] overflow-hidden rounded-lg border border-[#f7b718]/45 bg-neutral-950 text-white shadow-xl shadow-[#f7b718]/15 transition hover:border-[#f7b718] dark:border-[#f7b718]/35">
-            {heroWork.image ? (
-              <img key={heroWork.title} src={heroWork.image} alt={heroWork.title} className="absolute inset-0 size-full animate-[heroFade_4.2s_ease-in-out] object-contain opacity-72" />
-            ) : (
-              <div key={heroWork.title} className="absolute inset-0 grid animate-[heroFade_4.2s_ease-in-out] place-items-center bg-[#fff4cf] text-black">
-                <div className="grid size-36 place-items-center rounded-full border border-[#f7b718]/60 bg-white text-6xl font-semibold text-[#b57900]">
-                  +
-                </div>
-              </div>
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/36 to-[#f7b718]/18" />
-            <Link href={heroWork.href} aria-label={heroWork.title} className="absolute inset-0 z-10 no-underline" />
-            <div className="pointer-events-none absolute left-5 right-5 top-5 z-20 flex items-center justify-between text-xs uppercase tracking-[0.18em] text-white/78">
-              <span>LKD Portfolio</span>
-              <span>{heroWork.year}</span>
-            </div>
-            <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-20 p-6 md:p-8">
-              <p className="text-sm font-medium text-[#f7b718]">{heroWork.status}</p>
-              <p className="mt-3 max-w-md text-2xl font-medium leading-snug">{heroWork.title}</p>
-              <p className="mt-3 max-w-lg text-sm leading-6 text-white/78">{heroWork.description}</p>
-              <div className="pointer-events-auto relative z-30 mt-6 flex gap-2">
-                {heroWorks.map((work, index) => (
-                  <button
-                    key={work.href}
-                    type="button"
-                    aria-label={work.title}
-                    onClick={() => {
-                      setHeroIndex(index)
-                      pauseHero()
-                    }}
-                    className="group relative z-30 grid size-8 touch-manipulation place-items-center rounded-full"
-                  >
-                    <span className={`block h-2 rounded-full transition-all ${index === heroIndex ? 'w-10 bg-[#f7b718]' : 'w-4 bg-white/45 group-hover:bg-white/75'}`} />
-                  </button>
-                ))}
-              </div>
-            </div>
-            <button
-              type="button"
-              aria-label={t.previousWork}
-              onClick={() => shiftHero(-1)}
-              className="absolute left-4 top-1/2 z-30 grid size-10 -translate-y-1/2 place-items-center rounded-full border border-white/35 bg-black/35 text-2xl leading-none text-white backdrop-blur transition hover:border-[#f7b718] hover:bg-[#f7b718] hover:text-black"
-            >
-              ‹
-            </button>
-            <button
-              type="button"
-              aria-label={t.nextWork}
-              onClick={() => shiftHero(1)}
-              className="absolute right-4 top-1/2 z-30 grid size-10 -translate-y-1/2 place-items-center rounded-full border border-white/35 bg-black/35 text-2xl leading-none text-white backdrop-blur transition hover:border-[#f7b718] hover:bg-[#f7b718] hover:text-black"
-            >
-              ›
-            </button>
-          </div>
-        </div>
-      </section>
-
-      <section className="border-b border-[#f7b718]/20 bg-white/80 dark:border-[#f7b718]/20 dark:bg-neutral-900/25">
-        <div className="mx-auto grid max-w-6xl gap-4 px-5 py-6 md:grid-cols-[0.7fr_1.3fr] md:items-center md:px-8">
+      <div className="mx-auto max-w-6xl px-5 pb-24 pt-20 md:px-8 md:pt-28">
+        {/* 关于 */}
+        <section className="grid gap-6 md:grid-cols-[200px_minmax(0,1fr)] md:gap-12">
+          <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-[#A87A07] dark:text-[#EEAF1C]">01 · {t.about}</p>
           <div>
-            <h2 className="text-xl font-semibold tracking-normal">{t.exploreTitle}</h2>
-            <p className="mt-2 text-sm leading-6 text-neutral-600 dark:text-neutral-400">{t.exploreText}</p>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-3">
-            {t.explore.map(([label, description, href]) => (
-              <Link key={href} href={href} className="rounded-lg border border-[#f7b718]/35 bg-[#fffaf0] p-4 no-underline transition hover:border-[#b57900] hover:bg-[#fff4cf] dark:border-[#f7b718]/25 dark:bg-neutral-950">
-                <span className="font-semibold text-neutral-950 dark:text-white">{label}</span>
-                <span className="mt-2 block text-sm leading-6 text-neutral-600 dark:text-neutral-300">{description}</span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="border-b border-[#f7b718]/20 bg-white/70 dark:border-[#f7b718]/20 dark:bg-neutral-900/30">
-        <div className="mx-auto grid max-w-6xl gap-8 px-5 py-12 md:grid-cols-[0.9fr_1.1fr] md:px-8">
-          <div>
-            <h2 className="text-3xl font-semibold tracking-normal">{t.valueTitle}</h2>
-            <p className="mt-4 leading-8 text-neutral-600 dark:text-neutral-300">{t.valueText}</p>
-            <Link href="/research" className="mt-4 inline-block text-sm font-medium text-[#b57900] no-underline hover:text-neutral-950 dark:text-[#f7b718] dark:hover:text-white">{t.researchLink} →</Link>
-          </div>
-          <div className="grid gap-3">
-            {t.process.map(([title, description]) => (
-              <div key={title} className="rounded-lg border border-[#f7b718]/28 bg-[#fffaf0] p-4 dark:border-[#f7b718]/25 dark:bg-neutral-950">
-                <p className="text-sm font-semibold text-[#b57900] dark:text-[#f7b718]">{title}</p>
-                <p className="mt-2 leading-7 text-neutral-600 dark:text-neutral-300">{description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-6xl px-5 py-14 md:px-8 md:py-18">
-        <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-          <div>
-            <h2 className="text-3xl font-semibold tracking-normal">{t.selectedWorks}</h2>
-            <p className="mt-2 max-w-2xl text-neutral-600 dark:text-neutral-400">{t.selectedWorksText}</p>
-          </div>
-          <Link href="/works" className="text-sm font-medium text-[#b57900] no-underline hover:text-neutral-950 dark:text-[#f7b718]">{t.primary}</Link>
-        </div>
-
-        <div className="-mx-5 overflow-x-auto px-5 pb-4 md:-mx-8 md:px-8" onWheel={handleWorksWheel}>
-          <div className="flex min-w-full snap-x gap-5">
-          {works.map((work) => (
-            <Link href={work.href} key={work.title} className="flex w-[82vw] shrink-0 snap-start flex-col overflow-hidden rounded-lg border border-[#f7b718]/28 bg-white no-underline shadow-sm shadow-[#f7b718]/10 transition hover:-translate-y-1 hover:border-[#b57900] sm:w-[26rem] lg:w-[31rem] dark:border-[#f7b718]/25 dark:bg-neutral-900">
-              {work.image ? (
-                <img src={work.image} alt={work.title} className="h-64 w-full bg-neutral-950 object-contain" />
-              ) : (
-                <div className="grid h-64 place-items-center bg-[#fff4cf] px-6 text-center dark:bg-neutral-950">
-                  <div>
-                    <div className="mx-auto mb-5 grid size-16 place-items-center rounded-full border border-[#f7b718]/55 bg-white text-2xl font-semibold text-[#b57900] dark:border-[#f7b718]/40 dark:bg-white dark:text-black">
-                      +
-                    </div>
-                    <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#b57900] dark:text-[#f7b718]">{work.status}</p>
-                  </div>
+            <p className="max-w-[720px] text-[22px] font-medium leading-[1.7] tracking-[-0.01em] md:text-[24px]">{t.aboutText}</p>
+            <dl className="mt-10 grid max-w-[880px] gap-6 border-t border-black/[0.1] pt-5 text-[14px] leading-6 dark:border-white/10 sm:grid-cols-3">
+              {t.explore.map(([label, description]) => (
+                <div key={label}>
+                  <dt className="font-mono text-[11px] uppercase tracking-[0.16em] text-[#A4A6AD]">{label}</dt>
+                  <dd className="mt-1.5 text-[#3B3E46] dark:text-neutral-300">{description}</dd>
                 </div>
-              )}
-              <div className="p-5">
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-3 text-xs uppercase tracking-[0.16em] text-neutral-500">
-                  <span>{work.type}</span>
-                  <span>{work.year}</span>
-                </div>
-                <p className="mb-3 text-sm font-medium text-[#b57900] dark:text-[#f7b718]">{work.status}</p>
-                <p className="mb-3 text-xs leading-6 text-neutral-500 dark:text-neutral-400">{work.period}</p>
-                <h3 className="text-xl font-semibold">{work.title}</h3>
-                <p className="mt-3 leading-7 text-neutral-600 dark:text-neutral-300">{work.description}</p>
-              </div>
-            </Link>
-          ))}
+              ))}
+            </dl>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section className="mx-auto grid max-w-6xl gap-10 px-5 py-14 md:grid-cols-[1fr_1fr] md:px-8">
-        <div>
-          <h2 className="text-3xl font-semibold tracking-normal">{t.about}</h2>
-          <p className="mt-4 leading-8 text-neutral-600 dark:text-neutral-300">{t.aboutText}</p>
-        </div>
-        <div id="contact" className="rounded-lg border border-[#f7b718]/45 bg-neutral-950 p-6 text-white shadow-xl shadow-[#f7b718]/10 dark:border-[#f7b718]/35">
-          <h2 className="text-3xl font-semibold tracking-normal">{t.contact}</h2>
-          <p className="mt-4 leading-8 text-neutral-300">{t.contactText}</p>
-          <a href={`mailto:${t.email}`} className="mt-8 inline-block text-lg font-medium text-[#f7b718] no-underline hover:text-white">{t.email}</a>
-          <p className="mt-4 text-sm text-neutral-300">{t.phone}</p>
-          <p className="mt-2 text-sm text-neutral-400">lkdesigner.top</p>
-        </div>
-      </section>
+        {/* 方法 */}
+        <section className="mt-24 grid gap-6 border-t border-black/[0.08] pt-10 dark:border-white/10 md:grid-cols-[200px_minmax(0,1fr)] md:gap-12">
+          <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-[#A87A07] dark:text-[#EEAF1C]">02 · {t.valueTitle}</p>
+          <div className="max-w-[720px]">
+            <p className="text-[17px] leading-[1.95] text-[#3B3E46] dark:text-neutral-300">{t.valueText}</p>
+            <ol className="mt-6 grid gap-3">
+              {t.process.map(([title, description], i) => (
+                <li key={title} className="grid grid-cols-[28px_1fr] text-[16px] leading-[1.9] text-[#3B3E46] dark:text-neutral-300">
+                  <span className="font-mono text-[13px] leading-[1.9rem] text-[#A87A07]">{i + 1}.</span>
+                  <span><b className="font-semibold text-[#14161B] dark:text-white">{title}</b>{language === 'en' ? ' — ' : '——'}{description}</span>
+                </li>
+              ))}
+            </ol>
+            <Link href="/research" className="mt-6 inline-block text-[14px] font-semibold text-[#14161B] dark:text-white">{t.researchLink} →</Link>
+          </div>
+        </section>
+
+        {/* 作品索引 */}
+        <section className="mt-24 grid gap-6 border-t border-black/[0.08] pt-10 dark:border-white/10 md:grid-cols-[200px_minmax(0,1fr)] md:gap-12">
+          <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-[#A87A07] dark:text-[#EEAF1C]">03 · {t.selectedWorks}</p>
+          <div>
+            <p className="max-w-[720px] text-[17px] leading-[1.95] text-[#3B3E46] dark:text-neutral-300">{t.selectedWorksText}</p>
+            <ol className="mt-8 border-t border-black/[0.12] dark:border-white/15">
+              {works.map((work, i) => (
+                <li key={work.title} className="border-b border-black/[0.08] dark:border-white/10">
+                  <Link href={work.href} className="group grid grid-cols-[36px_minmax(0,1fr)] items-center gap-x-4 gap-y-1 py-5 no-underline md:grid-cols-[36px_minmax(0,1fr)_160px_150px] md:gap-x-6">
+                    <span className="font-mono text-[12px] tabular-nums text-[#A4A6AD]">{String(i + 1).padStart(2, '0')}</span>
+                    <span className="min-w-0">
+                      <span className="block text-[18px] font-semibold leading-snug text-[#14161B] transition group-hover:text-[#A87A07] dark:text-white">{work.title}</span>
+                      <span className="mt-1 block text-[14px] leading-6 text-[#74777F] md:line-clamp-1">{work.description}</span>
+                    </span>
+                    <span className="col-start-2 font-mono text-[11px] uppercase tracking-[0.12em] text-[#9A9CA3] md:col-start-auto">{work.year} · {work.status}</span>
+                    <span className="hidden overflow-hidden rounded-[10px] bg-[#F7F4EE] ring-1 ring-black/[0.06] md:block dark:bg-neutral-900">
+                      {work.image ? <img src={work.cover ?? work.image} alt="" loading="lazy" className="aspect-[3/2] w-full object-cover transition duration-500 group-hover:scale-[1.04]" /> : null}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ol>
+            <Link href="/works" className="mt-6 inline-block text-[14px] font-semibold text-[#14161B] dark:text-white">{t.primary} →</Link>
+          </div>
+        </section>
+
+        {/* 联系 */}
+        <section id="contact" className="mt-24 grid scroll-mt-28 gap-6 border-t border-black/[0.08] pt-10 dark:border-white/10 md:grid-cols-[200px_minmax(0,1fr)] md:gap-12">
+          <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-[#A87A07] dark:text-[#EEAF1C]">04 · {t.contact}</p>
+          <div className="max-w-[720px]">
+            <p className="text-[17px] leading-[1.95] text-[#3B3E46] dark:text-neutral-300">{t.contactText}</p>
+            <a href={`mailto:${t.email}`} className="mt-6 inline-block text-[28px] font-semibold tracking-[-0.01em] text-[#14161B] dark:text-white md:text-[34px]">{t.email}</a>
+            <p className="mt-3 text-[14px] text-[#74777F]">{t.phone} · lkdesigner.top</p>
+          </div>
+        </section>
+      </div>
     </main>
   )
 }

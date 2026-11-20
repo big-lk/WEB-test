@@ -1,8 +1,11 @@
 'use client'
 
 import Link from 'next/link'
+import { useEffect, useRef, useState } from 'react'
 import { useLanguage } from './language-context'
 import { portfolioWorks } from '../lib/portfolio-data'
+import KanseiSignature from './kansei-signature'
+import { kansei } from '../lib/kansei'
 
 type CaseId = 'co-creative-ai-training' | 'transparent-driving-hud' | 'fridge-timeline' | 'alive-energy-link' | 'factory-planning' | 'corporate-vi' | 'smart-oven-timing'
 
@@ -134,7 +137,7 @@ function StepIcon({ name }: { name?: string }) {
   const d = name ? iconPaths[name] : undefined
   if (!d) return null
   return (
-    <span className="grid size-11 place-items-center rounded-lg border border-[#f7b718]/45 bg-[#fff4cf] text-[#b57900] dark:bg-neutral-900 dark:text-[#f7b718]">
+    <span className="grid size-11 place-items-center rounded-2xl border border-[#EEAF1C]/45 bg-[#F6ECD2] text-[#A87A07] dark:bg-neutral-900 dark:text-[#EEAF1C]">
       <svg aria-hidden="true" viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d={d} />
       </svg>
@@ -147,7 +150,7 @@ type Chart = { title: string; unit: string; total: number; bars: [string, number
 function BarChart({ chart }: { chart: Chart }) {
   const max = Math.max(...chart.bars.map(([, v]) => v))
   return (
-    <figure className="rounded-lg border border-[#f7b718]/30 bg-white p-5 dark:border-[#f7b718]/20 dark:bg-neutral-900">
+    <figure className="rounded-2xl border border-black/[0.08] bg-white/60 backdrop-blur-xl p-5 dark:border-white/10 dark:bg-neutral-900">
       <figcaption className="text-sm font-semibold leading-6 text-neutral-900 dark:text-neutral-100">{chart.title}</figcaption>
       <p className="text-xs text-neutral-500">N = {chart.total}</p>
       <div className="mt-4 grid gap-3">
@@ -159,7 +162,7 @@ function BarChart({ chart }: { chart: Chart }) {
               <div className="flex items-center gap-2">
                 <div className="h-3 flex-1 rounded-r bg-neutral-100 dark:bg-neutral-800">
                   <div
-                    className={`h-3 rounded-r transition-opacity group-hover:opacity-80 ${highlight ? 'bg-[#f7b718]' : 'bg-neutral-400 dark:bg-neutral-500'}`}
+                    className={`h-3 rounded-r transition-opacity group-hover:opacity-80 ${highlight ? 'bg-[#EEAF1C]' : 'bg-neutral-400 dark:bg-neutral-500'}`}
                     style={{ width: `${(value / max) * 100}%` }}
                   />
                 </div>
@@ -174,248 +177,279 @@ function BarChart({ chart }: { chart: Chart }) {
   )
 }
 
+/** 白底草图：在纸色背景上用正片叠底去掉白底 */
+const isSketch = (src: string) => /sketch|ergonomics/.test(src)
+
+const chapterLabels = {
+  zh: { problem: '问题', research: '调研', solution: '方案', gallery: '过程资料', compare: '对比', end: '结论与当前阶段', parts: '方案分成以下几部分，后文逐一展开：', findings: '调研让方案多了三条要求：', meta: ['角色', '方法', '时间'], contents: '目录' },
+  ja: { problem: '課題', research: '調査', solution: '提案', gallery: 'プロセス資料', compare: '比較', end: '結論と現在の段階', parts: '提案は次の要素からなり、以下で順に説明する：', findings: '調査から、提案に次の三つの条件が加わった：', meta: ['担当', '方法', '期間'], contents: '目次' },
+  en: { problem: 'Problem', research: 'Research', solution: 'Solution', gallery: 'Process material', compare: 'Comparison', end: 'Takeaways and status', parts: 'The solution has the following parts, each covered below:', findings: 'The research added three requirements:', meta: ['Role', 'Methods', 'Period'], contents: 'Contents' },
+}
+
+type Fig = { src: string; alt: string; caption?: string; wide?: boolean }
+
+/** 文中插图：按图片实际比例排——横长图（宽高比 ≥ 1.45）独占一行，其余两张并排 */
+function FigItem({ f }: { f: Fig }) {
+  const [wide, setWide] = useState(!!f.wide)
+  const ref = useRef<HTMLImageElement>(null)
+  const check = () => { const im = ref.current; if (im && im.naturalWidth && im.naturalWidth / im.naturalHeight >= 1.45) setWide(true) }
+  useEffect(() => { if (ref.current?.complete) check() }, [])
+  return (
+    <figure className={`min-w-0 ${wide ? 'sm:col-span-2' : ''}`}>
+      <a href={f.src} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-[14px] bg-[#F7F4EE] no-underline ring-1 ring-black/[0.06] dark:bg-neutral-900 dark:ring-white/10">
+        <img
+          src={f.src}
+          alt={f.alt}
+          loading="lazy"
+          decoding="async"
+          ref={ref}
+          onLoad={check}
+          className={`mx-auto block h-auto w-full object-contain ${wide ? 'max-h-[640px]' : 'max-h-[520px]'} ${isSketch(f.src) ? 'mix-blend-multiply dark:bg-white dark:mix-blend-normal' : ''}`}
+        />
+      </a>
+      {f.caption ? <figcaption className="mt-2.5 text-[13px] leading-6 text-[#74777F]">{f.caption}</figcaption> : null}
+    </figure>
+  )
+}
+
+function Figures({ items, video }: { items: Fig[]; video?: { src: string; poster?: string } }) {
+  if (!items.length && !video) return null
+  return (
+    <div className="mt-8 grid items-start gap-x-6 gap-y-8 sm:grid-cols-2">
+      {video ? <video src={video.src} poster={video.poster} autoPlay loop muted playsInline className="aspect-video w-full rounded-[14px] bg-[#14161B] object-cover sm:col-span-2" /> : null}
+      {items.map((f, i) => <FigItem key={f.src} f={items.length === 1 ? { ...f, wide: true } : f} />)}
+    </div>
+  )
+}
+
+function Chapter({ id, no, title, children }: { id: string; no: string; title: string; children: React.ReactNode }) {
+  return (
+    <section id={id} data-chapter={id} className="scroll-mt-28 border-t border-black/[0.08] pt-10 first:border-t-0 first:pt-0 dark:border-white/10">
+      <h2 className="flex items-baseline gap-4 text-[26px] font-semibold leading-snug tracking-[-0.015em]">
+        <span className="font-mono text-[13px] font-medium tracking-[0.1em] text-[#A87A07] dark:text-[#EEAF1C]">{no}</span>
+        <span>{title}</span>
+      </h2>
+      <div className="mt-6">{children}</div>
+    </section>
+  )
+}
+
+const P = ({ children, lead }: { children: React.ReactNode; lead?: boolean }) => (
+  <p className={`max-w-[680px] ${lead ? 'text-[19px] leading-[1.85] text-[#14161B] dark:text-neutral-100' : 'text-[16px] leading-[1.95] text-[#3B3E46] dark:text-neutral-300'}`}>{children}</p>
+)
+
 export function ConceptCasePage({ id }: { id: CaseId }) {
   const { language } = useLanguage()
   const t = labels[language]
+  const c = chapterLabels[language]
   const work = portfolioWorks[language].find((item) => item.id === id)
+  const sig = kansei[id]
+  const [active, setActive] = useState('problem')
+
+  useEffect(() => {
+    const els = Array.from(document.querySelectorAll<HTMLElement>('[data-chapter]'))
+    const io = new IntersectionObserver((entries) => {
+      const vis = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)
+      if (vis[0]) setActive((vis[0].target as HTMLElement).dataset.chapter!)
+    }, { rootMargin: '-20% 0px -65% 0px' })
+    els.forEach((el) => io.observe(el))
+    return () => io.disconnect()
+  }, [language])
 
   if (!work) return null
 
-  const processSection = (
-    <section className="border-b border-[#f7b718]/25 bg-white dark:bg-neutral-900/30">
-      <div className="mx-auto max-w-6xl px-5 py-12 md:px-8 md:py-16">
-        <h2 className="text-3xl font-semibold">{t.process}</h2>
-        <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {work.process.map(([title, description], index) => (
-            <article key={title} className="border-t border-[#f7b718]/45 pt-5">
-              <div className="flex items-center gap-3">
-                <StepIcon name={work.processIcons?.[index]} />
-                <p className="text-sm font-semibold text-[#b57900] dark:text-[#f7b718]">0{index + 1}</p>
-              </div>
-              <h3 className="mt-3 text-xl font-semibold">{title}</h3>
-              <p className="mt-3 leading-7 text-neutral-600 dark:text-neutral-300">{description}</p>
-            </article>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
+  const modules = work.modules ?? []
+  const chapters: { id: string; title: string }[] = [
+    { id: 'problem', title: c.problem },
+    ...(work.research ? [{ id: 'research', title: c.research }] : []),
+    { id: 'solution', title: c.solution },
+    ...modules.map((m, i) => ({ id: `part-${i + 1}`, title: m.title })),
+    ...(work.gallery?.length ? [{ id: 'gallery', title: c.gallery }] : []),
+    ...(work.comparison ? [{ id: 'compare', title: c.compare }] : []),
+    { id: 'end', title: c.end },
+  ]
+  const no = (cid: string) => String(chapters.findIndex((x) => x.id === cid) + 1).padStart(2, '0')
 
   return (
     <main>
-      <header className="border-b border-[#f7b718]/25 bg-neutral-950 text-white">
-        <div className="mx-auto max-w-6xl px-5 py-12 md:px-8 md:py-20">
-          <Link href="/works" className="text-sm text-[#f7b718] no-underline hover:text-white">← {t.back}</Link>
-          <p className="mt-10 text-xs font-semibold uppercase tracking-[0.2em] text-[#f7b718]">{work.category} · {work.year}</p>
-          <p className="mt-2 text-sm text-neutral-400">{work.period}</p>
-          <h1 className="mt-4 max-w-4xl text-4xl font-semibold tracking-normal md:text-6xl">{work.title}</h1>
-          <p className="mt-6 max-w-3xl text-lg leading-8 text-neutral-300">{work.description}</p>
-          <dl className="mt-8 grid max-w-4xl gap-4 border-t border-white/15 pt-5 text-sm md:grid-cols-2">
-            <div>
-              <dt className="font-semibold text-[#f7b718]">{t.role}</dt>
-              <dd className="mt-1 leading-6 text-neutral-400">{work.role}</dd>
-            </div>
-            <div>
-              <dt className="font-semibold text-[#f7b718]">{t.methods}</dt>
-              <dd className="mt-1 leading-6 text-neutral-400">{work.methods}</dd>
-            </div>
+      {/* 页头 */}
+      <header className="mx-auto grid max-w-6xl gap-10 px-5 pb-14 pt-10 md:grid-cols-[1fr_260px] md:items-end md:px-8 md:pb-20 md:pt-14">
+        <div>
+          <Link href="/works" className="text-sm text-[#74777F] no-underline hover:text-[#14161B] dark:hover:text-white">← {t.back}</Link>
+          <p className="mt-12 font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-[#A87A07] dark:text-[#EEAF1C]">{work.category}</p>
+          <h1 className="mt-4 max-w-4xl text-4xl font-semibold leading-[1.14] tracking-[-0.02em] md:text-[56px]">{work.title}</h1>
+          <p className="mt-6 max-w-[680px] text-[19px] leading-[1.8] text-[#3B3E46] dark:text-neutral-300">{work.description}</p>
+          <dl className="mt-10 grid max-w-4xl gap-6 border-t border-black/[0.1] pt-5 text-[14px] leading-6 dark:border-white/10 sm:grid-cols-[1.2fr_1.2fr_0.8fr]">
+            {[work.role, work.methods, work.period].map((v, i) => (
+              <div key={i}>
+                <dt className="font-mono text-[11px] uppercase tracking-[0.16em] text-[#A4A6AD]">{c.meta[i]}</dt>
+                <dd className="mt-1.5 text-[#3B3E46] dark:text-neutral-300">{v}</dd>
+              </div>
+            ))}
           </dl>
         </div>
+        {sig ? (
+          <figure className="hidden md:block">
+            <KanseiSignature v={sig.v} count={3200} className="aspect-square w-full" />
+            <figcaption className="text-center font-mono text-[10px] tracking-[0.14em] text-[#A4A6AD]">KANSEI · {sig.words[language].join(' / ')}</figcaption>
+          </figure>
+        ) : null}
       </header>
 
-      <section className="border-b border-[#f7b718]/25 bg-white dark:bg-neutral-950">
-        <div className="mx-auto max-w-6xl px-5 py-12 md:px-8 md:py-16">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#b57900] dark:text-[#f7b718]">{t.problem}</p>
-          <h2 className="mt-4 max-w-4xl text-2xl font-semibold leading-snug md:text-3xl md:leading-snug">{work.question}</h2>
-        </div>
-      </section>
+      <div className="mx-auto grid max-w-6xl gap-12 px-5 pb-24 md:grid-cols-[200px_minmax(0,1fr)] md:px-8">
+        {/* 目录 */}
+        <nav aria-label={c.contents} className="hidden md:block">
+          <ol className="sticky top-28 grid gap-1 border-l border-black/[0.08] text-[13px] dark:border-white/10">
+            {chapters.map((ch, i) => (
+              <li key={ch.id}>
+                <a href={`#${ch.id}`} className={`-ml-px flex gap-3 border-l py-1.5 pl-4 leading-5 no-underline transition ${active === ch.id ? 'border-[#EEAF1C] text-[#14161B] dark:text-white' : 'border-transparent text-[#9A9CA3] hover:text-[#14161B] dark:hover:text-white'}`}>
+                  <span className="font-mono text-[11px] tabular-nums">{String(i + 1).padStart(2, '0')}</span>
+                  <span className="line-clamp-2">{ch.title}</span>
+                </a>
+              </li>
+            ))}
+          </ol>
+        </nav>
 
-      {work.research ? (
-        <section className="border-b border-[#f7b718]/25 bg-[#fffaf0] dark:bg-neutral-950">
-          <div className="mx-auto max-w-6xl px-5 py-12 md:px-8 md:py-16">
-            <h2 className="text-3xl font-semibold">{t.research}</h2>
-            <p className="mt-4 max-w-4xl leading-7 text-neutral-600 dark:text-neutral-300">{work.research.sample}</p>
-            {work.research.charts?.length ? (
-              <div className={`mt-8 grid gap-4 ${work.research.charts.length === 4 ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
-                {work.research.charts.map((chart) => <BarChart key={chart.title} chart={chart} />)}
+        <article className="grid min-w-0 gap-16">
+          <Chapter id="problem" no={no('problem')} title={c.problem}>
+            <P lead>{work.question}</P>
+          </Chapter>
+
+          {work.research ? (
+            <Chapter id="research" no={no('research')} title={c.research}>
+              <P>{work.research.sample}</P>
+              {work.research.charts?.length ? (
+                <div className="mt-8 grid gap-4 sm:grid-cols-2">{work.research.charts.map((chart) => <BarChart key={chart.title} chart={chart} />)}</div>
+              ) : work.research.metrics.length ? (
+                <dl className="mt-8 grid gap-6 sm:grid-cols-3">
+                  {work.research.metrics.map(([value, label, detail]) => (
+                    <div key={label} className="border-t border-black/[0.1] pt-4 dark:border-white/10">
+                      <dt className="text-3xl font-light tabular-nums text-[#14161B] dark:text-white">{value}</dt>
+                      <dd className="mt-2 text-[14px] font-semibold leading-6">{label}</dd>
+                      <dd className="mt-1 text-[13px] leading-6 text-[#74777F]">{detail}</dd>
+                    </div>
+                  ))}
+                </dl>
+              ) : null}
+              {work.research.decisions.length ? (
+                <>
+                  <div className="mt-10"><P>{c.findings}</P></div>
+                  <ol className="mt-4 grid max-w-[680px] gap-4">
+                    {work.research.decisions.map(([title, description], i) => (
+                      <li key={title} className="grid grid-cols-[28px_1fr] text-[16px] leading-[1.9] text-[#3B3E46] dark:text-neutral-300">
+                        <span className="font-mono text-[13px] leading-[1.9rem] text-[#A87A07]">{i + 1}.</span>
+                        <span><b className="font-semibold text-[#14161B] dark:text-white">{title}{language === 'en' ? '. ' : '。'}</b>{description}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </>
+              ) : null}
+            </Chapter>
+          ) : null}
+
+          <Chapter id="solution" no={no('solution')} title={c.solution}>
+            <figure>
+              <a href={work.image} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-[14px] bg-[#14161B] no-underline">
+                <img src={work.image} alt={`${work.title} ${t.visual}`} className="mx-auto max-h-[640px] w-full object-contain" />
+              </a>
+              <figcaption className="mt-2.5 max-w-[680px] text-[13px] leading-6 text-[#74777F]">{visualNotes[id][language]}</figcaption>
+            </figure>
+            <div className="mt-10"><P>{c.parts}</P></div>
+            <ol className="mt-4 grid max-w-[680px] gap-3">
+              {work.process.map(([title, description], i) => {
+                const target = modules[i] ? `#part-${i + 1}` : undefined
+                return (
+                  <li key={title} className="grid grid-cols-[28px_1fr] text-[16px] leading-[1.9] text-[#3B3E46] dark:text-neutral-300">
+                    <span className="font-mono text-[13px] leading-[1.9rem] text-[#A87A07]">{i + 1}.</span>
+                    <span>{target ? <a href={target} className="font-semibold text-[#14161B] dark:text-white">{title}</a> : <b className="font-semibold text-[#14161B] dark:text-white">{title}</b>}{language === 'en' ? ' — ' : '——'}{description}</span>
+                  </li>
+                )
+              })}
+            </ol>
+            {work.videos?.length ? (
+              <div className={`mt-10 grid gap-6 ${work.videos.length > 1 ? 'sm:grid-cols-2' : ''}`}>
+                {work.videos.map((video, vi) => (
+                  <figure key={video.src} className={work.videos!.length === 3 && vi === 0 ? 'sm:col-span-2' : ''}>
+                    <video src={video.src} poster={video.poster} controls muted playsInline preload="none" className="aspect-video w-full rounded-[14px] bg-black object-contain" />
+                    <figcaption className="mt-2.5 text-[13px] leading-6 text-[#74777F]">{video.caption}</figcaption>
+                  </figure>
+                ))}
               </div>
             ) : null}
-            {!work.research.charts?.length && work.research.metrics.length ? (
-            <div className="mt-8 grid gap-4 sm:grid-cols-3">
-              {work.research.metrics.map(([value, label, detail]) => (
-                <div key={label} className="rounded-lg border border-[#f7b718]/30 bg-white p-5 dark:bg-neutral-900">
-                  <p className="text-3xl font-semibold text-[#b57900] dark:text-[#f7b718]">{value}</p>
-                  <h3 className="mt-3 text-sm font-semibold leading-6">{label}</h3>
-                  <p className="mt-2 text-sm leading-6 text-neutral-500 dark:text-neutral-400">{detail}</p>
-                </div>
-              ))}
-            </div>
-            ) : null}
-            <div className="mt-8 grid gap-6 md:grid-cols-3">
-              {work.research.decisions.map(([title, description]) => (
-                <div key={title} className="border-t border-[#f7b718]/40 pt-5">
-                  <h3 className="font-semibold">{title}</h3>
-                  <p className="mt-3 text-sm leading-7 text-neutral-600 dark:text-neutral-300">{description}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      ) : null}
+          </Chapter>
 
-      <figure className="border-b border-[#f7b718]/25 bg-neutral-950">
-        <div className="mx-auto max-w-[1500px] px-3 py-6 md:px-8 md:py-10">
-          <img src={work.image} alt={`${work.title} ${t.visual}`} className="mx-auto max-h-[720px] w-full object-contain" />
-          <figcaption className="mx-auto mt-6 grid max-w-6xl gap-3 border-t border-white/15 pt-5 text-white md:grid-cols-[10rem_1fr_auto]">
-            <span className="text-sm font-semibold text-[#f7b718]">{t.visual}</span>
-            <span className="max-w-3xl leading-7 text-neutral-300">{visualNotes[id][language]}</span>
-            <a href={work.image} target="_blank" rel="noreferrer" className="text-sm text-[#f7b718] no-underline hover:text-white">{t.fullImage} ↗</a>
-          </figcaption>
-        </div>
-      </figure>
+          {modules.map((m, i) => (
+            <Chapter key={m.title} id={`part-${i + 1}`} no={no(`part-${i + 1}`)} title={m.title}>
+              {m.kicker ? <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.16em] text-[#A4A6AD]">{m.kicker}</p> : null}
+              <P>{m.text}</P>
+              {m.points?.length ? (
+                <ul className="mt-4 grid max-w-[680px] gap-2">
+                  {m.points.map((point) => (
+                    <li key={point} className="grid grid-cols-[20px_1fr] text-[15px] leading-[1.85] text-[#3B3E46] dark:text-neutral-300">
+                      <span aria-hidden="true" className="mt-[0.8em] size-1.5 rounded-full bg-[#EEAF1C]" /><span>{point}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              <Figures items={m.images} video={m.video} />
+            </Chapter>
+          ))}
 
-{processSection}
+          {work.gallery?.length ? (
+            <Chapter id="gallery" no={no('gallery')} title={c.gallery}>
+              <Figures items={work.gallery.map((g) => ({ src: g.image, alt: g.alt, caption: g.caption, wide: g.wide }))} />
+            </Chapter>
+          ) : null}
 
-      {work.videos?.length ? (
-        <section className="border-b border-[#f7b718]/25 bg-neutral-950 text-white">
-          <div className="mx-auto max-w-6xl px-5 py-12 md:px-8 md:py-16">
-            <h2 className="text-3xl font-semibold">{t.videos}</h2>
-            <div className={`mt-8 grid gap-6 ${work.videos.length === 3 ? 'md:grid-cols-2' : work.videos.length > 1 ? 'md:grid-cols-[1.6fr_1fr]' : 'max-w-4xl'}`}>
-              {work.videos.map((video, videoIndex) => (
-                <figure key={video.src} className={`overflow-hidden rounded-lg border border-white/15 bg-black ${work.videos?.length === 3 && videoIndex === 0 ? 'md:col-span-2' : ''}`}>
-                  <video src={video.src} poster={video.poster} controls muted playsInline preload="none" className="aspect-video w-full bg-black object-contain" />
-                  <figcaption className="px-5 py-4 text-sm leading-6 text-neutral-300">{video.caption}</figcaption>
-                </figure>
-              ))}
-            </div>
-          </div>
-        </section>
-      ) : null}
-
-      {work.modules?.length ? (
-        <section className="border-b border-[#f7b718]/25 bg-white dark:bg-neutral-950">
-          <div className="mx-auto max-w-6xl px-5 py-12 md:px-8 md:py-16">
-            <h2 className="text-3xl font-semibold">{t.modules}</h2>
-            <div className="mt-10 grid gap-16">
-              {work.modules.map((module, index) => (
-                <article key={module.title} className={`grid gap-8 ${module.stacked ? '' : 'md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] md:items-start'}`}>
-                  <div className={module.stacked ? 'max-w-4xl' : index % 2 ? 'md:order-2' : ''}>
-                    {module.kicker ? <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#b57900] dark:text-[#f7b718]">{module.kicker}</p> : null}
-                    <h3 className="mt-3 text-2xl font-semibold leading-snug">{module.title}</h3>
-                    <p className="mt-4 leading-8 text-neutral-600 dark:text-neutral-300">{module.text}</p>
-                    {module.points?.length ? (
-                      <ul className="mt-5 grid gap-2">
-                        {module.points.map((point) => (
-                          <li key={point} className="flex gap-3 text-sm leading-6 text-neutral-700 dark:text-neutral-200">
-                            <span aria-hidden="true" className="mt-2 size-1.5 shrink-0 rounded-full bg-[#f7b718]" />
-                            <span>{point}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : null}
+          {work.comparison ? (
+            <Chapter id="compare" no={no('compare')} title={work.comparison.title}>
+              <P>{work.comparison.intro}</P>
+              <div className="mt-8 grid gap-6 md:hidden">
+                {work.comparison.rows.map(([dimension, ours, theirs]) => (
+                  <div key={dimension} className="border-t border-black/[0.1] pt-4">
+                    <h3 className="text-[15px] font-semibold">{dimension}</h3>
+                    <p className="mt-2 text-[14px] leading-6"><span className="text-[#A87A07]">{work.comparison?.columns[0]}：</span>{ours}</p>
+                    <p className="mt-1 text-[14px] leading-6 text-[#74777F]">{work.comparison?.columns[1]}：{theirs}</p>
                   </div>
-                  <div className={`grid grid-cols-2 gap-3 ${module.stacked ? (module.images.filter((image) => !image.wide).length >= 3 ? 'md:grid-cols-3' : '') : index % 2 ? 'md:order-1' : ''}`}>
-                    {module.video ? (
-                      <video src={module.video.src} poster={module.video.poster} autoPlay loop muted playsInline className="col-span-2 aspect-video w-full rounded-lg bg-neutral-950 object-cover" />
-                    ) : null}
-                    {module.images.map((image, imageIndex) => (
-                      <figure key={image.src} className={`overflow-hidden rounded-lg border border-[#f7b718]/25 bg-[#fffaf0] dark:bg-neutral-900 ${image.wide ? 'col-span-2 md:col-span-full' : ''}`}>
-                        <a href={image.src} target="_blank" rel="noreferrer" className="block no-underline">
-                          <img src={image.src} alt={image.alt} loading="lazy" decoding="async" className={`w-full bg-white object-contain ${image.wide ? (module.stacked ? 'h-auto' : 'max-h-[420px]') : 'aspect-[4/3]'}`} />
-                        </a>
-                        {image.caption ? <figcaption className="px-3 py-2 text-xs leading-5 text-neutral-500 dark:text-neutral-400">{image.caption}</figcaption> : null}
-                      </figure>
-                    ))}
-                  </div>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-      ) : null}
-
-      {work.gallery?.length ? (
-        <section className="border-b border-[#f7b718]/25 bg-[#fffaf0] dark:bg-neutral-950">
-          <div className="mx-auto max-w-6xl px-5 py-12 md:px-8 md:py-16">
-            <h2 className="text-3xl font-semibold">{t.gallery}</h2>
-            <div className={`mt-8 grid gap-4 ${work.gallery.filter((item) => !item.wide).length >= 3 ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
-              {work.gallery.map((item) => (
-                <figure key={item.image} className={`overflow-hidden rounded-lg border border-[#f7b718]/30 bg-white dark:border-[#f7b718]/20 dark:bg-neutral-900 ${item.wide ? 'md:col-span-full' : ''}`}>
-                  <a href={item.image} target="_blank" rel="noreferrer" className="block no-underline">
-                    <img src={item.image} alt={item.alt} loading="lazy" decoding="async" className={`w-full bg-neutral-950 object-contain ${item.wide ? 'h-auto' : 'aspect-[4/3]'}`} />
-                  </a>
-                  <figcaption className="px-4 py-3 text-sm leading-6 text-neutral-600 dark:text-neutral-300">{item.caption}</figcaption>
-                </figure>
-              ))}
-            </div>
-          </div>
-        </section>
-      ) : null}
-
-      {work.comparison ? (
-        <section className="border-b border-[#f7b718]/25 bg-white dark:bg-neutral-900/30">
-          <div className="mx-auto max-w-6xl px-5 py-12 md:px-8 md:py-16">
-            <h2 className="text-3xl font-semibold">{work.comparison.title}</h2>
-            <p className="mt-4 max-w-4xl leading-7 text-neutral-600 dark:text-neutral-300">{work.comparison.intro}</p>
-            <div className="mt-8 grid gap-4 md:hidden">
-              {work.comparison.rows.map(([dimension, ours, theirs]) => (
-                <div key={dimension} className="rounded-lg border border-[#f7b718]/30 p-4">
-                  <h3 className="text-sm font-semibold leading-6">{dimension}</h3>
-                  <p className="mt-3 text-xs font-semibold text-[#b57900] dark:text-[#f7b718]">{work.comparison?.columns[0]}</p>
-                  <p className="mt-1 text-sm leading-6 text-neutral-800 dark:text-neutral-100">{ours}</p>
-                  <p className="mt-3 text-xs font-semibold text-neutral-500">{work.comparison?.columns[1]}</p>
-                  <p className="mt-1 text-sm leading-6 text-neutral-600 dark:text-neutral-300">{theirs}</p>
-                </div>
-              ))}
-            </div>
-            <div className="mt-8 hidden overflow-x-auto md:block">
-              <table className="w-full min-w-[640px] border-collapse text-left text-sm">
+                ))}
+              </div>
+              <table className="mt-8 hidden w-full border-collapse text-left text-[14px] md:table">
                 <thead>
-                  <tr className="border-b-2 border-[#f7b718]">
-                    <th className="w-36 py-3 pr-4 font-semibold text-neutral-500" />
-                    <th className="py-3 pr-4 font-semibold text-[#b57900] dark:text-[#f7b718]">{work.comparison.columns[0]}</th>
-                    <th className="py-3 font-semibold text-neutral-700 dark:text-neutral-200">{work.comparison.columns[1]}</th>
+                  <tr className="border-b border-[#14161B] dark:border-white/40">
+                    <th className="w-32 py-3 pr-4" />
+                    <th className="py-3 pr-4 font-semibold text-[#A87A07] dark:text-[#EEAF1C]">{work.comparison.columns[0]}</th>
+                    <th className="py-3 font-semibold text-[#74777F]">{work.comparison.columns[1]}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {work.comparison.rows.map(([dimension, ours, theirs]) => (
-                    <tr key={dimension} className="border-b border-[#f7b718]/25 align-top">
-                      <th className="py-3 pr-4 font-semibold">{dimension}</th>
-                      <td className="py-3 pr-4 leading-6 text-neutral-800 dark:text-neutral-100">{ours}</td>
-                      <td className="py-3 leading-6 text-neutral-600 dark:text-neutral-300">{theirs}</td>
+                    <tr key={dimension} className="border-b border-black/[0.08] align-top dark:border-white/10">
+                      <th className="py-3.5 pr-4 font-semibold">{dimension}</th>
+                      <td className="py-3.5 pr-4 leading-7 text-[#14161B] dark:text-neutral-100">{ours}</td>
+                      <td className="py-3.5 leading-7 text-[#74777F]">{theirs}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
-            <p className="mt-6 text-xs leading-6 text-neutral-500">
-              {t.sources}：
-              {work.comparison.sources.map(([label, url], index) => (
-                <span key={url}>{index ? ' · ' : ''}<a href={url} target="_blank" rel="noreferrer" className="text-neutral-500">{label}</a></span>
-              ))}
-            </p>
-          </div>
-        </section>
-      ) : null}
+              <p className="mt-5 text-[12px] leading-6 text-[#9A9CA3]">
+                {t.sources}：{work.comparison.sources.map(([label, url], index) => (
+                  <span key={url}>{index ? ' · ' : ''}<a href={url} target="_blank" rel="noreferrer" className="text-[#9A9CA3]">{label}</a></span>
+                ))}
+              </p>
+            </Chapter>
+          ) : null}
 
-      <section className="bg-neutral-950 text-white">
-        <div className="mx-auto grid max-w-6xl gap-10 px-5 py-12 md:grid-cols-[0.7fr_1.3fr] md:px-8 md:py-16">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#f7b718]">{t.value}</p>
-            <h2 className="mt-4 text-3xl font-semibold">{work.outcomes[0]}</h2>
-          </div>
-          <div className="grid gap-5">
-            {work.outcomes.slice(1).map((outcome) => (
-              <p key={outcome} className="border-t border-white/15 pt-5 leading-7 text-neutral-300">{outcome}</p>
-            ))}
-            <div className="border-t border-[#f7b718]/45 pt-5">
-              <p className="text-sm font-semibold text-[#f7b718]">{t.validation}</p>
-              <p className="mt-3 leading-7 text-neutral-300">{work.research?.limitation ?? work.next}</p>
+          <Chapter id="end" no={no('end')} title={c.end}>
+            <blockquote className="max-w-[680px] border-l-2 border-[#EEAF1C] pl-6 text-[22px] font-semibold leading-[1.6] tracking-[-0.01em]">{work.outcomes[0]}</blockquote>
+            <div className="mt-8 grid gap-5">
+              {work.outcomes.slice(1).map((o) => <P key={o}>{o}</P>)}
+              <P><b className="font-semibold text-[#14161B] dark:text-white">{t.validation}{language === 'en' ? ': ' : '：'}</b>{work.research?.limitation ?? work.next}</P>
             </div>
-            <Link href="/works" className="mt-3 text-sm font-semibold text-[#f7b718] no-underline hover:text-white">{t.other} →</Link>
-          </div>
-        </div>
-      </section>
+            <Link href="/works" className="mt-12 inline-flex items-center gap-2 rounded-[12px] border border-black/[0.12] px-4 py-2.5 text-[13px] font-semibold text-[#14161B] no-underline transition hover:border-[#14161B] dark:border-white/20 dark:text-white">{t.other} →</Link>
+          </Chapter>
+        </article>
+      </div>
     </main>
   )
 }

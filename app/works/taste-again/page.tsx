@@ -1,9 +1,9 @@
 'use client'
 
-import Link from 'next/link'
 import { useLanguage } from '../../../components/language-context'
 import type { Language } from '../../../components/language-context'
 import { portfolioWorks } from '../../../lib/portfolio-data'
+import { Bullets, Chapter, Figures, LongReadBody, LongReadHeader, NumList, OtherWorks, P, Quote, Stats, Sub, no } from '../../../components/long-read'
 
 type CaseCopy = {
   back: string
@@ -268,227 +268,107 @@ const copy: Record<Language, CaseCopy> = {
   },
 }
 
+const ui = {
+  zh: { role: '角色', period: '时间', contents: '目录', why: '为什么这样做', drive: '依据' },
+  ja: { role: '担当', period: '期間', contents: '目次', why: 'なぜこうしたか', drive: '根拠' },
+  en: { role: 'Role', period: 'Period', contents: 'Contents', why: 'Why', drive: 'Basis' },
+} as const
+
 export default function TasteAgainCasePage() {
   const { language } = useLanguage()
   const t = copy[language]
+  const u = ui[language]
+  const en = language === 'en'
   const work = portfolioWorks[language].find((item) => item.id === 'taste-again')
-  const storyMedia = [
-    { image: '/works/haojiu-meichi/ui/curry.jpg', position: 'center' },
-    { image: '/works/haojiu-meichi/ui/v11-home.jpg', position: 'center 30%' },
-    { image: '/works/haojiu-meichi/ui/v11-due.jpg', position: 'center 30%' },
-    { image: '/works/haojiu-meichi/ui/v11-home.jpg', position: 'center 85%' },
-    { image: '/works/haojiu-meichi/ui/v11-calendar.jpg', position: 'center 40%' },
-    { image: '/works/haojiu-meichi/ui/curry.jpg', position: 'center' },
-  ]
-
   if (!work) return null
+
+  const ids = ['problem', 'story', 'ui', 'loop', 'iteration', 'result']
+  const chapters = ids.map((id, i) => ({ id, title: t.nav[i]?.[0] ?? id }))
+  const n = (id: string) => no(chapters, id)
+  const colon = en ? ': ' : '：'
+  const strip = (s: string) => s.replace(/^(为什么这样做|なぜこうしたか|Why)[：:]\s*/, '')
 
   return (
     <main>
-      <section className="border-b border-[#f7b718]/30 bg-neutral-950 text-white">
-        <div className="mx-auto max-w-6xl px-5 py-10 md:px-8 md:py-14">
-          <Link href="/works" className="text-sm text-neutral-300 no-underline hover:text-[#f7b718]">← {t.back}</Link>
-          <div className="mt-9 grid gap-9 md:grid-cols-[0.76fr_1.24fr] md:items-end">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f7b718]">{t.eyebrow}</p>
-              <h1 className="mt-4 text-5xl font-semibold leading-none md:text-7xl">{work.title}</h1>
-              <p className="mt-6 text-xl leading-8 text-neutral-200">{t.summary}</p>
-              <p className="mt-5 text-sm leading-7 text-neutral-400">{work.role}</p>
-            </div>
-            <figure className="relative aspect-[3/2] overflow-hidden rounded-lg border border-[#f7b718]/35 bg-[#131313]">
-              <div aria-hidden="true" className="absolute inset-x-0 top-0 h-1 bg-[#f7b718]" />
-              <img src="/works/haojiu-meichi/ui/v11-welcome.jpg" alt="" className="absolute -bottom-[20%] left-[6%] w-[28%] -rotate-6 border border-white/15 shadow-2xl" />
-              <img src="/works/haojiu-meichi/ui/v11-home.jpg" alt={work.title} className="absolute -bottom-[10%] left-1/2 z-10 w-[34%] -translate-x-1/2 border border-white/15 shadow-2xl" />
-              <img src="/works/haojiu-meichi/ui/v11-due.jpg" alt="" className="absolute -bottom-[20%] right-[6%] w-[28%] rotate-6 border border-white/15 shadow-2xl" />
-            </figure>
-          </div>
-        </div>
-      </section>
+      <LongReadHeader back={t.back} eyebrow={t.eyebrow} title={work.title} lead={t.summary} meta={[[u.role, work.role], [u.period, work.period]]}
+        aside={<img src={work.image} alt={work.title} className="w-full rounded-[16px] ring-1 ring-black/[0.06]" />} />
 
-      <nav aria-label="Case study sections" className="sticky top-[112px] z-40 overflow-x-auto border-b border-[#f7b718]/25 bg-[#fffaf0]/95 backdrop-blur sm:top-[65px] dark:bg-neutral-950/95">
-        <div className="mx-auto flex max-w-6xl min-w-max gap-6 px-5 py-3 text-sm md:px-8">
-          {t.nav.map(([label, href]) => <a key={href} href={href} className="font-medium text-neutral-600 no-underline hover:text-[#b57900] dark:text-neutral-300 dark:hover:text-[#f7b718]">{label}</a>)}
-        </div>
-      </nav>
+      <LongReadBody chapters={chapters} contentsLabel={u.contents} deps={[language]}>
+        <Chapter id="problem" no={n('problem')} title={chapters[0].title}>
+          <P lead>{t.problemTitle}</P>
+          <div className="mt-5"><P>{t.problemCopy}</P></div>
+          <Stats items={t.stats.map(([v, l]) => [v, l] as [string, string])} />
+          <p className="mt-4 max-w-[680px] text-[13px] leading-6 text-[#74777F]">{t.limit}</p>
+          <div className="mt-10"><Quote>{t.insight}</Quote></div>
+        </Chapter>
 
-      <section id="problem" className="scroll-mt-28 mx-auto max-w-6xl px-5 py-14 md:px-8 md:py-20">
-        <div className="grid gap-10 md:grid-cols-[0.78fr_1.22fr]">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#b57900] dark:text-[#f7b718]">{t.problemKicker}</p>
-            <h2 className="mt-4 text-3xl font-semibold leading-tight md:text-5xl">{t.problemTitle}</h2>
-          </div>
-          <div>
-            <p className="text-lg leading-8 text-neutral-600 dark:text-neutral-300">{t.problemCopy}</p>
-            <p className="mt-6 border-l-4 border-[#f7b718] pl-5 text-xl font-semibold leading-8">{t.insight}</p>
-          </div>
-        </div>
-        <div className="mt-10 grid gap-px overflow-hidden rounded-lg border border-[#f7b718]/30 bg-[#f7b718]/30 sm:grid-cols-2 lg:grid-cols-4">
-          {t.stats.map(([value, label]) => (
-            <div key={label} className="bg-white p-5 dark:bg-neutral-950">
-              <p className="text-3xl font-semibold text-[#b57900] dark:text-[#f7b718]">{value}</p>
-              <p className="mt-3 text-sm leading-6 text-neutral-600 dark:text-neutral-300">{label}</p>
-            </div>
-          ))}
-        </div>
-        <p className="mt-4 text-xs leading-6 text-neutral-500">{t.limit}</p>
-      </section>
+        <Chapter id="story" no={n('story')} title={chapters[1].title}>
+          <P lead>{t.storyTitle}</P>
+          <div className="mt-5"><P>{t.storyCopy}</P></div>
+          <NumList items={t.storyPanels.map(([a, b]) => [a.replace(/^\d+\s*·\s*/, ''), b] as [string, string])} en={en} />
+        </Chapter>
 
-      <section id="story" className="scroll-mt-28 border-y border-[#f7b718]/25 bg-neutral-950 text-white">
-        <div className="mx-auto max-w-6xl px-5 py-14 md:px-8 md:py-20">
-          <div className="grid gap-7 md:grid-cols-[0.7fr_1.3fr] md:items-end">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#f7b718]">{t.storyKicker}</p>
-              <h2 className="mt-4 text-3xl font-semibold md:text-4xl">{t.storyTitle}</h2>
-            </div>
-            <p className="text-lg leading-8 text-neutral-300">{t.storyCopy}</p>
-          </div>
-          <div className="mt-10 grid gap-px overflow-hidden border border-white/15 bg-white/15 sm:grid-cols-2 lg:grid-cols-3">
-            {t.storyPanels.map(([title, description], index) => (
-              <figure key={title} className="bg-neutral-950">
-                <div className="relative aspect-[4/3] overflow-hidden bg-neutral-900">
-                  <img
-                    src={storyMedia[index].image}
-                    alt=""
-                    loading="lazy"
-                    className="h-full w-full object-cover opacity-90"
-                    style={{ objectPosition: storyMedia[index].position }}
-                  />
-                  <span className="absolute left-4 top-4 text-5xl font-semibold leading-none text-[#f7b718] drop-shadow-[0_2px_12px_rgba(0,0,0,0.65)]">0{index + 1}</span>
+        <Chapter id="ui" no={n('ui')} title={chapters[2].title}>
+          <P lead>{t.uiTitle}</P>
+          <div className="mt-5"><P>{t.uiCopy}</P></div>
+          <div className="mt-10 grid gap-14">
+            {t.uiPoints.map((point, i) => (
+              <div key={point.title} className="grid items-center gap-8 sm:grid-cols-[minmax(0,1fr)_240px]">
+                <div>
+                  <h3 className="flex gap-3 text-[18px] font-semibold leading-snug"><span className="font-mono text-[13px] leading-7 text-[#A87A07]">{i + 1}.</span>{point.title}</h3>
+                  <div className="mt-3"><P>{point.copy}</P></div>
+                  <p className="mt-3 max-w-[680px] text-[14px] leading-7 text-[#74777F]"><b className="font-semibold text-[#3B3E46] dark:text-neutral-200">{u.why}{colon}</b>{strip(point.attraction)}</p>
                 </div>
-                <figcaption className="min-h-40 p-5">
-                  <h3 className="text-sm font-semibold text-[#f7b718]">{title}</h3>
-                  <p className="mt-3 text-sm leading-6 text-neutral-300">{description}</p>
-                </figcaption>
-              </figure>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="ui" className="scroll-mt-28 mx-auto max-w-6xl px-5 py-14 md:px-8 md:py-20">
-        <div className="max-w-3xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#b57900] dark:text-[#f7b718]">{t.uiKicker}</p>
-          <h2 className="mt-4 text-3xl font-semibold md:text-5xl">{t.uiTitle}</h2>
-          <p className="mt-5 text-lg leading-8 text-neutral-600 dark:text-neutral-300">{t.uiCopy}</p>
-        </div>
-        <div className="mt-12 grid gap-x-8 gap-y-14 lg:grid-cols-3">
-          {t.uiPoints.map((point, index) => (
-            <article key={point.title} className="flex flex-col">
-              <figure className="mx-auto w-[min(82vw,278px)] overflow-hidden border border-neutral-300 bg-[#fbf7ef] shadow-[0_24px_60px_rgba(0,0,0,0.12)] dark:border-neutral-700">
-                <img src={point.image} alt={point.alt} loading="lazy" className="block h-auto w-full" />
-              </figure>
-              <p className="mt-6 text-xs font-semibold text-[#b57900] dark:text-[#f7b718]">UI 0{index + 1}</p>
-              <h3 className="mt-2 text-xl font-semibold leading-snug">{point.title}</h3>
-              <p className="mt-3 text-sm leading-7 text-neutral-600 dark:text-neutral-300">{point.copy}</p>
-              <p className="mt-4 border-l-2 border-[#f7b718] pl-4 text-sm font-medium leading-6 text-neutral-800 dark:text-neutral-200">{point.attraction}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="border-y border-[#f7b718]/25 bg-[#fff4cf]/45 dark:bg-neutral-900/40">
-        <div className="mx-auto max-w-6xl px-5 py-14 md:px-8 md:py-20">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#b57900] dark:text-[#f7b718]">{t.decisionsKicker}</p>
-          <h2 className="mt-4 text-3xl font-semibold md:text-5xl">{t.decisionsTitle}</h2>
-          <div className="mt-9 grid gap-8 md:grid-cols-3">
-            {t.decisions.map(([title, description, driver], index) => (
-              <article key={title} className="border-t-2 border-[#f7b718] pt-5">
-                <span className="text-xs font-semibold text-[#b57900] dark:text-[#f7b718]">0{index + 1}</span>
-                <h3 className="mt-3 text-xl font-semibold">{title}</h3>
-                <p className="mt-3 text-sm leading-7 text-neutral-600 dark:text-neutral-300">{description}</p>
-                <p className="mt-5 text-sm font-semibold">{driver}</p>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="loop" className="scroll-mt-28 bg-neutral-950 text-white">
-        <div className="mx-auto max-w-6xl px-5 py-14 md:px-8 md:py-20">
-          <div className="grid gap-8 md:grid-cols-[0.72fr_1.28fr]">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#f7b718]">{t.loopKicker}</p>
-              <h2 className="mt-4 text-3xl font-semibold md:text-5xl">{t.loopTitle}</h2>
-            </div>
-            <p className="text-lg leading-8 text-neutral-300">{t.loopCopy}</p>
-          </div>
-          <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
-            {t.loop.map(([title, description], index) => (
-              <div key={title} className="relative rounded-lg border border-white/[0.14] p-4">
-                <span className="text-xs font-semibold text-[#f7b718]">0{index + 1}</span>
-                <h3 className="mt-3 font-semibold">{title}</h3>
-                <p className="mt-2 text-xs leading-5 text-neutral-400">{description}</p>
-                {index < t.loop.length - 1 ? <span aria-hidden="true" className="absolute -right-2 top-1/2 z-10 hidden size-4 -translate-y-1/2 rotate-45 border-r border-t border-[#f7b718] bg-neutral-950 lg:block" /> : null}
+                <img src={point.image} alt={point.alt} loading="lazy" className="mx-auto w-[220px] rounded-[22px] shadow-[0_18px_40px_rgba(20,22,27,0.14)] ring-1 ring-black/[0.08]" />
               </div>
             ))}
           </div>
-        </div>
-      </section>
+          <Sub>{t.decisionsTitle}</Sub>
+          <NumList items={t.decisions.map(([a, b, c]) => [a, en ? `${b} (${c})` : `${b}（${c}）`] as [string, string])} en={en} />
+        </Chapter>
 
-      <section id="iteration" className="scroll-mt-28 mx-auto max-w-6xl px-5 py-14 md:px-8 md:py-20">
-        <div className="grid gap-8 md:grid-cols-[0.72fr_1.28fr]">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#b57900] dark:text-[#f7b718]">{t.iterKicker}</p>
-            <h2 className="mt-4 text-3xl font-semibold md:text-5xl">{t.iterTitle}</h2>
-          </div>
-          <p className="text-lg leading-8 text-neutral-600 dark:text-neutral-300">{t.iterCopy}</p>
-        </div>
-        <div className="mt-10 grid gap-4">
-          {t.versions.map(([version, label, description]) => (
-            <article key={version} className="rounded-lg border border-[#f7b718]/35 bg-white p-5 dark:border-[#f7b718]/25 dark:bg-neutral-900">
-              <div className="flex items-baseline gap-3"><span className="text-3xl font-semibold text-[#b57900] dark:text-[#f7b718]">{version}</span><span className="text-sm font-semibold">{label}</span></div>
-              <p className="mt-3 text-sm leading-7 text-neutral-600 dark:text-neutral-300">{description}</p>
-            </article>
-          ))}
-        </div>
-        <figure className="mt-8 overflow-hidden rounded-lg border border-[#f7b718]/30 bg-[#fffaf0] dark:border-[#f7b718]/20 dark:bg-neutral-900">
-          <img src="/works/haojiu-meichi/ui/flow-v1-1.jpg" alt={t.iterCaption} loading="lazy" className="block h-auto w-full" />
-          <figcaption className="px-4 py-3 text-xs leading-5 text-neutral-500 dark:text-neutral-400">{t.iterCaption}</figcaption>
-        </figure>
-        <h3 className="mt-12 text-xl font-semibold">{t.fixesTitle}</h3>
-        <div className="mt-5 grid gap-0">
-          {t.fixes.map(([problem, fix], index) => (
-            <div key={problem} className="grid gap-2 border-t border-[#f7b718]/35 py-4 md:grid-cols-[3rem_1fr_1fr] md:gap-6">
-              <span className="text-sm font-semibold text-[#b57900] dark:text-[#f7b718]">0{index + 1}</span>
-              <p className="text-sm leading-7 text-neutral-700 dark:text-neutral-300">{problem}</p>
-              <p className="text-sm leading-7 text-neutral-950 dark:text-white"><span aria-hidden="true" className="mr-2 text-[#b57900] dark:text-[#f7b718]">→</span>{fix}</p>
-            </div>
-          ))}
-        </div>
-        <p className="mt-4 rounded-lg border border-[#f7b718]/40 bg-[#fff4cf]/55 p-4 text-sm leading-7 text-neutral-700 dark:bg-[#f7b718]/10 dark:text-neutral-300">{t.pending}</p>
-      </section>
-
-      <section id="result" className="scroll-mt-28 mx-auto max-w-6xl px-5 py-14 md:px-8 md:py-20">
-        <div className="grid gap-9 md:grid-cols-[0.72fr_1.28fr]">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#b57900] dark:text-[#f7b718]">{t.resultKicker}</p>
-            <h2 className="mt-4 text-3xl font-semibold md:text-5xl">{t.resultTitle}</h2>
-            <p className="mt-5 leading-8 text-neutral-600 dark:text-neutral-300">{t.resultCopy}</p>
-          </div>
-          <div className="grid gap-3">
-            {t.result.map(([title, description], index) => (
-              <div key={title} className="grid gap-3 border-t border-[#f7b718]/45 py-5 md:grid-cols-[4rem_9rem_1fr]">
-                <span className="text-sm font-semibold text-[#b57900] dark:text-[#f7b718]">0{index + 1}</span>
-                <h3 className="font-semibold">{title}</h3>
-                <p className="text-sm leading-7 text-neutral-600 dark:text-neutral-300">{description}</p>
-              </div>
+        <Chapter id="loop" no={n('loop')} title={chapters[3].title}>
+          <P lead>{t.loopTitle}</P>
+          <div className="mt-5"><P>{t.loopCopy}</P></div>
+          <p className="mt-8 flex max-w-[760px] flex-wrap items-baseline gap-x-3 gap-y-3 text-[15px] leading-7">
+            {t.loop.map(([a, b], i) => (
+              <span key={a} className="inline-flex items-baseline gap-3">
+                <span><b className="font-semibold">{a}</b> <span className="text-[#74777F]">{b}</span></span>
+                {i < t.loop.length - 1 ? <span aria-hidden="true" className="text-[#A87A07]">→</span> : <span aria-hidden="true" className="text-[#A87A07]">↺</span>}
+              </span>
             ))}
-            <div className="mt-3 border-l-4 border-[#f7b718] bg-[#fff4cf]/55 p-5 dark:bg-[#f7b718]/10">
-              <h3 className="font-semibold">{t.nextTitle}</h3>
-              <ul className="mt-3 grid gap-2 text-sm leading-7 text-neutral-700 dark:text-neutral-300">
-                {t.next.map((item) => <li key={item}>→ {item}</li>)}
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
+          </p>
+        </Chapter>
 
-      <section className="border-t border-[#f7b718]/25 bg-white dark:bg-neutral-900/40">
-        <div className="mx-auto max-w-5xl px-5 py-16 text-center md:px-8 md:py-24">
-          <p className="text-2xl font-semibold leading-relaxed md:text-4xl">{t.closing}</p>
-          <Link href="/works" className="mt-9 inline-flex rounded-md bg-[#f7b718] px-5 py-3 text-sm font-semibold text-black no-underline transition hover:bg-[#e1a514]">{t.otherWorks} <span aria-hidden="true" className="ml-2">→</span></Link>
-        </div>
-      </section>
+        <Chapter id="iteration" no={n('iteration')} title={chapters[4].title}>
+          <P lead>{t.iterTitle}</P>
+          <div className="mt-5"><P>{t.iterCopy}</P></div>
+          <NumList items={t.versions.map(([v, l, d]) => [`${v} · ${l}`, d] as [string, string])} en={en} />
+          <Figures items={[{ src: '/works/haojiu-meichi/ui/flow-v1-1.jpg', alt: t.iterCaption, caption: t.iterCaption }]} />
+          <Sub>{t.fixesTitle}</Sub>
+          <table className="mt-4 w-full max-w-[760px] border-collapse text-left text-[14px] leading-7">
+            <tbody>
+              {t.fixes.map(([problem, fix]) => (
+                <tr key={problem} className="border-b border-black/[0.08] align-top dark:border-white/10">
+                  <td className="w-1/2 py-3 pr-6 text-[#74777F]">{problem}</td>
+                  <td className="py-3 text-[#14161B] dark:text-neutral-100"><span className="mr-2 text-[#A87A07]">→</span>{fix}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="mt-5 max-w-[680px] text-[14px] leading-7 text-[#74777F]">{t.pending}</p>
+        </Chapter>
+
+        <Chapter id="result" no={n('result')} title={chapters[5].title}>
+          <P lead>{t.resultTitle}</P>
+          <div className="mt-5"><P>{t.resultCopy}</P></div>
+          <NumList items={t.result.map(([a, b]) => [a, b] as [string, string])} en={en} />
+          <Sub>{t.nextTitle}</Sub>
+          <Bullets items={t.next} mark="→" />
+          <div className="mt-10"><Quote>{t.closing}</Quote></div>
+          <OtherWorks label={t.otherWorks} />
+        </Chapter>
+      </LongReadBody>
     </main>
   )
 }

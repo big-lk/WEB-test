@@ -1,7 +1,9 @@
 'use client'
 
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { LanguageProvider, useLanguage } from './language-context'
+import LogoMark from './logo-mark'
 
 const navCopy = {
   en: {
@@ -64,107 +66,71 @@ function MoonIcon() {
 
 function SiteHeader() {
   const { language, setLanguage, theme, setTheme } = useLanguage()
+  const pathname = usePathname()
   const copy = navCopy[language]
   const navLinks = [
-    { href: '/timeline', label: copy.timeline },
-    { href: '/resume', label: copy.resume },
     { href: '/works', label: copy.works },
+    { href: '/timeline', label: copy.timeline },
     { href: '/research', label: copy.research },
+    { href: '/resume', label: copy.resume },
     { href: '/#contact', label: copy.contact },
   ]
+  const isActive = (href: string) => href !== '/#contact' && pathname?.startsWith(href)
+  const seg = (on: boolean) =>
+    `rounded-[9px] px-2.5 py-1.5 transition ${on ? 'bg-white text-[#14161B] shadow-[0_1px_3px_rgba(0,0,0,0.1)] dark:bg-white/15 dark:text-white' : 'text-[#74777F] hover:text-[#14161B] dark:text-neutral-400 dark:hover:text-white'}`
 
   return (
-    <nav
-      role="navigation"
-      aria-label="Main navigation"
-      className="sticky top-0 z-50 border-b border-[#f7b718]/35 bg-[#fffaf0]/92 backdrop-blur-xl dark:border-[#f7b718]/30 dark:bg-neutral-950/86"
-    >
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 md:flex-nowrap md:px-8">
-        <Link href="/" className="flex min-w-0 items-center gap-3 no-underline">
-          <span className="grid size-10 shrink-0 place-items-center rounded-md border border-[#f7b718]/35 bg-white p-1 shadow-sm shadow-[#f7b718]/15">
-            <img src="/logo-mark.png" alt={copy.brandAlt} className="size-full object-contain" />
-          </span>
-          <span className="hidden truncate text-sm font-medium tracking-wide text-neutral-800 dark:text-neutral-200 sm:inline">
-            KONG WEIPENG
+    <nav role="navigation" aria-label="Main navigation" className="sticky top-0 z-50 px-3 pt-3 md:px-6 md:pt-5">
+      <div className="glass mx-auto flex max-w-6xl items-center justify-between gap-3 rounded-[18px] py-1.5 pl-3 pr-1.5 md:pl-4">
+        <Link href="/" className="flex min-w-0 items-center gap-3 text-[#14161B] no-underline dark:text-white" aria-label={copy.brandAlt}>
+          <LogoMark className="size-7 shrink-0" />
+          <span className="hidden leading-tight sm:block">
+            <b className="block text-[13px] font-semibold tracking-[0.04em]">孔维鹏</b>
+            <span className="block font-mono text-[9.5px] tracking-[0.22em] text-[#74777F]">KONG WEIPENG</span>
           </span>
         </Link>
 
-        <div className="flex min-w-0 flex-1 items-center justify-end gap-2 md:flex-none md:gap-6">
-          <div className="hidden items-center gap-5 text-sm text-neutral-700 dark:text-neutral-300 sm:flex">
+        <div className="flex items-center gap-1">
+          <div className="hidden items-center gap-0.5 text-[13px] md:flex">
             {navLinks.map((link) => (
-              <Link key={link.href} href={link.href} className="no-underline hover:text-[#b57900] dark:hover:text-[#f7b718]">
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`rounded-[11px] px-3 py-2 no-underline transition ${isActive(link.href) ? 'bg-white/80 text-[#14161B] dark:bg-white/10 dark:text-white' : 'text-[#3A3D45] hover:bg-white/70 dark:text-neutral-300 dark:hover:bg-white/10'}`}
+              >
                 {link.label}
               </Link>
             ))}
+            <span className="mx-1.5 h-4 w-px bg-black/10 dark:bg-white/15" />
           </div>
-
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <div
-              className="grid grid-cols-3 rounded-md border border-[#f7b718]/55 bg-white p-0.5 text-[11px] font-medium shadow-sm shadow-[#f7b718]/10 dark:border-[#f7b718]/35 dark:bg-neutral-900 sm:text-xs"
-              aria-label={copy.languageLabel}
-            >
-              {(['en', 'ja', 'zh'] as const).map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => setLanguage(option)}
-                  className={`min-w-8 rounded px-2 py-1.5 transition sm:min-w-9 ${
-                    language === option
-                      ? 'bg-[#f7b718] text-black'
-                      : 'text-neutral-500 hover:text-[#b57900] dark:hover:text-[#f7b718]'
-                  }`}
-                >
-                  {option === 'en' ? 'EN' : option === 'ja' ? 'JP' : '中'}
-                </button>
-              ))}
-            </div>
-
-            <div
-              className="grid grid-cols-2 rounded-md border border-[#f7b718]/55 bg-white p-0.5 text-xs font-medium shadow-sm shadow-[#f7b718]/10 dark:border-[#f7b718]/35 dark:bg-neutral-900"
-              aria-label={copy.themeLabel}
-            >
-              <button
-                type="button"
-                onClick={() => setTheme('light')}
-                aria-label={copy.light}
-                title={copy.light}
-                className={`grid size-8 place-items-center rounded transition ${
-                  theme === 'light'
-                    ? 'bg-[#f7b718] text-black'
-                    : 'text-neutral-500 hover:text-[#b57900] dark:hover:text-[#f7b718]'
-                }`}
-              >
-                <SunIcon />
+          <div className="flex rounded-[12px] bg-black/[0.05] p-[3px] text-[11.5px] font-medium dark:bg-white/[0.06]" aria-label={copy.languageLabel}>
+            {(['zh', 'ja', 'en'] as const).map((option) => (
+              <button key={option} type="button" onClick={() => setLanguage(option)} className={seg(language === option)}>
+                {option === 'en' ? 'EN' : option === 'ja' ? '日' : '中'}
               </button>
-              <button
-                type="button"
-                onClick={() => setTheme('dark')}
-                aria-label={copy.dark}
-                title={copy.dark}
-                className={`grid size-8 place-items-center rounded transition ${
-                  theme === 'dark'
-                    ? 'bg-[#f7b718] text-black'
-                    : 'text-neutral-500 hover:text-[#b57900] dark:hover:text-[#f7b718]'
-                }`}
-              >
-                <MoonIcon />
-              </button>
-            </div>
+            ))}
           </div>
+          <button
+            type="button"
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            aria-label={copy.themeLabel}
+            title={theme === 'dark' ? copy.light : copy.dark}
+            className="ml-1 grid size-9 place-items-center rounded-[12px] text-[#3A3D45] transition hover:bg-white/70 dark:text-neutral-300 dark:hover:bg-white/10"
+          >
+            {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
+          </button>
         </div>
       </div>
-      <div className="border-t border-[#f7b718]/20 px-4 py-2 sm:hidden">
-        <div className="mx-auto grid max-w-6xl grid-cols-5 gap-1.5 text-center text-xs font-medium">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="rounded-md border border-[#f7b718]/35 bg-white/60 px-1 py-2 text-neutral-800 no-underline shadow-sm shadow-[#f7b718]/5 dark:bg-neutral-900 dark:text-neutral-200"
-            >
-              {link.label}
-            </Link>
-          ))}
-        </div>
+      <div className="glass mx-auto mt-2 flex max-w-6xl justify-between gap-1 rounded-[14px] p-1 text-[12px] md:hidden">
+        {navLinks.map((link) => (
+          <Link
+            key={link.href}
+            href={link.href}
+            className={`flex-1 rounded-[10px] py-1.5 text-center no-underline ${isActive(link.href) ? 'bg-white text-[#14161B] dark:bg-white/15 dark:text-white' : 'text-[#3A3D45] dark:text-neutral-300'}`}
+          >
+            {link.label}
+          </Link>
+        ))}
       </div>
     </nav>
   )
@@ -176,15 +142,13 @@ function SiteFooter() {
   const year = new Date().getFullYear()
 
   return (
-    <footer className="border-t border-[#f7b718]/30 bg-[#fffaf0] dark:border-[#f7b718]/25 dark:bg-neutral-950">
-      <div className="mx-auto flex max-w-6xl flex-col gap-4 px-5 py-8 text-sm text-neutral-500 md:flex-row md:items-center md:justify-between md:px-8">
-        <div className="flex items-center gap-3">
-          <span className="grid size-9 place-items-center rounded-md border border-[#f7b718]/30 bg-white p-1 shadow-sm shadow-[#f7b718]/10">
-            <img src="/logo-mark.png" alt={copy.brandAlt} className="size-full object-contain" />
-          </span>
-          <span>© {year} LKD · KONG WEIPENG</span>
+    <footer className="relative mt-10 border-t border-black/[0.06] dark:border-white/10">
+      <div className="mx-auto flex max-w-6xl flex-col gap-4 px-5 py-10 text-[12.5px] text-[#74777F] md:flex-row md:items-center md:justify-between md:px-8">
+        <div className="flex items-center gap-3 text-[#14161B] dark:text-white">
+          <LogoMark className="size-6" />
+          <span className="text-[#74777F]">© {year} LKD · KONG WEIPENG</span>
         </div>
-        <span>{copy.built}</span>
+        <span className="font-mono text-[11px] tracking-[0.12em]">KANSEI PRODUCT DESIGN · HCI — {copy.built}</span>
       </div>
     </footer>
   )
@@ -193,9 +157,11 @@ function SiteFooter() {
 export default function SiteChrome({ children }: { children: React.ReactNode }) {
   return (
     <LanguageProvider>
+      <div className="paper-bg" aria-hidden="true" />
       <SiteHeader />
       {children}
       <SiteFooter />
+      <div className="paper-grain" aria-hidden="true" />
     </LanguageProvider>
   )
 }

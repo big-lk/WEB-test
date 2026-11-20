@@ -284,10 +284,10 @@ const copy: Record<Language, { eyebrow: string; title: string; intro: string; hi
 }
 
 const dotStyles: Record<NodeKind, string> = {
-  education: 'border-[#f7b718] bg-[#f7b718]',
-  project: 'border-[#f7b718] bg-[#fffaf0] dark:bg-neutral-950',
+  education: 'border-[#EEAF1C] bg-[#EEAF1C]',
+  project: 'border-[#EEAF1C] bg-transparent dark:bg-[#0F1013]',
   milestone: 'border-neutral-900 bg-neutral-900 dark:border-white dark:bg-white',
-  future: 'border-dashed border-neutral-400 bg-[#fffaf0] dark:bg-neutral-950',
+  future: 'border-dashed border-neutral-400 bg-transparent dark:bg-[#0F1013]',
 }
 
 export default function TimelinePage() {
@@ -308,10 +308,10 @@ export default function TimelinePage() {
   }
 
   return (
-    <main className="bg-[#fffaf0] dark:bg-neutral-950">
+    <main className="bg-transparent dark:bg-[#0F1013]">
       <section className="mx-auto max-w-6xl px-5 pt-12 md:px-8 md:pt-16">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#b57900] dark:text-[#f7b718]">{t.eyebrow}</p>
-        <h1 className="mt-4 text-4xl font-semibold tracking-normal md:text-6xl">{t.title}</h1>
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] font-mono text-[#A87A07] dark:text-[#EEAF1C]">{t.eyebrow}</p>
+        <h1 className="mt-4 text-4xl font-semibold tracking-[-0.015em] md:text-6xl">{t.title}</h1>
         <p className="mt-5 max-w-3xl leading-8 text-neutral-600 dark:text-neutral-300">{t.intro}</p>
         <p className="mt-8 hidden text-xs font-medium text-neutral-500 md:block">{t.hint}</p>
       </section>
@@ -335,14 +335,14 @@ export default function TimelinePage() {
               {!isLast && (
                 <span
                   aria-hidden="true"
-                  className="absolute bottom-0 left-[7px] top-5 w-px bg-[#f7b718]/50 md:bottom-auto md:left-5 md:right-0 md:top-[7px] md:h-px md:w-auto"
+                  className="absolute bottom-0 left-[7px] top-5 w-px bg-[#EEAF1C]/50 md:bottom-auto md:left-5 md:right-0 md:top-[7px] md:h-px md:w-auto"
                 />
               )}
               <span aria-hidden="true" className={`absolute left-0 top-1 size-4 rounded-full border-2 md:top-0 ${dotStyles[node.kind]}`} />
 
-              <p className="text-xs font-semibold tracking-[0.12em] text-[#b57900] dark:text-[#f7b718]">
+              <p className="text-xs font-semibold tracking-[0.12em] text-[#A87A07] dark:text-[#EEAF1C]">
                 {node.period}
-                <span className="ml-2 rounded border border-[#f7b718]/40 px-1.5 py-0.5 text-[10px] font-medium text-neutral-500">{t.kinds[node.kind]}</span>
+                <span className="ml-2 rounded border border-[#EEAF1C]/40 px-1.5 py-0.5 text-[10px] font-medium text-neutral-500">{t.kinds[node.kind]}</span>
               </p>
               <h2 className="mt-2 text-xl font-semibold leading-snug">{node.title}</h2>
               {node.subtitle && <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-300">{node.subtitle}</p>}
@@ -356,7 +356,7 @@ export default function TimelinePage() {
                       href={src}
                       target="_blank"
                       rel="noreferrer"
-                      className="block overflow-hidden rounded-md border border-[#f7b718]/35 bg-white no-underline transition hover:border-[#b57900] dark:border-[#f7b718]/25"
+                      className="block overflow-hidden rounded-2xl border border-black/[0.08] bg-white/60 backdrop-blur-xl no-underline transition hover:border-[#A87A07] dark:border-white/10"
                     >
                       <img
                         src={src}
@@ -376,10 +376,10 @@ export default function TimelinePage() {
                     {node.courses.map((course) => (
                       <li
                         key={course.name}
-                        className={`rounded-md border px-3 py-2 text-sm ${
+                        className={`rounded-2xl border px-3 py-2 text-sm ${
                           course.key
-                            ? 'border-[#f7b718]/60 bg-[#fff4cf]/70 dark:border-[#f7b718]/40 dark:bg-neutral-900'
-                            : 'border-[#f7b718]/25 bg-white/60 dark:border-[#f7b718]/15 dark:bg-neutral-950'
+                            ? 'border-[#EEAF1C]/60 bg-[#F6ECD2]/70 dark:border-[#EEAF1C]/40 dark:bg-neutral-900'
+                            : 'border-black/[0.08] bg-white/60 dark:border-white/10 dark:bg-[#0F1013]'
                         }`}
                       >
                         <span className="font-medium text-neutral-900 dark:text-neutral-100">{course.name}</span>
@@ -398,10 +398,10 @@ export default function TimelinePage() {
                       <Link
                         key={work.id}
                         href={work.href}
-                        className="group overflow-hidden rounded-md border border-[#f7b718]/35 bg-white no-underline transition hover:border-[#b57900] dark:border-[#f7b718]/25 dark:bg-neutral-900"
+                        className="group overflow-hidden rounded-2xl border border-black/[0.08] bg-white/60 backdrop-blur-xl no-underline transition hover:border-[#A87A07] dark:border-white/10 dark:bg-neutral-900"
                       >
                         {work.image && (
-                          <img src={work.image} alt="" loading="lazy" className="aspect-video w-full bg-neutral-950 object-cover transition duration-500 group-hover:scale-[1.03]" />
+                          <img src={work.cover ?? work.image} alt="" loading="lazy" className="aspect-video w-full bg-[#14161B] object-cover transition duration-500 group-hover:scale-[1.03]" />
                         )}
                         <span className="block px-2 py-1.5 text-xs font-medium leading-5 text-neutral-800 dark:text-neutral-200">{work.title}</span>
                       </Link>
