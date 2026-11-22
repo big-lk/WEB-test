@@ -263,8 +263,10 @@
   };
   els.startTask.addEventListener("click", (event) => {
     if (!session || session.practice?.endedAt) return;  // 練習済みなら通常どおり
-    if (typeof readAnchor === "function" && !readAnchor()) { event.stopImmediatePropagation(); return; }
+    const anchor = typeof readAnchor === "function" ? readAnchor() : null;
     event.stopImmediatePropagation();
+    if (!anchor) return;
+    session.pretaskAnchor = anchor;  // 練習中に再読み込みしても、書いた一文を説明画面に戻せるように
     enterPractice();
   }, { capture: true });
 
