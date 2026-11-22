@@ -1,5 +1,5 @@
 /*
- * aitest 実験画面 ログ強化パッチ（logging_patch.js） v1
+ * aitest 実験画面 ログ強化パッチ（logging_patch.js） v2（v2: UI B のボタン行を BTN_1〜3 として記録）
  * 対象：app.js v5.0.18（SESSION_SCHEMA_VERSION 8）
  *
  * 使い方：index.html の app.js の <script> の直後に 1 行追加するだけ。
@@ -17,7 +17,7 @@
  */
 (function () {
   "use strict";
-  const PATCH_VERSION = "logging-patch-v1";
+  const PATCH_VERSION = "logging-patch-v2";
   if (typeof logEvent !== "function" || typeof renderAll !== "function") {
     console.warn("[logging_patch] app.js が先に読み込まれていません");
     return;
@@ -69,7 +69,10 @@
     const stage = rect(els.chatStage);
     const answers = els.chatStage.querySelectorAll(".message.ai .message-bubble");
     const latest = clip(rect(answers[answers.length - 1]), stage);
-    const cards = [...els.criteriaList.querySelectorAll(".criterion-card")].map(rect);
+    const cardEls = [...els.criteriaList.querySelectorAll(".criterion-card")];
+    const cards = cardEls.map(rect);
+    // UI B：カード内のボタン行を別の矩形として記録（小さい矩形が優先されるので、カード本文とボタンを分けて集計できる）
+    const buttons = cardEls.map((c) => rect(c.querySelector(".delegation-block")));
     const rects = {
       AI_LATEST: latest,
       HISTORY: stage,  // AI_LATEST と重なる部分は、小さい矩形（AI_LATEST）が優先される
@@ -77,6 +80,7 @@
       GUIDE: union([rect(els.promptKicker), rect(els.promptText), rect(els.guideText), rect(els.turnAnchor)]),
       HELP: rect(els.insightHelp),
       CARD_1: cards[0] || null, CARD_2: cards[1] || null, CARD_3: cards[2] || null,
+      BTN_1: buttons[0] || null, BTN_2: buttons[1] || null, BTN_3: buttons[2] || null,
       EXAMPLE: session?.condition === "UI_B" ? rect(els.exampleAssist) : null
     };
     Object.keys(rects).forEach((k) => { if (!rects[k]) delete rects[k]; });

@@ -162,6 +162,19 @@ def add_coding(df: pd.DataFrame, coding_path: Path) -> tuple[pd.DataFrame, dict]
     return df.merge(c[["participant_id", "e1_final", "e2_final", "corrections"]], on="participant_id", how="left"), agree
 
 
+def add_gaze_from_eyetools(df: pd.DataFrame, toi_csv: Path, min_tracking: float = 0.7) -> pd.DataFrame:
+    """eyetools（batch の all_toi_metrics.csv）から H3 を作る：第4・5回の読解区間の panel_visits の平均。
+    追跡率が min_tracking 未満の区間は除外する。"""
+    t = pd.read_csv(toi_csv, encoding="utf-8-sig")
+    r = t[(t["toi"] == "reading") & (t["turn"].isin(EYE_TURNS)) & (t["tracking_ratio"] >= min_tracking)]
+    g = r.groupby("participant").agg(panel_text_visits_t45=("panel_visits", "mean"),
+                                     button_visits_t45=("button_visits", "mean"),
+                                     ans_panel_transitions_t45=("ans_panel_transitions", "mean"),
+                                     n_valid_reading_t45=("turn", "count")).reset_index()
+    g = g.rename(columns={"participant": "participant_id"})
+    return df.drop(columns=[c for c in g.columns if c != "participant_id" and c in df], errors="ignore").merge(g, on="participant_id", how="left")
+
+
 def add_tobii(df: pd.DataFrame, tobii_path: Path) -> pd.DataFrame:
     t = pd.read_csv(tobii_path, encoding="utf-8-sig")
     t = t[(t["aoi"] == PANEL_AOI) & (t["turn"].isin(EYE_TURNS))]
@@ -204,6 +217,8 @@ HYPOTHESES = [
 ]
 DESCRIPTIVE = [
     ("操作チェック：ずれへの修正数（0–2）", "corrections"),
+    ("視線：第4・5回入力前の回答⇄カード本文の往復回数", "ans_panel_transitions_t45"),
+    ("視線：第4・5回入力前のボタン行への訪問回数（UI B のみ）", "button_visits_t45"),
     ("ずれに気づきやすかった（1–5）", "noticeGap"),
     ("確認しやすさ（1–5）", "understanding"),
     ("次の入力に役立った（1–5）", "nextInput"),
@@ -230,7 +245,9 @@ def run(args) -> None:
         df, div_agree = add_division(df, Path(args.division), Path(args.division_key))
     if args.coding:
         df, agree = add_coding(df, Path(args.coding))
-    if args.tobii:
+    if args.gaze_toi:
+        df = add_gaze_from_eyetools(df, Path(args.gaze_toi))
+    elif args.tobii:
         df = add_tobii(df, Path(args.tobii))
     elif "panel_text_visits_t45" not in df:
         df["panel_text_visits_t45"] = df["panel_visits_t45"] if "panel_visits_t45" in df else np.nan
@@ -290,6 +307,7 @@ def main() -> None:
     r.add_argument("--division", help="分担表明の判定表（id, div_final）")
     r.add_argument("--division-key", help="division-template が出した対応表")
     r.add_argument("--coding")
+    r.add_argument("--gaze-toi", help="eyetools batch の all_toi_metrics.csv（推奨。--tobii の代わり）")
     r.add_argument("--tobii")
     r.add_argument("--out", required=True)
     r.add_argument("--include-test", action="store_true")

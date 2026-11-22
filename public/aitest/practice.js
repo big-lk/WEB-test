@@ -139,11 +139,13 @@
       const b = el.getBoundingClientRect();
       return b.width && b.height ? [Math.round(b.left), Math.round(b.top), Math.round(b.width), Math.round(b.height)] : null;
     };
-    const cards = [...els.criteriaList.querySelectorAll(".criterion-card")].map(r);
+    const cardEls = [...els.criteriaList.querySelectorAll(".criterion-card")];
+    const cards = cardEls.map(r);
+    const buttons = cardEls.map((c) => r(c.querySelector(".delegation-block")));
     const rects = {
       AI_LATEST: r(els.chatStage.querySelector(".message.ai .message-bubble")), HISTORY: r(els.chatStage),
       INPUT: r(els.composer), GUIDE: r(els.turnPrompt), HELP: r(els.insightHelp),
-      CARD_1: cards[0], CARD_2: cards[1], CARD_3: cards[2],
+      CARD_1: cards[0], CARD_2: cards[1], CARD_3: cards[2], BTN_1: buttons[0], BTN_2: buttons[1], BTN_3: buttons[2],
       EXAMPLE: session.condition === "UI_B" ? r(els.exampleAssist) : null
     };
     Object.keys(rects).forEach((k) => { if (!rects[k]) delete rects[k]; });

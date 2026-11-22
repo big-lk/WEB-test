@@ -16,3 +16,15 @@
 
 ## 試運転
 `python make_dummy.py --out dummy` で架空データ（DUMMY-）を作り、上の 2〜5 をそのまま実行できる。
+
+## 視線データ（eyetools v0.2）
+Pro Lab では「記録」と「生データの TSV 書き出し」だけを行い、AOI・TOI の設定は不要。
+実験画面のログ（AOI 座標・クリック時刻）と Pro Lab の TSV を、両方に残るクリックで自動同期して指標を計算する。
+```
+python -m eyetools.cli selftest                     # 動作確認
+python -m eyetools.cli check input/json/P001.json   # 実験直後のログ確認
+python -m eyetools.cli batch input/json input/gaze --out output/gaze   # gaze/<参加者番号>.tsv
+python analyze.py run --json-dir input/json --division ... --division-key ... --gaze-toi output/gaze/all_toi_metrics.csv --out output
+```
+H3 は第4・5回の読解区間（AI 回答の表示 → 入力欄の初回クリック）でのカード本文への訪問回数。UI B のボタン行（BTN_1〜3）は別集計。
+初めて実データの TSV を得たら、列名が eyetools/gaze.py の CANDIDATES と合っているか確認すること。
