@@ -9,7 +9,7 @@
  *
  * 視線計測（Tobii Pro Lab）への配慮
  *   - 本番と同じ app-shell を使う → AOI の位置は本番と同じ。
- *   - 画面上端に橙色の帯「練習」を重ねる（レイアウトは変えない）→ 録画で練習区間を判別できる。
+ *   - 画面の縁に橙色の枠、ヘッダー中央に「練習」の札を重ねる（レイアウトは変えない）→ 録画で練習区間を判別できる。
  *   - 練習の開始（「6回の対話を開始する」）と終了（「本番を始める」）はクリックで区切る → TOI の境界に使える。
  *   - practice_* イベントに ISO 時刻と perfNow を記録し、AOI 矩形も phase:"practice" で残す。
  *   - AI へは送信しない（固定文）。全員が同じ練習を受ける。
@@ -57,11 +57,19 @@
     if (!b) {
       b = document.createElement("div");
       b.id = "practiceBanner";
-      b.setAttribute("role", "status");
-      b.innerHTML = "<b>練習</b><span>本番とは関係ありません。画面の使い方を一度ためします。</span>";
+      b.setAttribute("aria-hidden", "true");
       document.body.append(b);
     }
-    return b;
+    let tag = $(".practice-tag");
+    if (!tag) {
+      tag = document.createElement("div");
+      tag.className = "practice-tag";
+      tag.setAttribute("role", "status");
+      tag.innerHTML = "<b>練習</b><span>本番とは関係ありません</span>";
+      $(".app-header")?.append(tag);
+    }
+    const both = { classList: { add: (c) => { b.classList.add(c); tag.classList.add(c); }, remove: (c) => { b.classList.remove(c); tag.classList.remove(c); } } };
+    return both;
   }
 
   // ---- 練習用の表示 ---------------------------------------------------------

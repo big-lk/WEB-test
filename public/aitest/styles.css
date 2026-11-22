@@ -458,10 +458,13 @@ kbd { padding: 2px 6px; border: 1px solid #ccd3de; border-bottom-width: 2px; bor
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
 
 /* 練習（practice.js）：本番と同じ配置のまま、上端に帯を重ねる（レイアウトは変えない） */
-#practiceBanner { position: fixed; top: 0; left: 0; right: 0; z-index: 60; display: flex; gap: 14px; align-items: center; justify-content: center;
-  height: 30px; background: #e8862e; color: #fff; font-size: 14px; letter-spacing: .04em; pointer-events: none; }
-#practiceBanner b { font-size: 15px; letter-spacing: .3em; }
-#practiceBanner.hidden { display: none; }
+/* 画面の縁に橙色の枠（録画で練習区間を判別するため。要素の配置は変えない） */
+#practiceBanner { position: fixed; inset: 0; z-index: 60; border: 6px solid #e8862e; pointer-events: none; }
+#practiceBanner.hidden, .practice-tag.hidden { display: none; }
+.app-header { position: relative; }
+.practice-tag { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; gap: 10px; align-items: center;
+  padding: 5px 16px; border-radius: 999px; background: #e8862e; color: #fff; font-size: 13px; white-space: nowrap; pointer-events: none; }
+.practice-tag b { letter-spacing: .3em; }
 #practiceTransition { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; background: var(--canvas); }
 #practiceTransition.hidden { display: none; }
 .practice-transition-card { max-width: 640px; padding: 48px 56px; border-radius: 22px; background: var(--surface); box-shadow: 0 18px 50px rgba(23,32,51,.12); text-align: center; }
