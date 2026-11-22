@@ -7,7 +7,7 @@
     <meta name="robots" content="noindex,nofollow" />
     <base href="/aitest/" />
     <title>AI 食事・献立相談実験</title>
-    <link rel="stylesheet" href="./styles.css?v=5.0.18-professor-review" />
+    <link rel="stylesheet" href="./styles.css?v=practice1" />
   </head>
   <body>
     <section class="setup-screen" id="setupScreen" aria-labelledby="setupTitle">
@@ -30,6 +30,22 @@
           <label>
             <input type="radio" name="experimentVariant" value="standard" checked />
             <span><b>通常のずれ</b><small>第3・4回に、通常設定の解釈のずれを入れる</small></span>
+          </label>
+          <label>
+            <input type="radio" name="experimentVariant" value="generic_unranked" />
+            <span><b>一般的な受け取り（明示）</b><small>第3・4回のずれを、回答本文で明示する</small></span>
+          </label>
+          <label>
+            <input type="radio" name="experimentVariant" value="generic_embedded" />
+            <span><b>一般的な受け取り（内容のみ）</b><small>回答本文では具体案として示し、解釈は右側にだけ出る</small></span>
+          </label>
+          <label>
+            <input type="radio" name="experimentVariant" value="mixed_e1explicit" />
+            <span><b>参加者内：第3回明示・第4回内容のみ</b><small>順序 D1</small></span>
+          </label>
+          <label>
+            <input type="radio" name="experimentVariant" value="mixed_e1content" />
+            <span><b>参加者内：第3回内容のみ・第4回明示</b><small>順序 D2</small></span>
           </label>
           <label class="strong-variant">
             <input type="radio" name="experimentVariant" value="strong_ambiguity" />
@@ -263,7 +279,8 @@
         <p class="dialog-note">このメニューの開閉も操作ログに記録されます。視線計測中は開かないでください。</p>
       </form>
     </dialog>
-    <script src="./app.js?v=5.0.22-v25"></script>
+    <script src="./app.js?v=5.0.23-v27"></script>
     <script src="./logging_patch.js?v=1"></script>
+    <script src="./practice.js?v=1"></script>
   </body>
 </html>

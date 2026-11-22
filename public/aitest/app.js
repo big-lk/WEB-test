@@ -154,7 +154,8 @@ function buildPreviewSession() {
   const preview = newSession(
     "PREVIEW",
     QUERY.get("condition") === "UI_A" ? "UI_A" : "UI_B",
-    ["strong_ambiguity", "generic_marked", "generic_implicit", "generic_unranked", "generic_unranked_marked"]
+    ["strong_ambiguity", "generic_marked", "generic_implicit", "generic_unranked", "generic_unranked_marked",
+      "generic_embedded", "mixed_e1explicit", "mixed_e1content"]
       .includes(QUERY.get("variant")) ? QUERY.get("variant") : "standard"
   );
   preview.status = "running";
@@ -773,7 +774,9 @@ function openExperimenterMenu() {
   els.sessionSummary.innerHTML = [
     ["参加者", session.participantId], ["条件", session.condition], ["状態", session.status],
     ["現在", `${session.currentTurn} / 6`],
-    ["回答の設定", session.experimentVariant === "strong_ambiguity" ? "大きな解釈のずれを必ず入れる" : "通常の解釈のずれ"],
+    ["回答の設定", ({ strong_ambiguity: "大きな解釈のずれを必ず入れる", generic_unranked: "一般的な受け取り（明示）",
+      generic_embedded: "一般的な受け取り（内容のみ）", mixed_e1explicit: "参加者内 D1（第3回明示・第4回内容のみ）",
+      mixed_e1content: "参加者内 D2（第3回内容のみ・第4回明示）" })[session.experimentVariant] || "通常の解釈のずれ"],
     ["規則", session.promptVersion],
     ["スキーマ", session.version]
   ].map(([term, value]) => `<div><dt>${term}</dt><dd>${escapeHtml(value)}</dd></div>`).join("");
