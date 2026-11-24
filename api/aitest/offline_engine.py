@@ -132,7 +132,8 @@ def analyze(text: str) -> Features:
     known = {n for n, _, _ in C.DISHES}
     for m in re.finditer(C.UNKNOWN_DISH_RX, text):
         w = m.group(1)
-        if w in C.NON_FOOD_KATAKANA or w in known or any(w in d or d in w for d in f.dishes_pos + f.dishes_neg):
+        if w in C.NON_FOOD_KATAKANA or w in known or text[m.end(1):m.end(1) + 2] == "の話" \
+                or any(w in d or d in w for d in f.dishes_pos + f.dishes_neg):
             continue
         C_KIND.setdefault(w, "homey")
         (f.dishes_neg if negated(text, m.end(1), start=m.start()) else f.dishes_pos).append(w)
@@ -583,7 +584,7 @@ def echo_sentence(p: Picker, turn: int, f: Features, exclude: set[str] = frozens
         tags = [t for t in sub.tags if t not in exclude and t != "NO_STAGING"]
         if set(sub.tags) & exclude:
             continue
-        score = len(tags) * 2 + len(sub.dishes_pos) * 2 + len(sub.details)
+        score = len(tags) * 2 + len(sub.dishes_pos) * 2 + len(sub.details) + (0.5 if turn in (2, 5) else 0)
         if score > best_score:
             best, best_score = q, score
     if not best:
@@ -652,7 +653,7 @@ def dish_sentence(p: Picker, turn: int, f: Features, st: State, used: str) -> st
         if alt:
             return f"{d}はやめて、{alt}にします。"
         return f"{d}はやめて、" + repl
-    main = [x for x in f.dishes_pos if C_KIND.get(x) not in ("drink", "sweet", "takeout")]
+    main = [x for x in f.dishes_pos if C_KIND.get(x) not in ("drink", "sweet", "takeout") and x not in p.covered]
     sweet = next((x for x in f.dishes_pos if C_KIND.get(x) == "sweet" and x != "デザート"), None)
     if sweet and not main:
         p.note(f"T{turn}.dish.sweet")
@@ -714,6 +715,10 @@ def correction_sentence(p: Picker, turn: int, which: str, st: State, f: Features
     pos = sorted([t for t in f.tags if t not in ("NO_STAGING",)], key=lambda t: C.TAG_RANK.get(t, 99))
     if pos:
         return f"{undo}、{C.TAGS[pos[0]]['final']}を中心にします。"
+    main = [d for d in f.dishes_pos if C_KIND.get(d) not in ("drink", "sweet")]
+    if main:
+        p.covered.update(main)
+        return f"{undo}、{main[0]}を中心にします。"
     return f"{undo}、{C.CORRECTION_FALLBACK}"
 
 
@@ -725,6 +730,8 @@ def fit_length(p: Picker, turn: int, head: list[str], tail: list[str], optional:
     extras = [s for s in optional if s and s not in body]
     fillers = [s.format(dish=p.dish) for s in C.FILLERS[turn] if p.dish or "{dish}" not in s]
     fillers = [s for s in fillers if s not in used]
+    if re.search(r"料理は[^。]{1,20}を(候補に|基本に)", used):  # 料理の確認の決まり文は、一度使ったらもう使わない
+        fillers = [s for s in fillers if not s.startswith("料理は")]
     tail = [s for s in tail if s]
 
     def total(parts: list[str]) -> int:
@@ -783,7 +790,7 @@ def compose(turn: int, st: State, sid: str, history: list[dict[str, str]]) -> tu
             if rest:
                 head.append(p.pick(f"T2.ack.{rest[0]}", C.TAGS[rest[0]]["ack"]))
         else:
-            head = [ack_sentence(p, 2, f, st, prev_tags, allow_two=False)]
+            head = [echo or ack_sentence(p, 2, f, st, prev_tags, allow_two=False)]
         head += deleg
         optional = extra_sentences(p, 2, f) + [negitems_sentence(p, 2, f), dish_sentence(p, 2, f, st, used) or detail_sentence(p, 2, f, used),
                             p.pick("T2.hold", C.HOLD_OPEN[2] if b_tag else C.HOLD_OPEN["2n"])]
@@ -906,7 +913,7 @@ def compose_final(p: Picker, st: State, f: Features, deleg: list[str], used: str
     avoid = ""
     items = [x for x in st.neg_items if x not in kept_text][-3:]
     if items:
-        avoid = ("や".join(items) if len(items) <= 2 else "、".join(items[:-1]) + "や" + items[-1]) + "は入れません。"
+        avoid = "・".join(items) + "は入れません。"
         p.note("T6.avoid")
     # 長さの上限を超える場合は、避ける項目→具体の順に削る（刺激の保持と料理・価値は残す）
     parts = [lead, dish, values] + kept + deleg
