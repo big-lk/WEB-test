@@ -21,7 +21,7 @@ ENGINE_NAME = "offline-tree"
 SUPPORTED_VARIANTS = set(core.UNRANKED_VARIANTS)
 
 SENT_SPLIT = re.compile(r"(?<=[。！!\n])")
-LENGTH_TARGET = {1: (170, 330), 2: (160, 330), 3: (190, 360), 4: (190, 360), 5: (105, 220), 6: (160, 340)}
+LENGTH_TARGET = {1: (150, 330), 2: (130, 330), 3: (150, 360), 4: (150, 360), 5: (105, 220), 6: (150, 340)}
 SCENE_FALLBACK = {  # 事前の一文から型が読み取れないときの、場面カード由来の項目
     "busy": ("v-scene", "疲れている相手を気づかうこと", "最近疲れている相手が、無理せず過ごせる夜にしたい。"),
     "reunion": ("v-scene", "久しぶりの時間を楽しむこと", "久しぶりに会う相手と、ゆっくり過ごせる夜にしたい。"),
@@ -78,9 +78,13 @@ def negated(text: str, end: int, window: int = C.NEG_WINDOW, start: int | None =
         return True
     # 並べた語の後ろでまとめて否定する文（「AとBは避けたい」）：同じ文の30字以内の強い否定
     far = re.split(r"[。！!\n？?]", text[end:end + 30])[0]
-    strong = min((far.find(m) for m in ("は避け", "は嫌", "はいや", "はなし", "は無し", "はいらな", "は要らな", "は苦手") if m in far), default=-1)
+    strong = min((far.find(m) for m in ("避け", "嫌", "なし", "無し", "いらな", "要らな", "苦手", "やめ") if m in far), default=-1)
     first_pos_far = min((far.find(m) for m in C.POS_BREAKERS if m in far), default=10 ** 6)
-    return strong >= 0 and strong < first_pos_far
+    if strong < 0 or strong >= first_pos_far:
+        return False
+    # 並べた名詞の列（「ケーキもメッセージも写真も」）のあとの否定だけを拾う。動詞や目的語をはさむ場合は別の話とみなす
+    between = far[:strong]
+    return not re.search(r"を|て、|して|たい|ながら|けど|ので|から", between)
 
 
 @dataclass
@@ -125,6 +129,13 @@ def analyze(text: str) -> Features:
         for m in rx.finditer(text):
             (f.dishes_neg if negated(text, m.end(), start=m.start()) else f.dishes_pos).append(name)
             break
+    known = {n for n, _, _ in C.DISHES}
+    for m in re.finditer(C.UNKNOWN_DISH_RX, text):
+        w = m.group(1)
+        if w in C.NON_FOOD_KATAKANA or w in known or any(w in d or d in w for d in f.dishes_pos + f.dishes_neg):
+            continue
+        C_KIND.setdefault(w, "homey")
+        (f.dishes_neg if negated(text, m.end(1), start=m.start()) else f.dishes_pos).append(w)
     for name, rx in ITEM_RX:
         m = rx.search(text)
         if m and negated(text, m.end(), C.ITEM_WINDOW, start=m.start()) and name not in f.items_neg:
@@ -579,7 +590,7 @@ def dish_sentence(p: Picker, turn: int, f: Features, st: State, used: str) -> st
         repl = C.DISH_REPLACEMENTS.get(kind, C.DISH_REPLACEMENTS["homey"])
         if "SIMPLE_FOOD" in f.tags or "NOSTALGIA" in f.tags:
             repl = C.DISH_REPLACEMENTS["casual"]
-        alt = next((x for x in f.dishes_pos if C_KIND.get(x) not in ("drink", "sweet")), None)
+        alt = next((x for x in f.dishes_pos if C_KIND.get(x) not in ("drink", "sweet", "takeout")), None)
         p.note(f"T{turn}.dish.replace.{d}")
         if alt:
             return f"{d}はやめて、{alt}にします。"
@@ -591,7 +602,8 @@ def dish_sentence(p: Picker, turn: int, f: Features, st: State, used: str) -> st
         s = f"最後に{sweet}を出す形にします。"
         return "" if s in used else s
     if main:
-        names = "や".join(main[:2])
+        main.sort(key=lambda d: f.text.find(re.sub(r"\(.*", "", d)) if d in f.text else 99)
+        names = "と".join(main[:2])
         p.note(f"T{turn}.dish.accept")
         s = f"料理は{names}を中心にします。"
         return "" if s in used else s
@@ -820,10 +832,12 @@ def compose_final(p: Picker, st: State, f: Features, deleg: list[str], used: str
         p.note("T6.specific")
     kept = []
     if st.e1 and st.e1["corrected_at"] is None:
-        kept.append("当日は、" + core.EMBEDDED_E1_SENTENCES.get(st.e1["generic"], st.e1["generic"].removesuffix("こと") + "ようにします。"))
+        e1s = core.EMBEDDED_E1_SENTENCES.get(st.e1["generic"], st.e1["generic"].removesuffix("こと") + "ようにします。")
+        kept.append(e1s if re.match(r"^[^、。]{1,8}は、", e1s) else "当日は、" + e1s)
         p.note("T6.keepE1")
     if st.e2 and st.e2["corrected_at"] is None:
-        kept.append(("また、" if kept else "当日は、") + st.e2["parts"].get("action", "").rstrip("。") + "。")
+        act = st.e2["parts"].get("action", "").rstrip("。") + "。"
+        kept.append(("また、" if kept else ("" if re.match(r"^[^、。]{1,8}は、", act) else "当日は、")) + act)
         p.note("T6.keepE2")
     kept_text = "".join(kept)
     avoid = ""
