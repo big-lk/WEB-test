@@ -45,6 +45,8 @@ API_URL = "https://api.openai.com/v1/responses"
 DIALOGUE_MODEL = os.environ.get("OPENAI_DIALOGUE_MODEL", "gpt-5.4-nano")
 ANALYSIS_MODEL = os.environ.get("OPENAI_ANALYSIS_MODEL", "gpt-5.4-nano")
 PROMPT_VERSION = "judgment-delegation-guided-turns-v2.7"
+# v2.8: 生成AIを使わないオフライン版（offline_engine）。EXPERIMENT_ENGINE=offline、またはリクエストの engine="offline" で使う。
+OFFLINE_DEFAULT = os.environ.get("EXPERIMENT_ENGINE", "").strip().lower() == "offline"
 SESSION_SCHEMA_VERSION = 6
 MAX_USER_CHARS = 500
 ALLOWED_CONDITIONS = {"UI_A", "UI_B"}
@@ -1712,6 +1714,9 @@ def reconcile_ids(previous: list[dict[str, Any]], criteria: list[dict[str, Any]]
 
 
 def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
+    if OFFLINE_DEFAULT or (isinstance(body, dict) and body.get("engine") == "offline"):
+        from .offline_engine import run_offline  # 遅延読み込み（オンライン版の起動を遅くしない）
+        return run_offline(body)
     (
         turn,
         user_text,
@@ -2211,13 +2216,15 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_error(404)
             return
         if app_path == "/api/health":
+            offline = OFFLINE_DEFAULT or "engine=offline" in self.path
             self.send_json(
                 200,
                 {
                     "ok": True,
-                    "configured": bool(os.environ.get("OPENAI_API_KEY", "").strip()),
-                    "dialogueModel": DIALOGUE_MODEL,
-                    "analysisModel": ANALYSIS_MODEL,
+                    "configured": True if offline else bool(os.environ.get("OPENAI_API_KEY", "").strip()),
+                    "engine": "offline" if offline else "online",
+                    "dialogueModel": "offline-tree" if offline else DIALOGUE_MODEL,
+                    "analysisModel": "offline-tree" if offline else ANALYSIS_MODEL,
                     "promptVersion": PROMPT_VERSION,
                     "sessionSchemaVersion": SESSION_SCHEMA_VERSION,
                     "language": "ja",

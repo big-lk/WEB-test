@@ -50,7 +50,9 @@ const TURN_PROMPTS = [
 const QUERY = new URLSearchParams(location.search);
 const PREVIEW_MODE = QUERY.get("preview") === "1";
 const EMBED_MODE = QUERY.get("embed") === "1" || window.self !== window.top;
-const API_HEALTH_URL = new URL("../api/aitest/health", document.baseURI);
+// v2.8: ?engine=offline で生成AIを使わないオフライン版（登録済みの文から回答を組み立てる）
+const ENGINE = QUERY.get("engine") === "offline" ? "offline" : "online";
+const API_HEALTH_URL = new URL("../api/aitest/health" + (ENGINE === "offline" ? "?engine=offline" : ""), document.baseURI);
 const API_TURN_URL = new URL("../api/aitest/turn", document.baseURI);
 const REVIEW_TURNS = [2, 3, 4, 6];
 
@@ -574,6 +576,7 @@ async function submitTurn() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         sessionId: session.sessionId,
+        engine: ENGINE,
         condition: session.condition,
         experimentVariant: session.experimentVariant || "standard",
         eventCardMode: QUERY.get("card") === "separate" ? "separate" : "merge",
