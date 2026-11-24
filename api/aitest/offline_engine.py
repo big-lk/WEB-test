@@ -21,7 +21,7 @@ ENGINE_NAME = "offline-tree"
 SUPPORTED_VARIANTS = set(core.UNRANKED_VARIANTS)
 
 SENT_SPLIT = re.compile(r"(?<=[。！!\n])")
-LENGTH_TARGET = {1: (150, 330), 2: (130, 330), 3: (150, 360), 4: (150, 360), 5: (105, 220), 6: (150, 340)}
+LENGTH_TARGET = {1: (150, 330), 2: (130, 330), 3: (150, 360), 4: (150, 360), 5: (102, 220), 6: (150, 340)}
 SCENE_FALLBACK = {  # 事前の一文から型が読み取れないときの、場面カード由来の項目
     "busy": ("v-scene", "疲れている相手を気づかうこと", "最近疲れている相手が、無理せず過ごせる夜にしたい。"),
     "reunion": ("v-scene", "久しぶりの時間を楽しむこと", "久しぶりに会う相手と、ゆっくり過ごせる夜にしたい。"),
@@ -541,6 +541,63 @@ def ack_sentence(p: Picker, turn: int, f: Features, st: State, prev_tags: set[st
     return ""
 
 
+ECHO_LEAD = re.compile(r"^(あと|あとは|それと|それから|でも|ただ|なので|もう一つは|もう一つ|まあ|えっと|うーん|というか|いや)(、|$)")
+
+
+ECHO_SUFFIXES = ["でもいい", "てもいい", "せればいい", "ればいい", "たらいい", "といい", "ばいい", "ていい", "でいい", "と思います", "と思ってます", "と思う", "んです", "です", "だな", "かな", "かも", "けど", "よね", "よ", "ね", "な", "し",
+                 "がいい", "が良い", "でいい", "で十分", "が一番", "が大事", "も大事", "が大切", "も大切", "にしたい", "がほしい", "が欲しい",
+                 "ほしい", "したい", "たい", "感じ", "くらい", "ぐらい", "のが"]
+ECHO_OK_END = re.compile(r"([一-龥ァ-ヶー]|る|う|く|す|つ|む|ぶ|ぐ|ぬ|い|た|だ|こと|時間|空気|流れ|距離感)$")
+
+
+def trim_echo(q: str) -> str:
+    """句の末尾の言い回し（〜がいい、〜したいです など）を外し、名詞か言い切りの形で終わる句だけを返す。"""
+    changed = True
+    while changed and q:
+        changed = False
+        for suf in ECHO_SUFFIXES:
+            if q.endswith(suf) and len(q) > len(suf) + 4:
+                q = q[: -len(suf)]
+                changed = True
+    if q.endswith("いい") or re.search(r"[をにくりっはが][一-龥]$", q) or re.search(r"[一-龥](い|き|し|ち|み|り|び)$", q) and not q.endswith(("たい", "しい", "ない", "らい", "かい", "さい", "ぐらい")):
+        return ""  # 動詞の途中で切れた句（「じっくり話」「空気を吸い」）は引用しない
+    return q if ECHO_OK_END.search(q) else ""
+
+
+def echo_sentence(p: Picker, turn: int, f: Features, exclude: set[str] = frozenset()) -> str:
+    """参加者の句をそのまま短く引用して受け止める。言い換えによる付け足しを避けるため。"""
+    if turn not in C.ECHO:
+        return ""
+    best, best_score = "", 0
+    for raw in re.split(r"[。！!？?\n、]", f.text):
+        q = ECHO_LEAD.sub("", raw.strip())
+        q = trim_echo(q)
+        if not q or not (6 <= len(q) <= 24) or re.search(r"[「」『』？?]|決め|任せ|考える材料", q) \
+                or re.match(r"^(は|を|が|に|で|と|も|や)", q):
+            continue
+        if any(m in q for m in C.NEG_MARKERS + ["違", "待って", "頼ん", "いら", "要ら", "なし", "なく", "たくな", "ないで"]):
+            continue
+        if any(t in q for t in core.DIALOGUE_FORBIDDEN_TERMS):
+            continue
+        sub = analyze(q)
+        tags = [t for t in sub.tags if t not in exclude and t != "NO_STAGING"]
+        if set(sub.tags) & exclude:
+            continue
+        score = len(tags) * 2 + len(sub.dishes_pos) * 2 + len(sub.details)
+        if score > best_score:
+            best, best_score = q, score
+    if not best:
+        return ""
+    if re.search(r"(距離感|流れ|時間|雰囲気|場面|過ごし方|大事|大切|一番)$", best) or "大事" in best or "大切" in best:
+        p.note(f"T{turn}.echo.plain")
+        s = f"「{best}」、いいですね。"
+    else:
+        s = p.pick(f"T{turn}.echo", C.ECHO[turn]).format(q=best)
+    for t in analyze(best).tags:
+        p.acked.add(t)
+    return s
+
+
 def negitems_sentence(p: Picker, turn: int, f: Features, skip: set[str] = frozenset()) -> str:
     items = [x for x in f.items_neg if x not in skip and x not in p.covered][:3]
     p.covered.update(items)
@@ -681,12 +738,14 @@ def fit_length(p: Picker, turn: int, head: list[str], tail: list[str], optional:
     if not any(t in "".join(chosen + tail) for t in dinner) and fillers:
         chosen.append(fillers.pop(0))
         p.note(f"T{turn}.filler.dinner")
-    while total(chosen + tail) < lo and fillers:
+    n_fill = 0
+    while fillers and (total(chosen + tail) < 102 or (total(chosen + tail) < lo and n_fill == 0)):
         s = fillers.pop(0)
         if s.startswith("料理は") and any(x.startswith("料理は") or "料理は" in x for x in chosen):
             continue
         if total(chosen + [s] + tail) <= hi + 20:
             chosen.append(s)
+            n_fill += 1
             p.note(f"T{turn}.filler")
     return "".join(chosen + tail) + ending
 
@@ -715,7 +774,10 @@ def compose(turn: int, st: State, sid: str, history: list[dict[str, str]]) -> tu
         new = [t for t in f.tags if t not in prev_tags]
         a = C.TAGS[main_card.tag]["noun"] if main_card.tag else main_card.title
         b_tag = next((t for t in new if t != main_card.tag), None) or next((t for t in f.tags if t != main_card.tag), None)
-        if b_tag:
+        echo = echo_sentence(p, 2, f)
+        if b_tag and echo:
+            head = [echo, p.pick("T2.integrate.short", C.INTEGRATE_SHORT).format(a=a)]
+        elif b_tag:
             head = [p.pick("T2.integrate", C.INTEGRATE).format(a=a, b=C.TAGS[b_tag]["noun"])]
             rest = [t for t in new if t not in (b_tag, main_card.tag, "NO_STAGING")]
             if rest:
@@ -731,7 +793,7 @@ def compose(turn: int, st: State, sid: str, history: list[dict[str, str]]) -> tu
         p.note("T3.E1." + st.e1["generic"][:12])
         ex = C.E1_CONFLICT.get(st.e1["generic"], set())
         first = negitems_sentence(p, 3, f) if (f.items_neg and not [t for t in f.tags if t not in ex]) \
-            else ack_sentence(p, 3, f, st, prev_tags, allow_two=False, exclude=ex, fallback=False)
+            else (echo_sentence(p, 3, f, ex) or ack_sentence(p, 3, f, st, prev_tags, allow_two=False, exclude=ex, fallback=False))
         if not first:
             first = dish_sentence(p, 3, f, st, used) or detail_sentence(p, 3, f, used) or p.pick("T3.ack.fallback", C.FALLBACK_ACK[3])
         follow = C.E1.get(st.e1["generic"], {}).get("follow", "")
@@ -747,8 +809,8 @@ def compose(turn: int, st: State, sid: str, history: list[dict[str, str]]) -> tu
         elif f.items_neg:
             first = negitems_sentence(p, 4, f)
         else:
-            first = ack_sentence(p, 4, f, st, prev_tags, allow_two=False, exclude=C.E2_CONFLICT.get(st.e2["preferred"], set()),
-                                 fallback=False)
+            ex4 = C.E2_CONFLICT.get(st.e2["preferred"], set())
+            first = echo_sentence(p, 4, f, ex4) or ack_sentence(p, 4, f, st, prev_tags, allow_two=False, exclude=ex4, fallback=False)
             if not first:
                 first = dish_sentence(p, 4, f, st, used) or detail_sentence(p, 4, f, used) or p.pick("T4.ack.fallback", C.FALLBACK_ACK[4])
         follow = C.E2.get(st.e2["preferred"], {}).get("follow", "")
@@ -774,7 +836,8 @@ def compose(turn: int, st: State, sid: str, history: list[dict[str, str]]) -> tu
         change = dish_sentence(p, 5, f, st, used) or detail_sentence(p, 5, f, used)
         centered = {t for t in f.tags if any(C.TAGS[t]["final"] in h for h in head)}
         ack = ack_sentence(p, 5, f, st, prev_tags, allow_two=False, exclude=centered | {"NO_STAGING"}, fallback=False) if f.tags else ""
-        optional = extra_sentences(p, 5, f) + [x for x in (change, ack) if x]
+        echo = echo_sentence(p, 5, f)
+        optional = ([echo] if echo else []) + extra_sentences(p, 5, f) + [x for x in (change, ack) if x and not (echo and x is ack)]
         if not head and not optional:
             head.append(p.pick("T5.accept", C.ACCEPT_GENERAL))
         text = fit_length(p, 5, head, [], optional, used)
