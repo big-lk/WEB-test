@@ -1,0 +1,521 @@
+{
+ "key": "N28",
+ "condition": "UI_B",
+ "scenario": "gratitude",
+ "anchor": "バイトのシフトをよく代わってくれる友達に、軽くお礼がしたい。",
+ "variant": "generic_unranked",
+ "rounds": [
+  {
+   "turn": 1,
+   "user": "気軽に楽しんで、ありがとうが伝わった感じになってほしい。",
+   "ai": "日頃の気持ちがにじむような夕食を、一緒に考えていきましょう。感謝が自然に伝わることと、肩の力を抜いてくつろげることを大切にしたいということですね。相手が普段から好んで食べる家庭料理を一品、主菜にするのが自然です。どんな時間にするかは、まだ広く考えておきます。次は、この目標と同時に大切にしたい別の気持ちや雰囲気を一つ加えてください。",
+   "analysis": {
+    "summary": "感謝がさりげなく伝わることと、気楽にくつろげることを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-thanks-light",
+      "title": "さりげなく感謝が伝わること",
+      "meaning": "改まらずに、感謝の気持ちが自然に伝わるようにしたい。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "PRETASK_ANCHOR",
+      "evidenceTurns": [
+       0,
+       1
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-relax",
+      "title": "気楽にくつろげること",
+      "meaning": "肩の力を抜いて、構えずにくつろげる時間にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       1
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-no-formal",
+      "title": "改まらないこと",
+      "meaning": "かしこまった空気や照れくさい場面は避けて、自然体でいたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T1.open.gratitude#0",
+     "T1.ack2.THANKS_LIGHT+RELAX",
+     "T1.dish.家庭料理",
+     "T1.hold#2"
+    ],
+    "features": {
+     "tags": [
+      "RELAX",
+      "THANKS_LIGHT"
+     ],
+     "dishesPos": [],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [
+     "THANKS_LIGHT"
+    ],
+    "e1": null,
+    "e2": null,
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "36697ec0ca8c1a1c"
+   },
+   "delegationAtSend": {},
+   "required": null
+  },
+  {
+   "turn": 2,
+   "user": "あとは、手間をかけすぎてない感じが出ると嬉しい。",
+   "ai": "最初に書いてくださった感謝が自然に伝わることに、料理は手軽なもので十分なことも加えて考えていきます。食べ終わったあとに、ほっとした気持ちが残る夜を目指します。どちらかを先に決めずに、両方が感じられる夕食を目指します。次は、食事中の会話や距離感など、料理以外でどんな時間にしたいかを書いてください。",
+   "analysis": {
+    "summary": "感謝がさりげなく伝わることと、気楽にくつろげることを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-thanks-light",
+      "title": "さりげなく感謝が伝わること",
+      "meaning": "改まらずに、感謝の気持ちが自然に伝わるようにしたい。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "PRETASK_ANCHOR",
+      "evidenceTurns": [
+       0,
+       1
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-relax",
+      "title": "気楽にくつろげること",
+      "meaning": "肩の力を抜いて、構えずにくつろげる時間にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       1
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-simple-food",
+      "title": "料理は手軽にすること",
+      "meaning": "料理に手をかけすぎず、気軽に食べられるもので十分にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       2
+      ],
+      "focus": true
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T2.integrate#0",
+     "T2.ack.AFTERGLOW#0",
+     "T2.hold#1"
+    ],
+    "features": {
+     "tags": [
+      "SIMPLE_FOOD",
+      "AFTERGLOW"
+     ],
+     "dishesPos": [],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [
+     "THANKS_LIGHT"
+    ],
+    "e1": null,
+    "e2": null,
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "ac0851918ff0e96b"
+   },
+   "delegationAtSend": {},
+   "required": null
+  },
+  {
+   "turn": 3,
+   "user": "バイトの話とかしながら、だらだら話せる時間がいいな。",
+   "ai": "話が自然に続く時間を大切にしたい、ということですね。感謝を重くしないことは、食後に短いメッセージカードを添えて伝えることとして整えます。カードは二、三行の短いものにして、デザートと一緒にそっと渡す形にします。料理は家庭料理を基本にします。次は、この案の食卓で二人がどう過ごしているとよいかを書いてください。",
+   "analysis": {
+    "summary": "気楽にくつろげることと、料理は手軽なもので十分にすることを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-thanks-light",
+      "title": "食後に短いメッセージカードを添えて伝",
+      "meaning": "感謝を重くしないことを、食後に短いメッセージカードを添えて伝えることとして扱う。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0,
+       1,
+       3
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-relax",
+      "title": "気楽にくつろげること",
+      "meaning": "肩の力を抜いて、構えずにくつろげる時間にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       1,
+       3
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-simple-food",
+      "title": "料理は手軽にすること",
+      "meaning": "料理に手をかけすぎず、気軽に食べられるもので十分にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       2
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T3.E1.食後に短いメッセージカー",
+     "T3.ack.CHAT#0",
+     "T3.E1.follow",
+     "T3.ack.none",
+     "T3.filler.dinner"
+    ],
+    "features": {
+     "tags": [
+      "RELAX",
+      "CHAT"
+     ],
+     "dishesPos": [],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [
+     "THANKS_LIGHT"
+    ],
+    "e1": {
+     "generic": "食後に短いメッセージカードを添えて伝えること",
+     "correctedAt": null
+    },
+    "e2": null,
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "e31f9fe13b9785b2"
+   },
+   "delegationAtSend": {},
+   "required": "感謝を重くしないことは、食後に短いメッセージカードを添えて伝えることとして整えます。"
+  },
+  {
+   "turn": 4,
+   "user": "ソファでくつろぎながら、のんびり食べてる感じがいいです。",
+   "ai": "肩の力を抜いて過ごせる、気楽な夜にしたいということですね。今回は特別なごちそうでもてなすことを優先して、普段より品数を増やして、ごちそうらしく整えます。主菜のほかに小鉢を二品ほど足します。ソファでくつろぎながら食べる形でも十分です。料理は家庭料理を基本に進めます。次は、食べ始めから食後まで、二人にとって自然な流れを書いてください。",
+   "analysis": {
+    "summary": "料理は手軽なもので十分にすることを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-thanks-light",
+      "title": "食後に短いメッセージカードを添えて伝",
+      "meaning": "感謝を重くしないことを、食後に短いメッセージカードを添えて伝えることとして扱う。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0,
+       1,
+       3
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-relax",
+      "title": "特別なごちそうでもてなす方を優先",
+      "meaning": "特別なごちそうでもてなすことを優先し、普段より品数を増やして、ごちそうらしく整えます。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       1,
+       3,
+       4
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-simple-food",
+      "title": "料理は手軽にすること",
+      "meaning": "料理に手をかけすぎず、気軽に食べられるもので十分にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       2
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T4.E2.特別なごちそうでもてなすこと",
+     "T4.ack.RELAX#0",
+     "T4.E2.follow",
+     "T4.detail.sofa+",
+     "T4.ack.none",
+     "T4.filler.dinner"
+    ],
+    "features": {
+     "tags": [
+      "RELAX"
+     ],
+     "dishesPos": [],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [
+      "sofa+"
+     ],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [
+     "THANKS_LIGHT"
+    ],
+    "e1": {
+     "generic": "食後に短いメッセージカードを添えて伝えること",
+     "correctedAt": null
+    },
+    "e2": {
+     "preferred": "特別なごちそうでもてなすこと",
+     "correctedAt": null
+    },
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "1a1b0293dfb015b3"
+   },
+   "delegationAtSend": {},
+   "required": "今回は特別なごちそうでもてなすことを優先して、普段より品数を増やして、ごちそうらしく整えます。"
+  },
+  {
+   "turn": 5,
+   "user": "最初にカレーを食べて、そのあとゆっくり話す流れで。",
+   "ai": "料理はカレーを中心にします。会話を気楽に楽しめる時間を大切にします。食べ始めから食後まで、無理のない順番で整えます。その流れに合わせて、料理を出すタイミングを整えます。最後に、この夕食で大切にしたいことや避けたいことを、自分の言葉でまとめてください。",
+   "analysis": {
+    "summary": "料理は手軽なもので十分にすることを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-thanks-light",
+      "title": "食後に短いメッセージカードを添えて伝",
+      "meaning": "感謝を重くしないことを、食後に短いメッセージカードを添えて伝えることとして扱う。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0,
+       1,
+       3
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-relax",
+      "title": "特別なごちそうでもてなす方を優先",
+      "meaning": "特別なごちそうでもてなすことを優先し、普段より品数を増やして、ごちそうらしく整えます。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       1,
+       3,
+       4
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-simple-food",
+      "title": "料理は手軽にすること",
+      "meaning": "料理に手をかけすぎず、気軽に食べられるもので十分にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       2
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T5.dish.accept",
+     "T5.ack.CHAT#1",
+     "T5.filler",
+     "T5.filler"
+    ],
+    "features": {
+     "tags": [
+      "CHAT"
+     ],
+     "dishesPos": [
+      "カレー"
+     ],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [
+     "THANKS_LIGHT"
+    ],
+    "e1": {
+     "generic": "食後に短いメッセージカードを添えて伝えること",
+     "correctedAt": null
+    },
+    "e2": {
+     "preferred": "特別なごちそうでもてなすこと",
+     "correctedAt": null
+    },
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "61ddaf82c9333e39"
+   },
+   "delegationAtSend": {},
+   "required": null
+  },
+  {
+   "turn": 6,
+   "user": "大事なのは気楽さ。豪華にしすぎて気を遣わせるのは避けたいです。",
+   "ai": "ここまでの内容を、当日の方針としてまとめます。料理は、カレーでまとめます。過ごし方は、気楽にくつろげることと、料理は手軽なもので十分にすることを大切にします。当日は、食後には短いメッセージカードを添えて伝えます。また、普段より品数を増やして、ごちそうらしく整えます。当日の形としては、ソファでくつろぎながら食べることにします。現在の方針は以上です。未決定の部分は残したまま、実行に必要な内容だけを整理しました。",
+   "analysis": {
+    "summary": "料理は手軽なもので十分にすることを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-thanks-light",
+      "title": "食後に短いメッセージカードを添えて伝",
+      "meaning": "感謝を重くしないことを、食後に短いメッセージカードを添えて伝えることとして扱う。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0,
+       1,
+       3
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-relax",
+      "title": "特別なごちそうでもてなす方を優先",
+      "meaning": "特別なごちそうでもてなすことを優先し、普段より品数を増やして、ごちそうらしく整えます。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       1,
+       3,
+       4
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-simple-food",
+      "title": "料理は手軽にすること",
+      "meaning": "料理に手をかけすぎず、気軽に食べられるもので十分にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       2,
+       6
+      ],
+      "focus": true
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T6.lead#1",
+     "T6.dish",
+     "T6.values",
+     "T6.specific",
+     "T6.keepE1",
+     "T6.keepE2"
+    ],
+    "features": {
+     "tags": [
+      "RELAX",
+      "SIMPLE_FOOD"
+     ],
+     "dishesPos": [],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [
+     "THANKS_LIGHT"
+    ],
+    "e1": {
+     "generic": "食後に短いメッセージカードを添えて伝えること",
+     "correctedAt": null
+    },
+    "e2": {
+     "preferred": "特別なごちそうでもてなすこと",
+     "correctedAt": null
+    },
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "6f60f4341faa9d2e"
+   },
+   "delegationAtSend": {},
+   "required": null
+  }
+ ],
+ "delegation": {},
+ "panelViews": [
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0
+ ],
+ "events": []
+}

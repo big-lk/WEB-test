@@ -1,0 +1,535 @@
+{
+ "key": "N07",
+ "condition": "UI_B",
+ "scenario": "milestone",
+ "anchor": "恋人の誕生日。大げさにせず、二人らしく祝いたい。",
+ "variant": "generic_unranked",
+ "rounds": [
+  {
+   "turn": 1,
+   "user": "食べ終わったあとに、ああ楽しかったねって自然に笑ってるような感じがいいな",
+   "ai": "小さな節目を迎える夕食を、ここから形にしていきます。気軽に笑い合えることと、食べ終わったあとにほっとした気持ちが残ることを大切にしたいということですね。献立は普段の家ごはんを軸にすると、いつもの二人のまま過ごせます。過ごし方の細かいところは、まだ決めずに余白を残しておきます。料理と過ごし方を少しずつ結びつけながら、形にしていきましょう。次は、この目標と同時に大切にしたい別の気持ちや雰囲気を一つ加えてください。",
+   "analysis": {
+    "summary": "食後にほっとした気持ちが残ることと、気軽に笑い合えることを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-afterglow",
+      "title": "食後にほっとできること",
+      "meaning": "食べ終わったあと、穏やかでほっとした気持ちが残る夜にしたい。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       1
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-laugh",
+      "title": "笑って過ごせること",
+      "meaning": "くだらない話で気軽に笑い合える時間にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       1
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-no-formal",
+      "title": "改まらないこと",
+      "meaning": "かしこまった空気や照れくさい場面は避けて、自然体でいたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T1.open.milestone#1",
+     "T1.ack2.LAUGH+AFTERGLOW",
+     "T1.dish.家ごはん",
+     "T1.hold#0",
+     "T1.filler"
+    ],
+    "features": {
+     "tags": [
+      "AFTERGLOW",
+      "LAUGH"
+     ],
+     "dishesPos": [],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [],
+    "e1": null,
+    "e2": null,
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "7e6fe6093306b113"
+   },
+   "delegationAtSend": {},
+   "required": null
+  },
+  {
+   "turn": 2,
+   "user": "あと、かしこまらない感じ。みんなでわいわいしてる雰囲気がいい",
+   "ai": "最初に書いてくださった食べ終わったあとにほっとした気持ちが残ることに、かしこまった空気にしないことも加えて考えていきます。それぞれをどんな形にするかは、ここから少しずつ具体的にしていけます。料理は家ごはんを候補にしたまま、過ごし方と合わせて調整していけます。ここまでの内容で、夕食の雰囲気が少し見えてきました。次は、食事中の会話や距離感など、料理以外でどんな時間にしたいかを書いてください。",
+   "analysis": {
+    "summary": "食後にほっとした気持ちが残ることと、気軽に笑い合えることを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-afterglow",
+      "title": "食後にほっとできること",
+      "meaning": "食べ終わったあと、穏やかでほっとした気持ちが残る夜にしたい。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       1
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-laugh",
+      "title": "笑って過ごせること",
+      "meaning": "くだらない話で気軽に笑い合える時間にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       1,
+       2
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-no-formal",
+      "title": "改まらないこと",
+      "meaning": "かしこまった空気や照れくさい場面は避けて、自然体でいたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0,
+       2
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T2.integrate#0",
+     "T2.hold#0",
+     "T2.filler.dinner",
+     "T2.filler"
+    ],
+    "features": {
+     "tags": [
+      "NO_FORMAL",
+      "LAUGH"
+     ],
+     "dishesPos": [],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [],
+    "e1": null,
+    "e2": null,
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "31d3c29d15353109"
+   },
+   "delegationAtSend": {},
+   "required": null
+  },
+  {
+   "turn": 3,
+   "user": "会話は自然にしゃべる感じで。食べながら手を動かして、距離は近めがいいかな",
+   "ai": "会話を気楽に楽しめる時間を中心に考えていきます。「大げさにせず」は、前菜から主菜まで、少しだけコース仕立てにすることとして整えます。前菜、主菜、デザートの順に一皿ずつ出し、それぞれ少しだけ盛り付けを整えます。料理は家ごはんを基本にして、食卓の流れに合わせて整えます。食べる時間と話す時間が自然につながるようにします。次は、この案の食卓で二人がどう過ごしているとよいかを書いてください。",
+   "analysis": {
+    "summary": "気軽に笑い合えることと、かしこまった空気にしないことを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-afterglow",
+      "title": "大げさにせず＝少しだけコース仕立てに",
+      "meaning": "「大げさにせず」を、前菜から主菜まで、少しだけコース仕立てにすることとして扱う。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       1,
+       3
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-laugh",
+      "title": "笑って過ごせること",
+      "meaning": "くだらない話で気軽に笑い合える時間にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       1,
+       2
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-no-formal",
+      "title": "改まらないこと",
+      "meaning": "かしこまった空気や照れくさい場面は避けて、自然体でいたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0,
+       2
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T3.E1.前菜から主菜まで、少しだ",
+     "T3.ack.CHAT#1",
+     "T3.E1.follow",
+     "T3.filler",
+     "T3.filler"
+    ],
+    "features": {
+     "tags": [
+      "CHAT"
+     ],
+     "dishesPos": [],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [],
+    "e1": {
+     "generic": "前菜から主菜まで、少しだけコース仕立てにすること",
+     "correctedAt": null
+    },
+    "e2": null,
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "59cb24a632e289f4"
+   },
+   "delegationAtSend": {},
+   "required": "「大げさにせず」は、前菜から主菜まで、少しだけコース仕立てにすることとして整えます。"
+  },
+  {
+   "turn": 4,
+   "user": "コース仕立てはちょっと違うかな。タコスを手作りして、みんなで巻きながら食べたいです",
+   "ai": "コース仕立てにするのはやめて、書いていただいた形に合わせます。今回は記念日らしい演出をすることを優先して、デザートに小さなメッセージを添えます。デザートのお皿にチョコペンで短い言葉を書いて、食後に出します。料理はタコスを中心にします。食卓の流れは、この形を基本に進めます。料理の出し方も、この流れに合わせて整えます。次は、食べ始めから食後まで、二人にとって自然な流れを書いてください。",
+   "analysis": {
+    "summary": "食後にほっとした気持ちが残ることと、かしこまった空気にしないことを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-afterglow",
+      "title": "食後にほっとできること",
+      "meaning": "食べ終わったあと、穏やかでほっとした気持ちが残る夜にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       1,
+       3,
+       4
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-laugh",
+      "title": "記念日らしい演出をする方を優先",
+      "meaning": "記念日らしい演出をすることを優先し、デザートに小さなメッセージを添えます。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       1,
+       2,
+       4
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-no-formal",
+      "title": "改まらないこと",
+      "meaning": "かしこまった空気や照れくさい場面は避けて、自然体でいたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0,
+       2
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T4.E2.記念日らしい演出をすること",
+     "T4.undo.E1",
+     "T4.E2.follow",
+     "T4.dish.accept",
+     "T4.filler",
+     "T4.filler"
+    ],
+    "features": {
+     "tags": [
+      "NO_STAGING"
+     ],
+     "dishesPos": [
+      "タコス"
+     ],
+     "dishesNeg": [],
+     "itemsNeg": [
+      "コース仕立て"
+     ],
+     "details": [],
+     "correction": true,
+     "delegations": []
+    },
+    "anchorTags": [],
+    "e1": {
+     "generic": "前菜から主菜まで、少しだけコース仕立てにすること",
+     "correctedAt": 4
+    },
+    "e2": {
+     "preferred": "記念日らしい演出をすること",
+     "correctedAt": null
+    },
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "00598a4be021fdee"
+   },
+   "delegationAtSend": {},
+   "required": "今回は記念日らしい演出をすることを優先して、デザートに小さなメッセージを添えます。"
+  },
+  {
+   "turn": 5,
+   "user": "演出を優先とは言ってないよ。メッセージとか特別なのはいらないです。みんなでタコス巻いて、小さいケーキ買うくらいで",
+   "ai": "デザートにメッセージを添えるのはやめて、書いていただいた形に合わせます。書いていただいた流れで進めます。ほかの部分は、これまでの形のままにしておきます。最後に、この夕食で大切にしたいことや避けたいことを、自分の言葉でまとめてください。",
+   "analysis": {
+    "summary": "食後にほっとした気持ちが残ることと、気軽に笑い合えることを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-afterglow",
+      "title": "食後にほっとできること",
+      "meaning": "食べ終わったあと、穏やかでほっとした気持ちが残る夜にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       1,
+       3,
+       4
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-laugh",
+      "title": "笑って過ごせること",
+      "meaning": "くだらない話で気軽に笑い合える時間にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       1,
+       2,
+       4,
+       5
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-no-formal",
+      "title": "改まらないこと",
+      "meaning": "かしこまった空気や照れくさい場面は避けて、自然体でいたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0,
+       2
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T5.undo.E2",
+     "T5.dish.accept",
+     "T5.ack.fallback#0",
+     "T5.filler.dinner"
+    ],
+    "features": {
+     "tags": [
+      "NO_STAGING"
+     ],
+     "dishesPos": [
+      "ケーキ",
+      "タコス"
+     ],
+     "dishesNeg": [],
+     "itemsNeg": [
+      "メッセージ"
+     ],
+     "details": [],
+     "correction": true,
+     "delegations": []
+    },
+    "anchorTags": [],
+    "e1": {
+     "generic": "前菜から主菜まで、少しだけコース仕立てにすること",
+     "correctedAt": 4
+    },
+    "e2": {
+     "preferred": "記念日らしい演出をすること",
+     "correctedAt": 5
+    },
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "53882820bb808af2"
+   },
+   "delegationAtSend": {
+    "v-laugh": "self"
+   },
+   "required": null
+  },
+  {
+   "turn": 6,
+   "user": "大事なのは気楽に笑えること。避けたいのは、キャンドルとかサプライズとか大げさなやつ",
+   "ai": "ここまでの内容を、当日の方針としてまとめます。料理は、タコスでまとめます。過ごし方は、気楽にくつろげること、気軽に笑い合えることと、食後にほっとした気持ちが残ることを大切にします。コース仕立てやメッセージは入れません。細かな段取りは、当日の様子に合わせて調整できます。現在の方針は以上です。未決定の部分は残したまま、実行に必要な内容だけを整理しました。",
+   "analysis": {
+    "summary": "食後にほっとした気持ちが残ることと、気軽に笑い合えることを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-afterglow",
+      "title": "食後にほっとできること",
+      "meaning": "食べ終わったあと、穏やかでほっとした気持ちが残る夜にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       1,
+       3,
+       4
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-laugh",
+      "title": "笑って過ごせること",
+      "meaning": "くだらない話で気軽に笑い合える時間にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       1,
+       2,
+       4,
+       5,
+       6
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-no-formal",
+      "title": "改まらないこと",
+      "meaning": "かしこまった空気や照れくさい場面は避けて、自然体でいたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0,
+       2
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T6.lead#1",
+     "T6.dish",
+     "T6.values",
+     "T6.avoid",
+     "T6.filler"
+    ],
+    "features": {
+     "tags": [
+      "RELAX",
+      "LAUGH"
+     ],
+     "dishesPos": [],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [],
+    "e1": {
+     "generic": "前菜から主菜まで、少しだけコース仕立てにすること",
+     "correctedAt": 4
+    },
+    "e2": {
+     "preferred": "記念日らしい演出をすること",
+     "correctedAt": 5
+    },
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "a42f8f348431e21f"
+   },
+   "delegationAtSend": {
+    "v-laugh": "self"
+   },
+   "required": null
+  }
+ ],
+ "delegation": {
+  "v-laugh": "self"
+ },
+ "panelViews": [
+  0,
+  0,
+  0,
+  0,
+  1,
+  0,
+  0
+ ],
+ "events": [
+  {
+   "turn": 5,
+   "button": "v-laugh",
+   "state": "self"
+  },
+  {
+   "turn": 5,
+   "example": true
+  }
+ ]
+}

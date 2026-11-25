@@ -1,0 +1,526 @@
+{
+ "key": "N18",
+ "condition": "UI_B",
+ "scenario": "reunion",
+ "anchor": "久しぶりに会う中学の先生と、気負わずに話せる夜にしたい。",
+ "variant": "generic_embedded",
+ "rounds": [
+  {
+   "turn": 1,
+   "user": "食べ終わったあとに、ほっとして、また会いたいなと思ってもらえたらいいです。",
+   "ai": "久しぶりの再会になる夕食を、ここから形にしていきます。帰るときにまた会いたいと思えることと、食べ終わったあとにほっとした気持ちが残ることを大切にしたいということですね。唐揚げやポテトのように、手でつまめる料理を大皿で出すと気楽な食卓になります。どんな時間にするかは、まだ広く考えておきます。次は、この目標と同時に大切にしたい別の気持ちや雰囲気を一つ加えてください。",
+   "analysis": {
+    "summary": "気負わずに話し続けられることと、昔のように構えずに過ごすことを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-chat",
+      "title": "気楽に話せること",
+      "meaning": "近況や他愛ない話を、気負わずに続けられる時間にしたい。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "PRETASK_ANCHOR",
+      "evidenceTurns": [
+       0
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-nostalgia",
+      "title": "昔のように過ごすこと",
+      "meaning": "昔に戻ったように、構えずに話して笑い合いたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "PRETASK_ANCHOR",
+      "evidenceTurns": [
+       0
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-no-burden",
+      "title": "気を遣わせないこと",
+      "meaning": "相手が遠慮や気づかいをせず、自然体でいられるようにしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "PRETASK_ANCHOR",
+      "evidenceTurns": [
+       0
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T1.open.reunion#1",
+     "T1.ack2.MEET_AGAIN+AFTERGLOW",
+     "T1.dish.唐揚げ",
+     "T1.hold#2"
+    ],
+    "features": {
+     "tags": [
+      "AFTERGLOW",
+      "MEET_AGAIN"
+     ],
+     "dishesPos": [],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [
+     "NOSTALGIA",
+     "NO_BURDEN",
+     "CHAT"
+    ],
+    "e1": null,
+    "e2": null,
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "62ccd5797be22022"
+   },
+   "delegationAtSend": {},
+   "required": null
+  },
+  {
+   "turn": 2,
+   "user": "先生に恐縮させない、肩の力が抜けた雰囲気も大事にしたいです。豪華すぎない感じで。",
+   "ai": "気負わずに話が続くことに、肩の力を抜いてくつろげることが加わって、夕食の輪郭が少しはっきりしてきました。料理は凝らずに、手軽なもので十分ということですね。それぞれをどんな形にするかは、ここから少しずつ具体的にしていけます。次は、食事中の会話や距離感など、料理以外でどんな時間にしたいかを書いてください。",
+   "analysis": {
+    "summary": "気負わずに話し続けられることと、昔のように構えずに過ごすことを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-chat",
+      "title": "気楽に話せること",
+      "meaning": "近況や他愛ない話を、気負わずに続けられる時間にしたい。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "PRETASK_ANCHOR",
+      "evidenceTurns": [
+       0
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-nostalgia",
+      "title": "昔のように過ごすこと",
+      "meaning": "昔に戻ったように、構えずに話して笑い合いたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "PRETASK_ANCHOR",
+      "evidenceTurns": [
+       0
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-relax",
+      "title": "気楽にくつろげること",
+      "meaning": "肩の力を抜いて、構えずにくつろげる時間にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       2
+      ],
+      "focus": true
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T2.integrate#1",
+     "T2.ack.SIMPLE_FOOD#0",
+     "T2.hold#0"
+    ],
+    "features": {
+     "tags": [
+      "NO_BURDEN",
+      "RELAX",
+      "SIMPLE_FOOD"
+     ],
+     "dishesPos": [],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [
+     "NOSTALGIA",
+     "NO_BURDEN",
+     "CHAT"
+    ],
+    "e1": null,
+    "e2": null,
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "f4f4fc5b02504d19"
+   },
+   "delegationAtSend": {},
+   "required": null
+  },
+  {
+   "turn": 3,
+   "user": "最初だけ敬語で、途中からは自然にくだけた話し方になっていけたらいいなと思います。",
+   "ai": "食事中の過ごし方についても、書いていただいた形を土台にします。料理や演出は控えて、会話だけに集中できるようにします。料理は一皿だけにして、食べ終えたらすぐ話に戻れるよう、テーブルの上もすっきりさせておきます。次は、この案の食卓で二人がどう過ごしているとよいかを書いてください。",
+   "analysis": {
+    "summary": "昔のように構えずに過ごすことと、気楽にくつろげることを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-chat",
+      "title": "会話だけに集中できるようにする",
+      "meaning": "自然に話せることを、料理や演出を控えて、会話だけに集中できるようにすることとして扱う。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0,
+       3
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-nostalgia",
+      "title": "昔のように過ごすこと",
+      "meaning": "昔に戻ったように、構えずに話して笑い合いたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "PRETASK_ANCHOR",
+      "evidenceTurns": [
+       0
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-relax",
+      "title": "気楽にくつろげること",
+      "meaning": "肩の力を抜いて、構えずにくつろげる時間にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       2
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T3.E1.料理や演出を控えて、会話",
+     "T3.ack.none",
+     "T3.ack.fallback#0",
+     "T3.E1.follow",
+     "T3.ack.none"
+    ],
+    "features": {
+     "tags": [],
+     "dishesPos": [],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [
+     "NOSTALGIA",
+     "NO_BURDEN",
+     "CHAT"
+    ],
+    "e1": {
+     "generic": "料理や演出を控えて、会話だけに集中できるようにすること",
+     "correctedAt": null
+    },
+    "e2": null,
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "e6072489591cafde"
+   },
+   "delegationAtSend": {},
+   "required": "料理や演出は控えて、会話だけに集中できるようにします。"
+  },
+  {
+   "turn": 4,
+   "user": "あ、料理は一皿じゃなくて、先生が好きだった豚汁とおにぎりにしたいです。敬語が崩れていく感じも入れたいです。",
+   "ai": "料理は豚汁やおにぎりを中心にします。テレビは消して、食卓で向かい合って座ります。スマホも手の届かないところに置いておきます。食べ始めから食後まで、無理のない流れにします。次は、食べ始めから食後まで、二人にとって自然な流れを書いてください。",
+   "analysis": {
+    "summary": "昔のように構えずに過ごすことを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-chat",
+      "title": "会話だけに集中できるようにする",
+      "meaning": "自然に話せることを、料理や演出を控えて、会話だけに集中できるようにすることとして扱う。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0,
+       3
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-nostalgia",
+      "title": "昔のように過ごすこと",
+      "meaning": "昔に戻ったように、構えずに話して笑い合いたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "PRETASK_ANCHOR",
+      "evidenceTurns": [
+       0
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-relax",
+      "title": "落ち着いて向き合える場をつくる方を優",
+      "meaning": "落ち着いて向き合える場をつくることを優先し、テレビは消して、食卓で向かい合って座ります。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       2,
+       4
+      ],
+      "focus": true
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T4.E2.落ち着いて向き合える場をつくること",
+     "T4.ack.none",
+     "T4.dish.accept",
+     "T4.E2.follow",
+     "T4.dish.accept",
+     "T4.ack.none",
+     "T4.filler"
+    ],
+    "features": {
+     "tags": [],
+     "dishesPos": [
+      "豚汁",
+      "おにぎり"
+     ],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [],
+     "correction": true,
+     "delegations": []
+    },
+    "anchorTags": [
+     "NOSTALGIA",
+     "NO_BURDEN",
+     "CHAT"
+    ],
+    "e1": {
+     "generic": "料理や演出を控えて、会話だけに集中できるようにすること",
+     "correctedAt": null
+    },
+    "e2": {
+     "preferred": "落ち着いて向き合える場をつくること",
+     "correctedAt": null
+    },
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "f14b3cc0b72d46e8"
+   },
+   "delegationAtSend": {},
+   "required": "テレビは消して、食卓で向かい合って座ります。"
+  },
+  {
+   "turn": 5,
+   "user": "最初はお互い敬語で近況を話して、豚汁を飲んでほっとしたあたりから、だんだん昔の口調になる流れがいいです。",
+   "ai": "料理は豚汁を中心にします。昔のように構えずに過ごせることを大切にします。食べ始めから食後まで、無理のない順番で整えます。細かな時間配分は、当日の様子に合わせて調整できます。最後に、この夕食で大切にしたいことや避けたいことを、自分の言葉でまとめてください。",
+   "analysis": {
+    "summary": "昔のように構えずに過ごすことを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-chat",
+      "title": "会話だけに集中できるようにする",
+      "meaning": "自然に話せることを、料理や演出を控えて、会話だけに集中できるようにすることとして扱う。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0,
+       3
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-nostalgia",
+      "title": "昔のように過ごすこと",
+      "meaning": "昔に戻ったように、構えずに話して笑い合いたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "PRETASK_ANCHOR",
+      "evidenceTurns": [
+       0,
+       5
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-relax",
+      "title": "落ち着いて向き合える場をつくる方を優",
+      "meaning": "落ち着いて向き合える場をつくることを優先し、テレビは消して、食卓で向かい合って座ります。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       2,
+       4
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T5.dish.accept",
+     "T5.ack.NOSTALGIA#1",
+     "T5.filler",
+     "T5.filler"
+    ],
+    "features": {
+     "tags": [
+      "CHAT",
+      "AFTERGLOW",
+      "NOSTALGIA"
+     ],
+     "dishesPos": [
+      "豚汁"
+     ],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [
+     "NOSTALGIA",
+     "NO_BURDEN",
+     "CHAT"
+    ],
+    "e1": {
+     "generic": "料理や演出を控えて、会話だけに集中できるようにすること",
+     "correctedAt": null
+    },
+    "e2": {
+     "preferred": "落ち着いて向き合える場をつくること",
+     "correctedAt": null
+    },
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "434941d8e7c4e4e6"
+   },
+   "delegationAtSend": {},
+   "required": null
+  },
+  {
+   "turn": 6,
+   "user": "豪華にしすぎず、豚汁とおにぎりで、敬語が自然に崩れていく夜にしたいです。逆に、かしこまった空気は避けたいです。",
+   "ai": "ここまでの内容を、当日の方針としてまとめます。料理は、豚汁とおにぎりでまとめます。過ごし方は、料理は手軽なもので十分にすること、かしこまった空気にしないこと、そして昔のように構えずに過ごすことを大切にします。当日は、料理や演出は控えて、会話だけに集中できるようにします。また、テレビは消して、食卓で向かい合って座ります。現在の方針は以上です。未決定の部分は残したまま、実行に必要な内容だけを整理しました。",
+   "analysis": {
+    "summary": "昔のように構えずに過ごすことを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-chat",
+      "title": "会話だけに集中できるようにする",
+      "meaning": "自然に話せることを、料理や演出を控えて、会話だけに集中できるようにすることとして扱う。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0,
+       3
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-nostalgia",
+      "title": "昔のように過ごすこと",
+      "meaning": "昔に戻ったように、構えずに話して笑い合いたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "PRETASK_ANCHOR",
+      "evidenceTurns": [
+       0,
+       5
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-relax",
+      "title": "落ち着いて向き合える場をつくる方を優",
+      "meaning": "落ち着いて向き合える場をつくることを優先し、テレビは消して、食卓で向かい合って座ります。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       2,
+       4
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T6.lead#1",
+     "T6.dish",
+     "T6.values",
+     "T6.keepE1",
+     "T6.keepE2"
+    ],
+    "features": {
+     "tags": [
+      "SIMPLE_FOOD",
+      "NO_FORMAL"
+     ],
+     "dishesPos": [
+      "豚汁",
+      "おにぎり"
+     ],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [
+     "NOSTALGIA",
+     "NO_BURDEN",
+     "CHAT"
+    ],
+    "e1": {
+     "generic": "料理や演出を控えて、会話だけに集中できるようにすること",
+     "correctedAt": null
+    },
+    "e2": {
+     "preferred": "落ち着いて向き合える場をつくること",
+     "correctedAt": null
+    },
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "e996de7bf4a3bbf0"
+   },
+   "delegationAtSend": {},
+   "required": null
+  }
+ ],
+ "delegation": {},
+ "panelViews": [
+  0,
+  1,
+  1,
+  1,
+  1,
+  1,
+  0
+ ],
+ "events": []
+}

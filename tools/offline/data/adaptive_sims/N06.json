@@ -1,0 +1,519 @@
+{
+ "key": "N06",
+ "condition": "UI_A",
+ "scenario": "reunion",
+ "anchor": "留学から帰ってきた友達と、ゆっくり話せる夜にしたい。",
+ "variant": "generic_unranked",
+ "rounds": [
+  {
+   "turn": 1,
+   "user": "お腹いっぱいで満足して、留学の話をたくさん聞けてよかったなと思ってほしいです。",
+   "ai": "久しぶりに会う相手との夕食を、一緒に考えていきましょう。相手に心地よく過ごしてもらえる夕食を、一緒に考えていきます。料理は取り分けやすい鍋や大皿にすると、食べながら自然に話が続きます。過ごし方の細かいところは、まだ決めずに余白を残しておきます。料理と過ごし方を少しずつ結びつけながら、形にしていきましょう。まずは全体の方向だけを置いて、細部はこれから整えます。次は、この目標と同時に大切にしたい別の気持ちや雰囲気を一つ加えてください。",
+   "analysis": {
+    "summary": "気負わずに話し続けられることと、昔のように構えずに過ごすことを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-chat",
+      "title": "気楽に話せること",
+      "meaning": "近況や他愛ない話を、気負わずに続けられる時間にしたい。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "PRETASK_ANCHOR",
+      "evidenceTurns": [
+       0
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-nostalgia",
+      "title": "昔のように過ごすこと",
+      "meaning": "昔に戻ったように、構えずに話して笑い合いたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-long-stay",
+      "title": "時間を気にせず話すこと",
+      "meaning": "時間や片付けを気にせず、長く座って話していられるようにしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T1.open.reunion#0",
+     "T1.ack.fallback#0",
+     "T1.dish.鍋",
+     "T1.hold#0",
+     "T1.filler",
+     "T1.filler"
+    ],
+    "features": {
+     "tags": [],
+     "dishesPos": [],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [
+     "CHAT"
+    ],
+    "e1": null,
+    "e2": null,
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "a1792b7ffac03d2c"
+   },
+   "delegationAtSend": {},
+   "required": null
+  },
+  {
+   "turn": 2,
+   "user": "気取らない、家にいるみたいなほっとする雰囲気も大切にしたいです。",
+   "ai": "気負わずに話が続くことに、かしこまった空気にしないことが加わって、夕食の輪郭が少しはっきりしてきました。最後に穏やかな気持ちが残る夕食にしたいということですね。それぞれをどんな形にするかは、ここから少しずつ具体的にしていけます。料理は鍋を候補にしたまま、過ごし方と合わせて調整していけます。ここまでの内容で、夕食の雰囲気が少し見えてきました。次は、食事中の会話や距離感など、料理以外でどんな時間にしたいかを書いてください。",
+   "analysis": {
+    "summary": "気負わずに話し続けられることと、昔のように構えずに過ごすことを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-chat",
+      "title": "気楽に話せること",
+      "meaning": "近況や他愛ない話を、気負わずに続けられる時間にしたい。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "PRETASK_ANCHOR",
+      "evidenceTurns": [
+       0
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-nostalgia",
+      "title": "昔のように過ごすこと",
+      "meaning": "昔に戻ったように、構えずに話して笑い合いたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-no-formal",
+      "title": "改まらないこと",
+      "meaning": "かしこまった空気や照れくさい場面は避けて、自然体でいたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       2
+      ],
+      "focus": true
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T2.integrate#1",
+     "T2.ack.AFTERGLOW#1",
+     "T2.hold#0",
+     "T2.filler",
+     "T2.filler"
+    ],
+    "features": {
+     "tags": [
+      "NO_FORMAL",
+      "AFTERGLOW"
+     ],
+     "dishesPos": [],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [
+     "CHAT"
+    ],
+    "e1": null,
+    "e2": null,
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "1c8c4b8d30823c69"
+   },
+   "delegationAtSend": {},
+   "required": null
+  },
+  {
+   "turn": 3,
+   "user": "テレビや音楽は付けず、向かい合って留学中の話をゆっくり聞く時間にしたいです。",
+   "ai": "食事中の過ごし方についても、書いていただいた形を土台にします。自然に話せることは、料理や演出を控えて、会話だけに集中できるようにすることとして整えます。料理は一皿だけにして、食べ終えたらすぐ話に戻れるよう、テーブルの上もすっきりさせておきます。テレビがついたままの、いつもの雰囲気で大丈夫です。料理は鍋を基本にして、食卓の流れに合わせて整えます。食べる時間と話す時間が自然につながるようにします。次は、この案の食卓で二人がどう過ごしているとよいかを書いてください。",
+   "analysis": {
+    "summary": "昔のように構えずに過ごすことと、かしこまった空気にしないことを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-chat",
+      "title": "会話だけに集中できるようにする",
+      "meaning": "自然に話せることを、料理や演出を控えて、会話だけに集中できるようにすることとして扱う。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0,
+       3
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-nostalgia",
+      "title": "昔のように過ごすこと",
+      "meaning": "昔に戻ったように、構えずに話して笑い合いたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-no-formal",
+      "title": "改まらないこと",
+      "meaning": "かしこまった空気や照れくさい場面は避けて、自然体でいたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       2
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T3.E1.料理や演出を控えて、会話",
+     "T3.ack.fallback#0",
+     "T3.E1.follow",
+     "T3.detail.tv+",
+     "T3.filler",
+     "T3.filler"
+    ],
+    "features": {
+     "tags": [],
+     "dishesPos": [],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [
+      "tv+",
+      "facing+"
+     ],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [
+     "CHAT"
+    ],
+    "e1": {
+     "generic": "料理や演出を控えて、会話だけに集中できるようにすること",
+     "correctedAt": null
+    },
+    "e2": null,
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "7b3101a1b44ab055"
+   },
+   "delegationAtSend": {},
+   "required": "自然に話せることは、料理や演出を控えて、会話だけに集中できるようにすることとして整えます。"
+  },
+  {
+   "turn": 4,
+   "user": "テレビは付けないつもりです。あと、鍋より肉じゃがと味噌汁みたいな和食の家庭料理がいいです。友達が恋しがってるので。",
+   "ai": "その場面を思い浮かべながら、夕食を整えていきます。今回は料理でしっかりもてなすことを優先して、メインは手の込んだ一皿を用意して、食卓で取り分けます。メインは時間をかけて煮込んだものにして、食卓で取り分けながら出します。鍋はやめて、肉じゃがにします。食卓の流れは、この形を基本に進めます。料理の出し方も、この流れに合わせて整えます。次は、食べ始めから食後まで、二人にとって自然な流れを書いてください。",
+   "analysis": {
+    "summary": "かしこまった空気にしないことを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-chat",
+      "title": "会話だけに集中できるようにする",
+      "meaning": "自然に話せることを、料理や演出を控えて、会話だけに集中できるようにすることとして扱う。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0,
+       3
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-nostalgia",
+      "title": "料理でしっかりもてなす方を優先",
+      "meaning": "料理でしっかりもてなすことを優先し、メインは手の込んだ一皿を用意して、食卓で取り分けます。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0,
+       4
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-no-formal",
+      "title": "改まらないこと",
+      "meaning": "かしこまった空気や照れくさい場面は避けて、自然体でいたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       2
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T4.E2.料理でしっかりもてなすこと",
+     "T4.ack.fallback#0",
+     "T4.E2.follow",
+     "T4.dish.replace.鍋",
+     "T4.filler",
+     "T4.filler"
+    ],
+    "features": {
+     "tags": [],
+     "dishesPos": [
+      "肉じゃが",
+      "味噌汁"
+     ],
+     "dishesNeg": [
+      "鍋"
+     ],
+     "itemsNeg": [],
+     "details": [
+      "tv+"
+     ],
+     "correction": true,
+     "delegations": []
+    },
+    "anchorTags": [
+     "CHAT"
+    ],
+    "e1": {
+     "generic": "料理や演出を控えて、会話だけに集中できるようにすること",
+     "correctedAt": null
+    },
+    "e2": {
+     "preferred": "料理でしっかりもてなすこと",
+     "correctedAt": null
+    },
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "2453d4cb5d52ffba"
+   },
+   "delegationAtSend": {},
+   "required": "今回は料理でしっかりもてなすことを優先して、メインは手の込んだ一皿を用意して、食卓で取り分けます。"
+  },
+  {
+   "turn": 5,
+   "user": "肉じゃがはいいです。ただ、もてなす感じや手の込んだ演出は要らなくて、普通の家庭の味でいいです。味噌汁とご飯も付けたいです。",
+   "ai": "手の込んだメインでもてなす形はやめて、料理は手軽なもので十分にすることを中心にします。料理は肉じゃがや味噌汁を中心にします。書いていただいた流れで進めます。最後に、この夕食で大切にしたいことや避けたいことを、自分の言葉でまとめてください。",
+   "analysis": {
+    "summary": "料理は手軽なもので十分にすることと、かしこまった空気にしないことを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-chat",
+      "title": "会話だけに集中できるようにする",
+      "meaning": "自然に話せることを、料理や演出を控えて、会話だけに集中できるようにすることとして扱う。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0,
+       3
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-nostalgia",
+      "title": "料理は手軽にすること",
+      "meaning": "料理に手をかけすぎず、気軽に食べられるもので十分にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       0,
+       4,
+       5
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-no-formal",
+      "title": "改まらないこと",
+      "meaning": "かしこまった空気や照れくさい場面は避けて、自然体でいたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       2
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T5.undo.E2",
+     "T5.dish.accept",
+     "T5.ack.fallback#0"
+    ],
+    "features": {
+     "tags": [
+      "SIMPLE_FOOD",
+      "NO_STAGING"
+     ],
+     "dishesPos": [
+      "肉じゃが",
+      "味噌汁"
+     ],
+     "dishesNeg": [],
+     "itemsNeg": [
+      "演出"
+     ],
+     "details": [],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [
+     "CHAT"
+    ],
+    "e1": {
+     "generic": "料理や演出を控えて、会話だけに集中できるようにすること",
+     "correctedAt": null
+    },
+    "e2": {
+     "preferred": "料理でしっかりもてなすこと",
+     "correctedAt": 5
+    },
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "71552099b942a1d9"
+   },
+   "delegationAtSend": {},
+   "required": null
+  },
+  {
+   "turn": 6,
+   "user": "大切にしたいのは、和食を囲んで留学の話をたっぷり聞くこと。避けたいのは、演出っぽさやテレビなど気が散るものです。",
+   "ai": "これまでの内容を、実行できる形にまとめます。料理は、肉じゃがと味噌汁でまとめます。過ごし方は、料理は手軽なもので十分にすることと、かしこまった空気にしないことを大切にします。当日は、料理や演出は控えて、会話だけに集中できるようにします。演出は入れません。細かな段取りは、当日の様子に合わせて調整できます。現在の方針は以上です。未決定の部分は残したまま、実行に必要な内容だけを整理しました。",
+   "analysis": {
+    "summary": "料理は手軽なもので十分にすることと、かしこまった空気にしないことを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-chat",
+      "title": "会話だけに集中できるようにする",
+      "meaning": "自然に話せることを、料理や演出を控えて、会話だけに集中できるようにすることとして扱う。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0,
+       3
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-nostalgia",
+      "title": "料理は手軽にすること",
+      "meaning": "料理に手をかけすぎず、気軽に食べられるもので十分にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       0,
+       4,
+       5
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-no-formal",
+      "title": "改まらないこと",
+      "meaning": "かしこまった空気や照れくさい場面は避けて、自然体でいたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       2
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T6.lead#0",
+     "T6.dish",
+     "T6.values",
+     "T6.avoid",
+     "T6.keepE1",
+     "T6.filler"
+    ],
+    "features": {
+     "tags": [],
+     "dishesPos": [],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [
+      "tv+"
+     ],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [
+     "CHAT"
+    ],
+    "e1": {
+     "generic": "料理や演出を控えて、会話だけに集中できるようにすること",
+     "correctedAt": null
+    },
+    "e2": {
+     "preferred": "料理でしっかりもてなすこと",
+     "correctedAt": 5
+    },
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "d28df4a7b45cc339"
+   },
+   "delegationAtSend": {},
+   "required": null
+  }
+ ],
+ "delegation": {},
+ "panelViews": [
+  0,
+  1,
+  0,
+  1,
+  0,
+  0,
+  0
+ ],
+ "events": []
+}

@@ -1,0 +1,548 @@
+{
+ "key": "N32",
+ "condition": "UI_B",
+ "scenario": "milestone",
+ "anchor": "友達の昇進を、家で気軽にお祝いしたい。",
+ "variant": "generic_unranked",
+ "rounds": [
+  {
+   "turn": 1,
+   "user": "みんなでわいわい楽しんで、肩ひじ張らずに祝えたなって思えるといいな。",
+   "ai": "節目の日の夕食を、一緒に考えていきましょう。笑って過ごせることを大事にしたい、という気持ちが伝わりました。献立は普段の家ごはんを軸にすると、いつもの二人のまま過ごせます。過ごし方の細かいところは、まだ決めずに余白を残しておきます。次は、この目標と同時に大切にしたい別の気持ちや雰囲気を一つ加えてください。",
+   "analysis": {
+    "summary": "気楽にくつろげることと、気軽に笑い合えることを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-scene",
+      "title": "節目をさりげなく祝うこと",
+      "meaning": "小さな節目を、大げさにせずに祝いたい。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "PRETASK_ANCHOR",
+      "evidenceTurns": [
+       0
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-relax",
+      "title": "気楽にくつろげること",
+      "meaning": "肩の力を抜いて、構えずにくつろげる時間にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "PRETASK_ANCHOR",
+      "evidenceTurns": [
+       0
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-laugh",
+      "title": "笑って過ごせること",
+      "meaning": "くだらない話で気軽に笑い合える時間にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       1
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T1.open.milestone#0",
+     "T1.ack.LAUGH#1",
+     "T1.dish.家ごはん",
+     "T1.hold#0"
+    ],
+    "features": {
+     "tags": [
+      "LAUGH"
+     ],
+     "dishesPos": [],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [
+     "RELAX"
+    ],
+    "e1": null,
+    "e2": null,
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "721698eb3f03bcde"
+   },
+   "delegationAtSend": {},
+   "required": null
+  },
+  {
+   "turn": 2,
+   "user": "あと、堅苦しくなくて、それぞれが好きなものを食べられる自由な感じもほしいです。",
+   "ai": "最初に書いてくださった節目をさりげなく祝うことに、かしこまった空気にしないことも加えて考えていきます。相手の好きなものを一緒に食べる、という形を大切にします。それぞれをどんな形にするかは、ここから少しずつ具体的にしていけます。料理は家ごはんを候補にしたまま、過ごし方と合わせて調整していけます。次は、食事中の会話や距離感など、料理以外でどんな時間にしたいかを書いてください。",
+   "analysis": {
+    "summary": "気楽にくつろげることと、かしこまった空気にしないことを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-scene",
+      "title": "節目をさりげなく祝うこと",
+      "meaning": "小さな節目を、大げさにせずに祝いたい。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "PRETASK_ANCHOR",
+      "evidenceTurns": [
+       0
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-relax",
+      "title": "気楽にくつろげること",
+      "meaning": "肩の力を抜いて、構えずにくつろげる時間にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "PRETASK_ANCHOR",
+      "evidenceTurns": [
+       0
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-no-formal",
+      "title": "改まらないこと",
+      "meaning": "かしこまった空気や照れくさい場面は避けて、自然体でいたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       2
+      ],
+      "focus": true
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T2.integrate#0",
+     "T2.ack.FAVORITE#0",
+     "T2.hold#0",
+     "T2.filler.dinner"
+    ],
+    "features": {
+     "tags": [
+      "NO_FORMAL",
+      "FAVORITE"
+     ],
+     "dishesPos": [],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [
+     "RELAX"
+    ],
+    "e1": null,
+    "e2": null,
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "db9220c6ff79e671"
+   },
+   "delegationAtSend": {},
+   "required": null
+  },
+  {
+   "turn": 3,
+   "user": "会話は自然でいいです。ちなみに、相手の好物というより、みんなが一品ずつ持ち寄る感じです。",
+   "ai": "食事中の過ごし方についても、書いていただいた形を土台にします。記念日を大げさにしないことは、キャンドルや花など、小さな飾りを一つ置くこととして整えます。食卓の真ん中に小さな花を一輪置き、食事の間だけ灯りを少し落とします。料理は家ごはんを基本にします。次は、この案の食卓で二人がどう過ごしているとよいかを書いてください。",
+   "analysis": {
+    "summary": "気楽にくつろげることと、かしこまった空気にしないことを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-scene",
+      "title": "小さな飾りを一つ置く",
+      "meaning": "記念日を大げさにしないことを、キャンドルや花など、小さな飾りを一つ置くこととして扱う。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0,
+       3
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-relax",
+      "title": "気楽にくつろげること",
+      "meaning": "肩の力を抜いて、構えずにくつろげる時間にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "PRETASK_ANCHOR",
+      "evidenceTurns": [
+       0
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-no-formal",
+      "title": "改まらないこと",
+      "meaning": "かしこまった空気や照れくさい場面は避けて、自然体でいたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       2
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T3.E1.キャンドルや花など、小さ",
+     "T3.ack.none",
+     "T3.ack.fallback#0",
+     "T3.E1.follow",
+     "T3.ack.none",
+     "T3.filler"
+    ],
+    "features": {
+     "tags": [],
+     "dishesPos": [],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [],
+     "correction": true,
+     "delegations": []
+    },
+    "anchorTags": [
+     "RELAX"
+    ],
+    "e1": {
+     "generic": "キャンドルや花など、小さな飾りを一つ置くこと",
+     "correctedAt": null
+    },
+    "e2": null,
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "5a4be6117c3e7114"
+   },
+   "delegationAtSend": {},
+   "required": "記念日を大げさにしないことは、キャンドルや花など、小さな飾りを一つ置くこととして整えます。"
+  },
+  {
+   "turn": 4,
+   "user": "飾りは自分で決めたいので、案は出さなくて大丈夫です。それぞれ好きな一品を持ち寄って、ゆるく食べて話してる感じがいいです。",
+   "ai": "飾りを置くのはやめて、気負わずに話し続けられることを中心にします。今回は節目らしさを形に残すことを優先して、食後に二人で写真を一枚撮る時間をつくります。撮るのは、デザートを出したタイミングにします。飾りは、こちらからは案を出さずにおきます。話が自然に続く時間を大切にしたい、ということですね。料理は家ごはんを基本に進めます。次は、食べ始めから食後まで、二人にとって自然な流れを書いてください。",
+   "analysis": {
+    "summary": "気負わずに話し続けられることと、かしこまった空気にしないことを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-scene",
+      "title": "気楽に話せること",
+      "meaning": "近況や他愛ない話を、気負わずに続けられる時間にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       0,
+       3,
+       4
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-relax",
+      "title": "節目らしさを形に残す方を優先",
+      "meaning": "節目らしさを形に残すことを優先し、食後に二人で写真を一枚撮る時間をつくります。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0,
+       4
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-no-formal",
+      "title": "改まらないこと",
+      "meaning": "かしこまった空気や照れくさい場面は避けて、自然体でいたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       2
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T4.deleg.USER_DECIDE",
+     "T4.E2.節目らしさを形に残すこと",
+     "T4.undo.E1",
+     "T4.E2.follow",
+     "T4.ack.CHAT#0",
+     "T4.filler.dinner"
+    ],
+    "features": {
+     "tags": [
+      "RELAX",
+      "CHAT"
+     ],
+     "dishesPos": [],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [],
+     "correction": false,
+     "delegations": [
+      [
+       "飾り",
+       "USER_DECIDE"
+      ]
+     ]
+    },
+    "anchorTags": [
+     "RELAX"
+    ],
+    "e1": {
+     "generic": "キャンドルや花など、小さな飾りを一つ置くこと",
+     "correctedAt": 4
+    },
+    "e2": {
+     "preferred": "節目らしさを形に残すこと",
+     "correctedAt": null
+    },
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "f5c196524fb6fb16"
+   },
+   "delegationAtSend": {
+    "v-scene": "self"
+   },
+   "required": "今回は節目らしさを形に残すことを優先して、食後に二人で写真を一枚撮る時間をつくります。"
+  },
+  {
+   "turn": 5,
+   "user": "写真やデザートの時間は要らないです。ケーキとかサプライズが苦手な友達なので、普通に食べて終わりで。",
+   "ai": "写真を撮る時間はやめて、いつも通りの空気で過ごすことを中心にします。デザートやサプライズはなしにします。料理は家ごはんを基本にしたまま進めます。最後に、この夕食で大切にしたいことや避けたいことを、自分の言葉でまとめてください。",
+   "analysis": {
+    "summary": "気負わずに話し続けられることと、いつも通りの空気で過ごすことを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-scene",
+      "title": "気楽に話せること",
+      "meaning": "近況や他愛ない話を、気負わずに続けられる時間にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       0,
+       3,
+       4
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-relax",
+      "title": "いつも通りの空気",
+      "meaning": "特別に構えず、普段の食卓の延長で過ごしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       0,
+       4,
+       5
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-no-formal",
+      "title": "改まらないこと",
+      "meaning": "かしこまった空気や照れくさい場面は避けて、自然体でいたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       2
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T5.undo.E2",
+     "T5.neg.デザート+サプライズ",
+     "T5.ack.none",
+     "T5.filler.dinner"
+    ],
+    "features": {
+     "tags": [
+      "NO_STAGING",
+      "EVERYDAY"
+     ],
+     "dishesPos": [],
+     "dishesNeg": [
+      "デザート",
+      "ケーキ"
+     ],
+     "itemsNeg": [
+      "写真",
+      "デザート",
+      "サプライズ"
+     ],
+     "details": [
+      "dessert-"
+     ],
+     "correction": true,
+     "delegations": []
+    },
+    "anchorTags": [
+     "RELAX"
+    ],
+    "e1": {
+     "generic": "キャンドルや花など、小さな飾りを一つ置くこと",
+     "correctedAt": 4
+    },
+    "e2": {
+     "preferred": "節目らしさを形に残すこと",
+     "correctedAt": 5
+    },
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "35b7846e9045cbbf"
+   },
+   "delegationAtSend": {
+    "v-scene": "self"
+   },
+   "required": null
+  },
+  {
+   "turn": 6,
+   "user": "大事なのは、みんなが一品ずつ好きなものを持ち寄って気楽に祝うこと。避けたいのは、ケーキ、サプライズ、かしこまった雰囲気です。",
+   "ai": "これまでの内容を、実行できる形にまとめます。料理は、普段の家ごはんでまとめます。過ごし方は、相手の好物を一緒に食べること、気楽にくつろげること、そして気負わずに話し続けられることを大切にします。写真、デザートやサプライズは入れません。現在の方針は以上です。未決定の部分は残したまま、実行に必要な内容だけを整理しました。",
+   "analysis": {
+    "summary": "気負わずに話し続けられることと、いつも通りの空気で過ごすことを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-scene",
+      "title": "気楽に話せること",
+      "meaning": "近況や他愛ない話を、気負わずに続けられる時間にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       0,
+       3,
+       4
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-relax",
+      "title": "いつも通りの空気",
+      "meaning": "特別に構えず、普段の食卓の延長で過ごしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       0,
+       4,
+       5
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-no-formal",
+      "title": "改まらないこと",
+      "meaning": "かしこまった空気や照れくさい場面は避けて、自然体でいたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       2,
+       6
+      ],
+      "focus": true
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T6.lead#0",
+     "T6.dish",
+     "T6.values",
+     "T6.avoid"
+    ],
+    "features": {
+     "tags": [
+      "FAVORITE",
+      "RELAX",
+      "NO_STAGING",
+      "NO_FORMAL"
+     ],
+     "dishesPos": [],
+     "dishesNeg": [
+      "ケーキ"
+     ],
+     "itemsNeg": [
+      "サプライズ"
+     ],
+     "details": [],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [
+     "RELAX"
+    ],
+    "e1": {
+     "generic": "キャンドルや花など、小さな飾りを一つ置くこと",
+     "correctedAt": 4
+    },
+    "e2": {
+     "preferred": "節目らしさを形に残すこと",
+     "correctedAt": 5
+    },
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "01da420e4f889341"
+   },
+   "delegationAtSend": {
+    "v-scene": "self"
+   },
+   "required": null
+  }
+ ],
+ "delegation": {
+  "v-scene": "self"
+ },
+ "panelViews": [
+  0,
+  1,
+  1,
+  1,
+  1,
+  1,
+  0
+ ],
+ "events": [
+  {
+   "turn": 4,
+   "button": "v-scene",
+   "state": "self"
+  },
+  {
+   "turn": 4,
+   "example": true
+  }
+ ]
+}

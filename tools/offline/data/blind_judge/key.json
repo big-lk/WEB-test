@@ -1,0 +1,66 @@
+{
+ "T01": {
+  "src": "online",
+  "id": "SIMTEST-P09"
+ },
+ "T02": {
+  "src": "online",
+  "id": "SIMTEST-P03"
+ },
+ "T03": {
+  "src": "offline",
+  "id": "N20"
+ },
+ "T04": {
+  "src": "offline",
+  "id": "N26"
+ },
+ "T05": {
+  "src": "offline",
+  "id": "N22"
+ },
+ "T06": {
+  "src": "offline",
+  "id": "N23"
+ },
+ "T07": {
+  "src": "offline",
+  "id": "N28"
+ },
+ "T08": {
+  "src": "online",
+  "id": "SIMTEST-P04"
+ },
+ "T09": {
+  "src": "online",
+  "id": "SIMTEST-P13"
+ },
+ "T10": {
+  "src": "offline",
+  "id": "N25"
+ },
+ "T11": {
+  "src": "offline",
+  "id": "N32"
+ },
+ "T12": {
+  "src": "online",
+  "id": "SIMTEST-P06"
+ },
+ "T13": {
+  "src": "offline",
+  "id": "N17"
+ },
+ "T14": {
+  "src": "online",
+  "id": "SIMTEST-P16"
+ },
+ "T15": {
+  "src": "online",
+  "id": "SIMTEST-P10"
+ },
+ "T16": {
+  "src": "online",
+  "id": "SIMTEST-P01"
+ }
+}

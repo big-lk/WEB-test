@@ -1,0 +1,554 @@
+{
+ "key": "N30",
+ "condition": "UI_B",
+ "scenario": "reunion",
+ "anchor": "昔のバイト仲間と久しぶりに集まる。自然に話せる夜にしたい。",
+ "variant": "mixed_e1content",
+ "rounds": [
+  {
+   "turn": 1,
+   "user": "食べ終わったあとに、気まずさがなくて、また会いたいなって思えるといいです。",
+   "ai": "久しぶりに会う相手との夕食を、一緒に考えていきましょう。帰るときに、また会いたいと思える夜にしたいということですね。唐揚げやポテトのように、手でつまめる料理を大皿で出すと気楽な食卓になります。雰囲気の作り方は、これからのやり取りで少しずつ決めていけます。次は、この目標と同時に大切にしたい別の気持ちや雰囲気を一つ加えてください。",
+   "analysis": {
+    "summary": "気負わずに話し続けられることと、昔のように構えずに過ごすことを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-chat",
+      "title": "気楽に話せること",
+      "meaning": "近況や他愛ない話を、気負わずに続けられる時間にしたい。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "PRETASK_ANCHOR",
+      "evidenceTurns": [
+       0
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-nostalgia",
+      "title": "昔のように過ごすこと",
+      "meaning": "昔に戻ったように、構えずに話して笑い合いたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "PRETASK_ANCHOR",
+      "evidenceTurns": [
+       0
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-meet-again",
+      "title": "また会いたくなる夜",
+      "meaning": "帰るときに、また会いたいと自然に思える夜にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       1
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T1.open.reunion#0",
+     "T1.ack.MEET_AGAIN#0",
+     "T1.dish.唐揚げ",
+     "T1.hold#1"
+    ],
+    "features": {
+     "tags": [
+      "MEET_AGAIN"
+     ],
+     "dishesPos": [],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [
+     "NOSTALGIA",
+     "CHAT"
+    ],
+    "e1": null,
+    "e2": null,
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "f182fc42b9fd223a"
+   },
+   "delegationAtSend": {},
+   "required": null
+  },
+  {
+   "turn": 2,
+   "user": "あと、堅苦しくなくて、のんびりした雰囲気がいいです。",
+   "ai": "最初に書いてくださった気負わずに話が続くことに、かしこまった空気にしないことも加えて考えていきます。肩の力を抜いて過ごせる、気楽な夜にしたいということですね。どちらも大事にできる形を、ここから探していきます。料理は唐揚げを候補にしたまま、過ごし方と合わせて調整していけます。次は、食事中の会話や距離感など、料理以外でどんな時間にしたいかを書いてください。",
+   "analysis": {
+    "summary": "気負わずに話し続けられることと、昔のように構えずに過ごすことを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-chat",
+      "title": "気楽に話せること",
+      "meaning": "近況や他愛ない話を、気負わずに続けられる時間にしたい。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "PRETASK_ANCHOR",
+      "evidenceTurns": [
+       0
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-nostalgia",
+      "title": "昔のように過ごすこと",
+      "meaning": "昔に戻ったように、構えずに話して笑い合いたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "PRETASK_ANCHOR",
+      "evidenceTurns": [
+       0
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-no-formal",
+      "title": "改まらないこと",
+      "meaning": "かしこまった空気や照れくさい場面は避けて、自然体でいたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       2
+      ],
+      "focus": true
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T2.integrate#0",
+     "T2.ack.RELAX#0",
+     "T2.hold#2",
+     "T2.filler.dinner"
+    ],
+    "features": {
+     "tags": [
+      "NO_FORMAL",
+      "RELAX"
+     ],
+     "dishesPos": [],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [
+     "NOSTALGIA",
+     "CHAT"
+    ],
+    "e1": null,
+    "e2": null,
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "750fcc536f82bf28"
+   },
+   "delegationAtSend": {},
+   "required": null
+  },
+  {
+   "turn": 3,
+   "user": "向かい合ってじっと話すのは照れくさいので、何かしながら話せる感じがいいです。",
+   "ai": "会話を気楽に楽しめる時間を大切にします。話題に困らないよう、思い出話のきっかけを用意しておきます。昔の写真を何枚か手元に用意しておき、食事の合間に話のきっかけにできるようにします。向かい合って座れるように、席を整えます。改まった感じを避けて、自然体で過ごせるようにします。次は、この案の食卓で二人がどう過ごしているとよいかを書いてください。",
+   "analysis": {
+    "summary": "昔のように構えずに過ごすことと、かしこまった空気にしないことを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-chat",
+      "title": "思い出話のきっかけを用意する",
+      "meaning": "「自然に話せる」を、話題に困らないよう、思い出話のきっかけを用意することとして扱う。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0,
+       3
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-nostalgia",
+      "title": "昔のように過ごすこと",
+      "meaning": "昔に戻ったように、構えずに話して笑い合いたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "PRETASK_ANCHOR",
+      "evidenceTurns": [
+       0
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-no-formal",
+      "title": "改まらないこと",
+      "meaning": "かしこまった空気や照れくさい場面は避けて、自然体でいたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       2,
+       3
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T3.E1.話題に困らないよう、思い",
+     "T3.ack.CHAT#1",
+     "T3.E1.follow",
+     "T3.detail.facing+",
+     "T3.ack.NO_FORMAL#1"
+    ],
+    "features": {
+     "tags": [
+      "NO_FORMAL",
+      "CHAT"
+     ],
+     "dishesPos": [],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [
+      "facing+"
+     ],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [
+     "NOSTALGIA",
+     "CHAT"
+    ],
+    "e1": {
+     "generic": "話題に困らないよう、思い出話のきっかけを用意すること",
+     "correctedAt": null
+    },
+    "e2": null,
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "6713101f5ef36311"
+   },
+   "delegationAtSend": {
+    "v-chat": "self"
+   },
+   "required": "話題に困らないよう、思い出話のきっかけを用意しておきます。"
+  },
+  {
+   "turn": 4,
+   "user": "向かい合わなくていいです。ボードゲームをしながらピザをつまむ感じで、わいわい過ごしたいです。",
+   "ai": "笑い声のある、にぎやかな時間にしたいということですね。今回は料理でしっかりもてなすことを優先して、メインは手の込んだ一皿を用意して、食卓で取り分けます。前日から仕込んでおけば、当日は温め直すだけで出せます。料理はピザを中心にします。ボードゲームを楽しみながら食べられるよう、片手でつまめる料理にしておきます。次は、食べ始めから食後まで、二人にとって自然な流れを書いてください。",
+   "analysis": {
+    "summary": "かしこまった空気にしないことを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-chat",
+      "title": "思い出話のきっかけを用意する",
+      "meaning": "「自然に話せる」を、話題に困らないよう、思い出話のきっかけを用意することとして扱う。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0,
+       3
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-nostalgia",
+      "title": "料理でしっかりもてなす方を優先",
+      "meaning": "料理でしっかりもてなすことを優先し、メインは手の込んだ一皿を用意して、食卓で取り分けます。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0,
+       4
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-no-formal",
+      "title": "改まらないこと",
+      "meaning": "かしこまった空気や照れくさい場面は避けて、自然体でいたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       2,
+       3
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T4.E2.料理でしっかりもてなすこと",
+     "T4.ack.LAUGH#0",
+     "T4.E2.follow",
+     "T4.dish.accept",
+     "T4.detail.activity+",
+     "T4.ack.none"
+    ],
+    "features": {
+     "tags": [
+      "LAUGH"
+     ],
+     "dishesPos": [
+      "ピザ"
+     ],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [
+      "activity+",
+      "facing+"
+     ],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [
+     "NOSTALGIA",
+     "CHAT"
+    ],
+    "e1": {
+     "generic": "話題に困らないよう、思い出話のきっかけを用意すること",
+     "correctedAt": null
+    },
+    "e2": {
+     "preferred": "料理でしっかりもてなすこと",
+     "correctedAt": null
+    },
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "24eaf15c347042ec"
+   },
+   "delegationAtSend": {
+    "v-chat": "self"
+   },
+   "required": "今回は料理でしっかりもてなすことを優先して、メインは手の込んだ一皿を用意して、食卓で取り分けます。"
+  },
+  {
+   "turn": 5,
+   "user": "手の込んだ料理はいらないです。ピザは宅配で頼んで、食べながらゲームを始めたいです。",
+   "ai": "手の込んだメインでもてなす形はやめて、料理は手軽なもので十分にすることを中心にします。料理は作らずに、宅配をうまく使う形にします。最後に、この夕食で大切にしたいことや避けたいことを、自分の言葉でまとめてください。",
+   "analysis": {
+    "summary": "料理は手軽なもので十分にすることと、かしこまった空気にしないことを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-chat",
+      "title": "思い出話のきっかけを用意する",
+      "meaning": "「自然に話せる」を、話題に困らないよう、思い出話のきっかけを用意することとして扱う。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0,
+       3
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-nostalgia",
+      "title": "料理は手軽にすること",
+      "meaning": "料理に手をかけすぎず、気軽に食べられるもので十分にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       0,
+       4,
+       5
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-no-formal",
+      "title": "改まらないこと",
+      "meaning": "かしこまった空気や照れくさい場面は避けて、自然体でいたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       2,
+       3
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T5.undo.E2",
+     "T5.dish.accept",
+     "T5.detail.takeout+",
+     "T5.ack.none"
+    ],
+    "features": {
+     "tags": [
+      "SIMPLE_FOOD"
+     ],
+     "dishesPos": [
+      "ピザ",
+      "デリバリー"
+     ],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [
+      "activity+",
+      "takeout+"
+     ],
+     "correction": true,
+     "delegations": []
+    },
+    "anchorTags": [
+     "NOSTALGIA",
+     "CHAT"
+    ],
+    "e1": {
+     "generic": "話題に困らないよう、思い出話のきっかけを用意すること",
+     "correctedAt": null
+    },
+    "e2": {
+     "preferred": "料理でしっかりもてなすこと",
+     "correctedAt": 5
+    },
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "4e44ecfe03604e26"
+   },
+   "delegationAtSend": {
+    "v-chat": "self"
+   },
+   "required": null
+  },
+  {
+   "turn": 6,
+   "user": "大切なのは、ゲームしながら自然に話せること。避けたいのは、向かい合って改まること。",
+   "ai": "ここまでの内容を、当日の方針としてまとめます。料理は作らずに、宅配で済ませます。過ごし方は、気負わずに話し続けられること、かしこまった空気にしないこと、そして料理は手軽なもので十分にすることを大切にします。当日は、話題に困らないよう、思い出話のきっかけを用意しておきます。当日の形としては、正面で向き合わずに座ることと、ゲームをしながら食べることにします。現在の方針は以上です。未決定の部分は残したまま、実行に必要な内容だけを整理しました。",
+   "analysis": {
+    "summary": "料理は手軽なもので十分にすることと、かしこまった空気にしないことを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-chat",
+      "title": "思い出話のきっかけを用意する",
+      "meaning": "「自然に話せる」を、話題に困らないよう、思い出話のきっかけを用意することとして扱う。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0,
+       3
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-nostalgia",
+      "title": "料理は手軽にすること",
+      "meaning": "料理に手をかけすぎず、気軽に食べられるもので十分にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       0,
+       4,
+       5
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-no-formal",
+      "title": "改まらないこと",
+      "meaning": "かしこまった空気や照れくさい場面は避けて、自然体でいたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       2,
+       3,
+       6
+      ],
+      "focus": true
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T6.lead#1",
+     "T6.dish",
+     "T6.values",
+     "T6.specific",
+     "T6.keepE1"
+    ],
+    "features": {
+     "tags": [
+      "CHAT",
+      "NO_FORMAL"
+     ],
+     "dishesPos": [],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [
+      "activity+",
+      "facing-"
+     ],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [
+     "NOSTALGIA",
+     "CHAT"
+    ],
+    "e1": {
+     "generic": "話題に困らないよう、思い出話のきっかけを用意すること",
+     "correctedAt": null
+    },
+    "e2": {
+     "preferred": "料理でしっかりもてなすこと",
+     "correctedAt": 5
+    },
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "fa4f8bc786f687de"
+   },
+   "delegationAtSend": {
+    "v-chat": "self"
+   },
+   "required": null
+  }
+ ],
+ "delegation": {
+  "v-chat": "self"
+ },
+ "panelViews": [
+  0,
+  0,
+  1,
+  0,
+  0,
+  0,
+  0
+ ],
+ "events": [
+  {
+   "turn": 3,
+   "button": "v-chat",
+   "state": "self"
+  },
+  {
+   "turn": 3,
+   "example": true
+  }
+ ]
+}

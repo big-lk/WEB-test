@@ -1,0 +1,514 @@
+{
+ "key": "N29",
+ "condition": "UI_A",
+ "scenario": "busy",
+ "anchor": "子育てで疲れている姉に、のんびりしてもらいたい。",
+ "variant": "mixed_e1explicit",
+ "rounds": [
+  {
+   "turn": 1,
+   "user": "子育てで疲れている姉に、食べ終わったあいだ、ほっとして気持ちが軽くなっていてほしいです。",
+   "ai": "忙しい日が続いている相手との夕食を、ここから形にしていきます。最後に穏やかな気持ちが残る夕食にしたいということですね。料理は温かい鍋を中心にすると、取り分けながら自分のペースで食べられます。過ごし方の細かいところは、まだ決めずに余白を残しておきます。次は、この目標と同時に大切にしたい別の気持ちや雰囲気を一つ加えてください。",
+   "analysis": {
+    "summary": "気楽にくつろげることと、食後にほっとした気持ちが残ることを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-relax",
+      "title": "気楽にくつろげること",
+      "meaning": "肩の力を抜いて、構えずにくつろげる時間にしたい。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "PRETASK_ANCHOR",
+      "evidenceTurns": [
+       0
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-afterglow",
+      "title": "食後にほっとできること",
+      "meaning": "食べ終わったあと、穏やかでほっとした気持ちが残る夜にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       1
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-no-burden",
+      "title": "気を遣わせないこと",
+      "meaning": "相手が遠慮や気づかいをせず、自然体でいられるようにしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T1.open.busy#1",
+     "T1.ack.AFTERGLOW#1",
+     "T1.dish.鍋",
+     "T1.hold#0"
+    ],
+    "features": {
+     "tags": [
+      "AFTERGLOW"
+     ],
+     "dishesPos": [],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [
+     "RELAX"
+    ],
+    "e1": null,
+    "e2": null,
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "59e7f55815d2ab93"
+   },
+   "delegationAtSend": {},
+   "required": null
+  },
+  {
+   "turn": 2,
+   "user": "気をつかわなくていい、のんびりした雰囲気にしたいです。",
+   "ai": "最初に書いてくださった肩の力を抜いてくつろげることに、相手が気を遣わずにいられることも加えて考えていきます。どちらかを先に決めずに、両方が感じられる夕食を目指します。料理は鍋を候補にしたまま、過ごし方と合わせて調整していけます。次は、食事中の会話や距離感など、料理以外でどんな時間にしたいかを書いてください。",
+   "analysis": {
+    "summary": "気楽にくつろげることと、食後にほっとした気持ちが残ることを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-relax",
+      "title": "気楽にくつろげること",
+      "meaning": "肩の力を抜いて、構えずにくつろげる時間にしたい。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "PRETASK_ANCHOR",
+      "evidenceTurns": [
+       0,
+       2
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-afterglow",
+      "title": "食後にほっとできること",
+      "meaning": "食べ終わったあと、穏やかでほっとした気持ちが残る夜にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       1
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-no-burden",
+      "title": "気を遣わせないこと",
+      "meaning": "相手が遠慮や気づかいをせず、自然体でいられるようにしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0,
+       2
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T2.integrate#0",
+     "T2.hold#1",
+     "T2.filler"
+    ],
+    "features": {
+     "tags": [
+      "NO_BURDEN",
+      "RELAX"
+     ],
+     "dishesPos": [],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [
+     "RELAX"
+    ],
+    "e1": null,
+    "e2": null,
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "be4b3ed8524b05fb"
+   },
+   "delegationAtSend": {},
+   "required": null
+  },
+  {
+   "turn": 3,
+   "user": "会話は少なめでいいです。姉が一人で静かに食べられる時間にしたいです。",
+   "ai": "無理に盛り上げなくていい、静かな時間で十分ということですね。相手に気を遣わせないことは、準備の手間を見せず、すべてこちらで用意することとして整えます。相手が来る前に盛り付けまで済ませておき、席に着いたらすぐ食べ始められるようにします。次は、この案の食卓で二人がどう過ごしているとよいかを書いてください。",
+   "analysis": {
+    "summary": "食後にほっとした気持ちが残ることと、相手が気を遣わずにいられることを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-relax",
+      "title": "すべてこちらで用意する",
+      "meaning": "相手に気を遣わせないことを、準備の手間を見せず、すべてこちらで用意することとして扱う。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0,
+       2,
+       3
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-afterglow",
+      "title": "食後にほっとできること",
+      "meaning": "食べ終わったあと、穏やかでほっとした気持ちが残る夜にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       1
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-no-burden",
+      "title": "気を遣わせないこと",
+      "meaning": "相手が遠慮や気づかいをせず、自然体でいられるようにしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0,
+       2
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T3.E1.準備の手間を見せず、すべ",
+     "T3.ack.QUIET#0",
+     "T3.E1.follow",
+     "T3.ack.none"
+    ],
+    "features": {
+     "tags": [
+      "QUIET"
+     ],
+     "dishesPos": [],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [
+     "RELAX"
+    ],
+    "e1": {
+     "generic": "準備の手間を見せず、すべてこちらで用意すること",
+     "correctedAt": null
+    },
+    "e2": null,
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "4aa439fd1a770583"
+   },
+   "delegationAtSend": {},
+   "required": "相手に気を遣わせないことは、準備の手間を見せず、すべてこちらで用意することとして整えます。"
+  },
+  {
+   "turn": 4,
+   "user": "私は姉の子どもを見ているので、姉は一人でゆっくり食べてくれたらうれしいです。",
+   "ai": "くつろいだ空気で過ごせることを大切にします。いつもより一品多くして、器も少し良いものにします。足す一品は彩りのよい副菜にして、食卓が明るく見えるようにします。食べ終わったあとに、ほっとした気持ちが残る夜を目指します。料理は鍋を基本に進めます。次は、食べ始めから食後まで、二人にとって自然な流れを書いてください。",
+   "analysis": {
+    "summary": "相手が気を遣わずにいられることを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-relax",
+      "title": "すべてこちらで用意する",
+      "meaning": "相手に気を遣わせないことを、準備の手間を見せず、すべてこちらで用意することとして扱う。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0,
+       2,
+       3
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-afterglow",
+      "title": "食卓を少し特別に整える方を優先",
+      "meaning": "食卓を少し特別に整えることを優先し、いつもより一品多くして、器も少し良いものにします。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       1,
+       4
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-no-burden",
+      "title": "気を遣わせないこと",
+      "meaning": "相手が遠慮や気づかいをせず、自然体でいられるようにしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0,
+       2
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T4.E2.食卓を少し特別に整えること",
+     "T4.ack.RELAX#1",
+     "T4.E2.follow",
+     "T4.ack.AFTERGLOW#0",
+     "T4.filler"
+    ],
+    "features": {
+     "tags": [
+      "RELAX",
+      "AFTERGLOW"
+     ],
+     "dishesPos": [],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [
+     "RELAX"
+    ],
+    "e1": {
+     "generic": "準備の手間を見せず、すべてこちらで用意すること",
+     "correctedAt": null
+    },
+    "e2": {
+     "preferred": "食卓を少し特別に整えること",
+     "correctedAt": null
+    },
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "3ad8760d9a447bb4"
+   },
+   "delegationAtSend": {},
+   "required": "いつもより一品多くして、器も少し良いものにします。"
+  },
+  {
+   "turn": 5,
+   "user": "姉が席に着いたら、すぐ食べられる流れがいいです。料理は鍋より、うどんがいいです。",
+   "ai": "鍋はやめて、うどんにします。料理はうどんを基本にしたまま進めます。食べ始めから食後まで、無理のない順番で整えます。その流れに合わせて、料理を出すタイミングを整えます。最後に、この夕食で大切にしたいことや避けたいことを、自分の言葉でまとめてください。",
+   "analysis": {
+    "summary": "相手が気を遣わずにいられることを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-relax",
+      "title": "すべてこちらで用意する",
+      "meaning": "相手に気を遣わせないことを、準備の手間を見せず、すべてこちらで用意することとして扱う。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0,
+       2,
+       3
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-afterglow",
+      "title": "食卓を少し特別に整える方を優先",
+      "meaning": "食卓を少し特別に整えることを優先し、いつもより一品多くして、器も少し良いものにします。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       1,
+       4
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-no-burden",
+      "title": "気を遣わせないこと",
+      "meaning": "相手が遠慮や気づかいをせず、自然体でいられるようにしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0,
+       2
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T5.dish.replace.鍋",
+     "T5.filler.dinner",
+     "T5.filler",
+     "T5.filler"
+    ],
+    "features": {
+     "tags": [],
+     "dishesPos": [
+      "うどん"
+     ],
+     "dishesNeg": [
+      "鍋"
+     ],
+     "itemsNeg": [],
+     "details": [],
+     "correction": true,
+     "delegations": []
+    },
+    "anchorTags": [
+     "RELAX"
+    ],
+    "e1": {
+     "generic": "準備の手間を見せず、すべてこちらで用意すること",
+     "correctedAt": null
+    },
+    "e2": {
+     "preferred": "食卓を少し特別に整えること",
+     "correctedAt": null
+    },
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "d9fa5b908c0553f1"
+   },
+   "delegationAtSend": {},
+   "required": null
+  },
+  {
+   "turn": 6,
+   "user": "大切にしたいのは、姉が一人で静かにゆっくり食べられること。避けたいのは、姉に気をつかわせたり、話しかけすぎたりすることです。",
+   "ai": "ここまでの内容を、当日の方針としてまとめます。料理は、うどんでまとめます。過ごし方は、気楽にくつろげることを大切にします。当日は、いつもより一品多くして、器も少し良いものにします。細かな段取りは、当日の様子に合わせて調整できます。現在の方針は以上です。未決定の部分は残したまま、実行に必要な内容だけを整理しました。",
+   "analysis": {
+    "summary": "気楽にくつろげることと、相手が気を遣わずにいられることを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-relax",
+      "title": "気楽にくつろげること",
+      "meaning": "肩の力を抜いて、構えずにくつろげる時間にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       0,
+       2,
+       3,
+       6
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-afterglow",
+      "title": "食卓を少し特別に整える方を優先",
+      "meaning": "食卓を少し特別に整えることを優先し、いつもより一品多くして、器も少し良いものにします。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       1,
+       4
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-no-burden",
+      "title": "気を遣わせないこと",
+      "meaning": "相手が遠慮や気づかいをせず、自然体でいられるようにしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0,
+       2
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T6.lead#1",
+     "T6.dish",
+     "T6.values",
+     "T6.keepE2",
+     "T6.filler"
+    ],
+    "features": {
+     "tags": [
+      "RELAX"
+     ],
+     "dishesPos": [],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [
+     "RELAX"
+    ],
+    "e1": {
+     "generic": "準備の手間を見せず、すべてこちらで用意すること",
+     "correctedAt": 6
+    },
+    "e2": {
+     "preferred": "食卓を少し特別に整えること",
+     "correctedAt": null
+    },
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "59548e06de2c96a7"
+   },
+   "delegationAtSend": {},
+   "required": null
+  }
+ ],
+ "delegation": {},
+ "panelViews": [
+  0,
+  0,
+  1,
+  0,
+  0,
+  0,
+  0
+ ],
+ "events": []
+}

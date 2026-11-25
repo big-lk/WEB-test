@@ -1,0 +1,510 @@
+{
+ "key": "N36",
+ "condition": "UI_B",
+ "scenario": "gratitude",
+ "anchor": "単身赴任から帰ってきた父に、さりげなく『おかえり』を伝えたい。",
+ "variant": "generic_unranked",
+ "rounds": [
+  {
+   "turn": 1,
+   "user": "いつも通りの夕食だなって、ほっとしてもらえたらいいな。特別な感じじゃなくて、帰ってきたなって思ってほしい。",
+   "ai": "感謝の気持ちがこもった夕食を、ここから形にしていきます。いつもの食卓の延長で過ごすことと、食べ終わったあとにほっとした気持ちが残ることを大切にしたいということですね。料理は相手がほっとできる家庭料理を中心にすると、気負わない食卓になります。過ごし方の細かいところは、まだ決めずに余白を残しておきます。次は、この目標と同時に大切にしたい別の気持ちや雰囲気を一つ加えてください。",
+   "analysis": {
+    "summary": "いつも通りの空気で過ごすことと、食後にほっとした気持ちが残ることを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-everyday",
+      "title": "いつも通りの空気",
+      "meaning": "特別に構えず、普段の食卓の延長で過ごしたい。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       1
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-afterglow",
+      "title": "食後にほっとできること",
+      "meaning": "食べ終わったあと、穏やかでほっとした気持ちが残る夜にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       1
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-thanks-light",
+      "title": "さりげなく感謝が伝わること",
+      "meaning": "改まらずに、感謝の気持ちが自然に伝わるようにしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T1.open.gratitude#1",
+     "T1.ack2.EVERYDAY+AFTERGLOW",
+     "T1.dish.家庭料理",
+     "T1.hold#0"
+    ],
+    "features": {
+     "tags": [
+      "EVERYDAY",
+      "AFTERGLOW"
+     ],
+     "dishesPos": [],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [],
+     "correction": true,
+     "delegations": []
+    },
+    "anchorTags": [],
+    "e1": null,
+    "e2": null,
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "17424ea2c14aee57"
+   },
+   "delegationAtSend": {},
+   "required": null
+  },
+  {
+   "turn": 2,
+   "user": "あと、わざとらしくない感じ。こっちが気を遣ってるって思われたくないんだよね。",
+   "ai": "その気持ちも加えて、夕食の形を考えていきます。どんな形にするかは、ここから少しずつ具体的にしていけます。料理は家庭料理を候補にしたまま、過ごし方と合わせて調整していけます。次は、食事中の会話や距離感など、料理以外でどんな時間にしたいかを書いてください。",
+   "analysis": {
+    "summary": "いつも通りの空気で過ごすことと、食後にほっとした気持ちが残ることを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-everyday",
+      "title": "いつも通りの空気",
+      "meaning": "特別に構えず、普段の食卓の延長で過ごしたい。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       1
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-afterglow",
+      "title": "食後にほっとできること",
+      "meaning": "食べ終わったあと、穏やかでほっとした気持ちが残る夜にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       1
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-thanks-light",
+      "title": "さりげなく感謝が伝わること",
+      "meaning": "改まらずに、感謝の気持ちが自然に伝わるようにしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T2.ack.fallback#0",
+     "T2.hold#0",
+     "T2.filler"
+    ],
+    "features": {
+     "tags": [],
+     "dishesPos": [],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [],
+    "e1": null,
+    "e2": null,
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "262d83a4201c0c7f"
+   },
+   "delegationAtSend": {},
+   "required": null
+  },
+  {
+   "turn": 3,
+   "user": "会話は普通でいいかな。向かい合って、最初に『おかえり』って言うくらいで、あとはテレビ見ながらとか。",
+   "ai": "普段どおりの空気を大切にします。感謝を重くしないことは、乾杯のときに一言だけ、改めてお礼を言うこととして整えます。飲み物をそろえて乾杯するときに、いつもありがとう、と一言だけ添える流れにします。テレビがついたままの、いつもの雰囲気で大丈夫です。次は、この案の食卓で二人がどう過ごしているとよいかを書いてください。",
+   "analysis": {
+    "summary": "食後にほっとした気持ちが残ることと、感謝がさりげなく伝わることを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-everyday",
+      "title": "改めてお礼を言う",
+      "meaning": "感謝を重くしないことを、乾杯のときに一言だけ、改めてお礼を言うこととして扱う。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       1,
+       3
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-afterglow",
+      "title": "食後にほっとできること",
+      "meaning": "食べ終わったあと、穏やかでほっとした気持ちが残る夜にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       1
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-thanks-light",
+      "title": "さりげなく感謝が伝わること",
+      "meaning": "改まらずに、感謝の気持ちが自然に伝わるようにしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T3.E1.乾杯のときに一言だけ、改",
+     "T3.ack.EVERYDAY#1",
+     "T3.E1.follow",
+     "T3.detail.tv+",
+     "T3.ack.none"
+    ],
+    "features": {
+     "tags": [
+      "EVERYDAY"
+     ],
+     "dishesPos": [],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [
+      "tv+",
+      "facing+"
+     ],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [],
+    "e1": {
+     "generic": "乾杯のときに一言だけ、改めてお礼を言うこと",
+     "correctedAt": null
+    },
+    "e2": null,
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "b7319efbaa856d63"
+   },
+   "delegationAtSend": {},
+   "required": "感謝を重くしないことは、乾杯のときに一言だけ、改めてお礼を言うこととして整えます。"
+  },
+  {
+   "turn": 4,
+   "user": "乾杯でお礼まではしなくていいよ。言葉は『おかえり』だけで。普通にごはん食べて、ゆっくりしてる感じ。",
+   "ai": "乾杯のときにお礼を言うのはやめて、いつも通りの空気で過ごすことを中心にします。今回は感謝をきちんと届けることを優先して、食後に一言、改めてお礼を伝える時間をつくります。デザートの前に少し間をとる流れにします。乾杯のような区切りは入れずにおきます。肩の力を抜いて過ごせる、気楽な夜にしたいということですね。料理は家庭料理を基本に進めます。次は、食べ始めから食後まで、二人にとって自然な流れを書いてください。",
+   "analysis": {
+    "summary": "いつも通りの空気で過ごすことと、感謝がさりげなく伝わることを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-everyday",
+      "title": "いつも通りの空気",
+      "meaning": "特別に構えず、普段の食卓の延長で過ごしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       1,
+       3,
+       4
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-afterglow",
+      "title": "感謝をきちんと届ける方を優先",
+      "meaning": "感謝をきちんと届けることを優先し、食後に一言、改めてお礼を伝える時間をつくります。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       1,
+       4
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-thanks-light",
+      "title": "さりげなく感謝が伝わること",
+      "meaning": "改まらずに、感謝の気持ちが自然に伝わるようにしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T4.E2.感謝をきちんと届けること",
+     "T4.undo.E1",
+     "T4.E2.follow",
+     "T4.detail.toast-",
+     "T4.ack.RELAX#0",
+     "T4.filler.dinner"
+    ],
+    "features": {
+     "tags": [
+      "EVERYDAY",
+      "RELAX"
+     ],
+     "dishesPos": [],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [
+      "toast-"
+     ],
+     "correction": true,
+     "delegations": []
+    },
+    "anchorTags": [],
+    "e1": {
+     "generic": "乾杯のときに一言だけ、改めてお礼を言うこと",
+     "correctedAt": 4
+    },
+    "e2": {
+     "preferred": "感謝をきちんと届けること",
+     "correctedAt": null
+    },
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "ab3eec64f570ab55"
+   },
+   "delegationAtSend": {},
+   "required": "今回は感謝をきちんと届けることを優先して、食後に一言、改めてお礼を伝える時間をつくります。"
+  },
+  {
+   "turn": 5,
+   "user": "食後のお礼も別にいらないかな。料理は父の好きな焼き魚と味噌汁にして、普通に食べて普通に片付けたい。",
+   "ai": "改めてお礼を伝える時間はやめて、いつも通りの空気で過ごすことを中心にします。食後のお礼はなしにします。料理は焼き魚と味噌汁を中心にします。最後に、この夕食で大切にしたいことや避けたいことを、自分の言葉でまとめてください。",
+   "analysis": {
+    "summary": "いつも通りの空気で過ごすことと、食後にほっとした気持ちが残ることを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-everyday",
+      "title": "いつも通りの空気",
+      "meaning": "特別に構えず、普段の食卓の延長で過ごしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       1,
+       3,
+       4,
+       5
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-afterglow",
+      "title": "食後にほっとできること",
+      "meaning": "食べ終わったあと、穏やかでほっとした気持ちが残る夜にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       1,
+       4,
+       5
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-thanks-light",
+      "title": "さりげなく感謝が伝わること",
+      "meaning": "改まらずに、感謝の気持ちが自然に伝わるようにしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T5.undo.E2",
+     "T5.neg.食後のお礼",
+     "T5.dish.accept",
+     "T5.ack.none"
+    ],
+    "features": {
+     "tags": [
+      "EVERYDAY"
+     ],
+     "dishesPos": [
+      "味噌汁",
+      "焼き魚"
+     ],
+     "dishesNeg": [],
+     "itemsNeg": [
+      "食後のお礼"
+     ],
+     "details": [
+      "cleanup+"
+     ],
+     "correction": true,
+     "delegations": []
+    },
+    "anchorTags": [],
+    "e1": {
+     "generic": "乾杯のときに一言だけ、改めてお礼を言うこと",
+     "correctedAt": 4
+    },
+    "e2": {
+     "preferred": "感謝をきちんと届けること",
+     "correctedAt": 5
+    },
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "0657d8466d24c3b5"
+   },
+   "delegationAtSend": {},
+   "required": null
+  },
+  {
+   "turn": 6,
+   "user": "大切なのは、いつも通りの食卓で迎えること。避けたいのは、お礼とか改まった言葉を足すこと。『おかえり』だけでいい。",
+   "ai": "これまでの内容を、実行できる形にまとめます。料理は、味噌汁と焼き魚でまとめます。過ごし方は、いつも通りの空気で過ごすこと、食後にほっとした気持ちが残ること、そして感謝がさりげなく伝わることを大切にします。当日の形としては、乾杯のような区切りは入れないこと、テレビはいつも通りつけておくこと、そして向かい合って座ることにします。食後のお礼は入れません。現在の方針は以上です。未決定の部分は残したまま、実行に必要な内容だけを整理しました。",
+   "analysis": {
+    "summary": "いつも通りの空気で過ごすことと、食後にほっとした気持ちが残ることを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-everyday",
+      "title": "いつも通りの空気",
+      "meaning": "特別に構えず、普段の食卓の延長で過ごしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       1,
+       3,
+       4,
+       5,
+       6
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-afterglow",
+      "title": "食後にほっとできること",
+      "meaning": "食べ終わったあと、穏やかでほっとした気持ちが残る夜にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       1,
+       4,
+       5
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-thanks-light",
+      "title": "さりげなく感謝が伝わること",
+      "meaning": "改まらずに、感謝の気持ちが自然に伝わるようにしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T6.lead#0",
+     "T6.dish",
+     "T6.values",
+     "T6.specific",
+     "T6.avoid"
+    ],
+    "features": {
+     "tags": [
+      "EVERYDAY",
+      "NO_FORMAL"
+     ],
+     "dishesPos": [],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [],
+    "e1": {
+     "generic": "乾杯のときに一言だけ、改めてお礼を言うこと",
+     "correctedAt": 4
+    },
+    "e2": {
+     "preferred": "感謝をきちんと届けること",
+     "correctedAt": 5
+    },
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "30f8d3e88dd62967"
+   },
+   "delegationAtSend": {},
+   "required": null
+  }
+ ],
+ "delegation": {},
+ "panelViews": [
+  0,
+  1,
+  0,
+  1,
+  0,
+  0,
+  0
+ ],
+ "events": []
+}

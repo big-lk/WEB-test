@@ -1,0 +1,516 @@
+{
+ "key": "N21",
+ "condition": "UI_A",
+ "scenario": "reunion",
+ "anchor": "大学時代のサークル仲間と、自然に話せる夜にしたい。",
+ "variant": "mixed_e1content",
+ "rounds": [
+  {
+   "turn": 1,
+   "user": "気を遣わずに、みんなでワイワイ笑って話せたなって感じで終わってほしいです。",
+   "ai": "久しぶりの再会になる夕食を、ここから形にしていきます。気軽に笑い合えることと、相手が気を遣わずにいられることを大切にしたいということですね。料理は取り分けやすい鍋や大皿にすると、食べながら自然に話が続きます。どんな時間にするかは、まだ広く考えておきます。次は、この目標と同時に大切にしたい別の気持ちや雰囲気を一つ加えてください。",
+   "analysis": {
+    "summary": "気負わずに話し続けられることと、相手が気を遣わずにいられることを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-chat",
+      "title": "気楽に話せること",
+      "meaning": "近況や他愛ない話を、気負わずに続けられる時間にしたい。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "PRETASK_ANCHOR",
+      "evidenceTurns": [
+       0,
+       1
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-no-burden",
+      "title": "気を遣わせないこと",
+      "meaning": "相手が遠慮や気づかいをせず、自然体でいられるようにしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       1
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-laugh",
+      "title": "笑って過ごせること",
+      "meaning": "くだらない話で気軽に笑い合える時間にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       1
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T1.open.reunion#1",
+     "T1.ack2.LAUGH+NO_BURDEN",
+     "T1.dish.鍋",
+     "T1.hold#2"
+    ],
+    "features": {
+     "tags": [
+      "NO_BURDEN",
+      "LAUGH",
+      "CHAT"
+     ],
+     "dishesPos": [],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [
+     "CHAT"
+    ],
+    "e1": null,
+    "e2": null,
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "ef1107e9dac1000b"
+   },
+   "delegationAtSend": {},
+   "required": null
+  },
+  {
+   "turn": 2,
+   "user": "みんなで同じことを一緒にやってる感じも大事です。誰かが準備する側にならない感じで。",
+   "ai": "その気持ちも加えて、夕食の形を考えていきます。どんな形にするかは、ここから少しずつ具体的にしていけます。料理は鍋を候補にしたまま、過ごし方と合わせて調整していけます。次は、食事中の会話や距離感など、料理以外でどんな時間にしたいかを書いてください。",
+   "analysis": {
+    "summary": "気負わずに話し続けられることと、相手が気を遣わずにいられることを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-chat",
+      "title": "気楽に話せること",
+      "meaning": "近況や他愛ない話を、気負わずに続けられる時間にしたい。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "PRETASK_ANCHOR",
+      "evidenceTurns": [
+       0,
+       1
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-no-burden",
+      "title": "気を遣わせないこと",
+      "meaning": "相手が遠慮や気づかいをせず、自然体でいられるようにしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       1
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-laugh",
+      "title": "笑って過ごせること",
+      "meaning": "くだらない話で気軽に笑い合える時間にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       1
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T2.ack.fallback#0",
+     "T2.hold#0",
+     "T2.filler"
+    ],
+    "features": {
+     "tags": [],
+     "dishesPos": [],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [
+     "CHAT"
+    ],
+    "e1": null,
+    "e2": null,
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "87b0356999c31194"
+   },
+   "delegationAtSend": {},
+   "required": null
+  },
+  {
+   "turn": 3,
+   "user": "話題は特に準備しなくていいです。手を動かしながら、自然に会話が広がる感じがいいです。",
+   "ai": "一緒に手を動かしながら過ごす時間にしたいということですね。料理や演出は控えて、会話だけに集中できるようにします。料理は一皿だけにして、食べ終えたらすぐ話に戻れるよう、テーブルの上もすっきりさせておきます。次は、この案の食卓で二人がどう過ごしているとよいかを書いてください。",
+   "analysis": {
+    "summary": "相手が気を遣わずにいられることと、気軽に笑い合えることを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-chat",
+      "title": "会話だけに集中できるようにする",
+      "meaning": "「自然に話せる」を、料理や演出を控えて、会話だけに集中できるようにすることとして扱う。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0,
+       1,
+       3
+      ],
+      "focus": true
+     },
+     {
+      "id": "v-no-burden",
+      "title": "気を遣わせないこと",
+      "meaning": "相手が遠慮や気づかいをせず、自然体でいられるようにしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       1
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-laugh",
+      "title": "笑って過ごせること",
+      "meaning": "くだらない話で気軽に笑い合える時間にしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       1
+      ],
+      "focus": false
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T3.E1.料理や演出を控えて、会話",
+     "T3.ack.COOK_TOGETHER#0",
+     "T3.E1.follow",
+     "T3.ack.none"
+    ],
+    "features": {
+     "tags": [
+      "COOK_TOGETHER"
+     ],
+     "dishesPos": [],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [],
+     "correction": true,
+     "delegations": []
+    },
+    "anchorTags": [
+     "CHAT"
+    ],
+    "e1": {
+     "generic": "料理や演出を控えて、会話だけに集中できるようにすること",
+     "correctedAt": null
+    },
+    "e2": null,
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "581e3cb1d4d1ab1d"
+   },
+   "delegationAtSend": {},
+   "required": "料理や演出は控えて、会話だけに集中できるようにします。"
+  },
+  {
+   "turn": 4,
+   "user": "みんなで手巻き寿司を巻きながら、わいわい話してる感じです。静かすぎない方がいいです。",
+   "ai": "作るところから一緒に過ごす、という形を大切にします。今回は料理でしっかりもてなすことを優先して、メインは手の込んだ一皿を用意して、食卓で取り分けます。前日から仕込んでおけば、当日は温め直すだけで出せます。料理は手巻き寿司を中心にします。笑って過ごせることを大事にしたい、という気持ちがよく伝わりました。食べ始めから食後まで、無理のない流れにします。次は、食べ始めから食後まで、二人にとって自然な流れを書いてください。",
+   "analysis": {
+    "summary": "相手が気を遣わずにいられることを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-chat",
+      "title": "会話だけに集中できるようにする",
+      "meaning": "「自然に話せる」を、料理や演出を控えて、会話だけに集中できるようにすることとして扱う。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0,
+       1,
+       3
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-no-burden",
+      "title": "気を遣わせないこと",
+      "meaning": "相手が遠慮や気づかいをせず、自然体でいられるようにしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       1
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-laugh",
+      "title": "料理でしっかりもてなす方を優先",
+      "meaning": "料理でしっかりもてなすことを優先し、メインは手の込んだ一皿を用意して、食卓で取り分けます。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       1,
+       4
+      ],
+      "focus": true
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T4.E2.料理でしっかりもてなすこと",
+     "T4.ack.COOK_TOGETHER#1",
+     "T4.E2.follow",
+     "T4.dish.accept",
+     "T4.ack.LAUGH#1",
+     "T4.filler"
+    ],
+    "features": {
+     "tags": [
+      "COOK_TOGETHER",
+      "LAUGH",
+      "CHAT"
+     ],
+     "dishesPos": [
+      "手巻き寿司"
+     ],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [
+     "CHAT"
+    ],
+    "e1": {
+     "generic": "料理や演出を控えて、会話だけに集中できるようにすること",
+     "correctedAt": null
+    },
+    "e2": {
+     "preferred": "料理でしっかりもてなすこと",
+     "correctedAt": null
+    },
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "b78e14dc6711b3c1"
+   },
+   "delegationAtSend": {},
+   "required": "今回は料理でしっかりもてなすことを優先して、メインは手の込んだ一皿を用意して、食卓で取り分けます。"
+  },
+  {
+   "turn": 5,
+   "user": "最初は具材を並べて巻き始めて、食べながら思い出話をして、最後はのんびりお茶を飲む流れです。",
+   "ai": "食後はお茶を淹れて、ゆっくり過ごせるようにしておきます。昔のように構えずに過ごせることを大切にします。料理は手巻き寿司を基本にしたまま進めます。最後に、この夕食で大切にしたいことや避けたいことを、自分の言葉でまとめてください。",
+   "analysis": {
+    "summary": "相手が気を遣わずにいられることを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-chat",
+      "title": "会話だけに集中できるようにする",
+      "meaning": "「自然に話せる」を、料理や演出を控えて、会話だけに集中できるようにすることとして扱う。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0,
+       1,
+       3
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-no-burden",
+      "title": "気を遣わせないこと",
+      "meaning": "相手が遠慮や気づかいをせず、自然体でいられるようにしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       1
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-laugh",
+      "title": "料理でしっかりもてなす方を優先",
+      "meaning": "料理でしっかりもてなすことを優先し、メインは手の込んだ一皿を用意して、食卓で取り分けます。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       1,
+       4
+      ],
+      "focus": true
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T5.detail.tea+",
+     "T5.ack.NOSTALGIA#1",
+     "T5.filler.dinner"
+    ],
+    "features": {
+     "tags": [
+      "NOSTALGIA",
+      "RELAX"
+     ],
+     "dishesPos": [
+      "お茶"
+     ],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [
+      "tea+"
+     ],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [
+     "CHAT"
+    ],
+    "e1": {
+     "generic": "料理や演出を控えて、会話だけに集中できるようにすること",
+     "correctedAt": null
+    },
+    "e2": {
+     "preferred": "料理でしっかりもてなすこと",
+     "correctedAt": null
+    },
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "4cf98e332adcf1a3"
+   },
+   "delegationAtSend": {},
+   "required": null
+  },
+  {
+   "turn": 6,
+   "user": "大切なのは、みんなで巻いてワイワイ話すこと。避けたいのは、誰か一人が準備や話題づくりで頑張ることです。",
+   "ai": "これまでの内容を、実行できる形にまとめます。料理は、手巻き寿司でまとめます。過ごし方は、気軽に笑い合えること、気負わずに話し続けられること、そして相手が気を遣わずにいられることを大切にします。当日は、料理や演出は控えて、会話だけに集中できるようにします。また、メインは手の込んだ一皿を用意して、食卓で取り分けます。当日の形としては、食後はお茶でゆっくりすることにします。現在の方針は以上です。未決定の部分は残したまま、実行に必要な内容だけを整理しました。",
+   "analysis": {
+    "summary": "相手が気を遣わずにいられることを大切にした夕食。",
+    "criteria": [
+     {
+      "id": "v-chat",
+      "title": "会話だけに集中できるようにする",
+      "meaning": "「自然に話せる」を、料理や演出を控えて、会話だけに集中できるようにすることとして扱う。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       0,
+       1,
+       3
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-no-burden",
+      "title": "気を遣わせないこと",
+      "meaning": "相手が遠慮や気づかいをせず、自然体でいられるようにしたい。",
+      "priority": "維持",
+      "delegationState": "CO_DECIDE",
+      "source": "USER_TURN",
+      "evidenceTurns": [
+       1
+      ],
+      "focus": false
+     },
+     {
+      "id": "v-laugh",
+      "title": "料理でしっかりもてなす方を優先",
+      "meaning": "料理でしっかりもてなすことを優先し、メインは手の込んだ一皿を用意して、食卓で取り分けます。",
+      "priority": "中心",
+      "delegationState": "CO_DECIDE",
+      "source": "AI_INFERENCE",
+      "evidenceTurns": [
+       1,
+       4
+      ],
+      "focus": true
+     }
+    ]
+   },
+   "trace": {
+    "nodes": [
+     "T6.lead#0",
+     "T6.dish",
+     "T6.values",
+     "T6.specific",
+     "T6.keepE1",
+     "T6.keepE2"
+    ],
+    "features": {
+     "tags": [
+      "LAUGH",
+      "CHAT"
+     ],
+     "dishesPos": [],
+     "dishesNeg": [],
+     "itemsNeg": [],
+     "details": [],
+     "correction": false,
+     "delegations": []
+    },
+    "anchorTags": [
+     "CHAT"
+    ],
+    "e1": {
+     "generic": "料理や演出を控えて、会話だけに集中できるようにすること",
+     "correctedAt": null
+    },
+    "e2": {
+     "preferred": "料理でしっかりもてなすこと",
+     "correctedAt": null
+    },
+    "dialogueCodes": [],
+    "analysisCodes": [],
+    "inputHash": "05d4311d56b52d91"
+   },
+   "delegationAtSend": {},
+   "required": null
+  }
+ ],
+ "delegation": {},
+ "panelViews": [
+  0,
+  1,
+  1,
+  1,
+  1,
+  0,
+  0
+ ],
+ "events": []
+}
