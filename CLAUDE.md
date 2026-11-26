@@ -62,6 +62,12 @@
 5. 確認：列名エラーなし、`sync.ok = true`・一致クリック数が 10 以上、`TEST-01_toi_metrics.csv` に第2〜6回の reading 行がある、
    UI B なら BTN（PANEL_BUTTONS）への訪問が別に数えられている。
    列名が違えば `eyetools/gaze.py` の CANDIDATES に追加。マウスイベントが無ければ書き出し時の Event 列を確認。
+6. （2026-11-27 追加）Pro Lab から TSV を書き出す前でも、プロジェクト内の生の記録から管線を通せる：
+   `python -m eyetools.cli convert <プロジェクト>/Data/Recordings/<ID> TEST-01.tsv` → あとは 4 と同じ。
+   注視の判定は I-VT の近似なので、**正式な分析には Pro Lab のエクスポートを使う**。TEST-01 の実データで確認済み
+   （同期：クリック 36/36 一致、残差 0.7 ms。第 2〜6 回の reading 行あり、ボタンへの訪問は別に数えられる）。
+   Pro Lab の実際のエクスポートの列名はまだ未確認。書き出すときは列に `Recording date`（できれば `Recording date UTC` と
+   `Recording start time UTC` も）を足す：記録開始の時刻が読めると同期の探索範囲が狭まる。
 
 ## 未決事項（使用者と相談中）
 - 正式に使う刺激（推奨：generic_unranked 単一）。例文をそのまま送った場合の H1 の数え方。H1 変更の教授確認。

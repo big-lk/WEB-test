@@ -16,9 +16,12 @@ CLICK_EVENTS = ("input_first_focus", "delegation_changed", "example_generated", 
 
 
 def web_click_times(session: Session) -> list[float]:
+    # pointer_down（押した瞬間）が記録されていれば、それだけを使う。ほかの 3 種はボタンを離した時に記録されるので、
+    # 押した時刻と混ぜると同期の残差が数十ミリ秒に広がる（TEST-01 の実データで確認：混在 17.6 ms → pointer_down のみ 1 ms 未満）。
+    kinds = ("pointer_down",) if any(e.get("type") == "pointer_down" for e in session.events) else CLICK_EVENTS
     out = []
     for e in session.events:
-        if e.get("type") in CLICK_EVENTS:
+        if e.get("type") in kinds:
             ts = parse_ts(e.get("at") or e.get("delegationChangeAt") or e.get("time"))
             if ts:
                 out.append(ts)

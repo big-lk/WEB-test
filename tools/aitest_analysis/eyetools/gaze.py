@@ -77,11 +77,22 @@ def load_prolab_tsv(path: str | Path) -> GazeExport:
     mouse = pd.DataFrame(columns=["t", "value"])
     if ev:
         m = df[df[ev].astype(str).str.contains("Mouse", case=False, na=False)]
+        if evv:  # 押す・離すの両方が出力される場合は、押した時刻だけを同期に使う（アプリ側の記録は押した時刻）
+            down = m[evv].astype(str).str.contains("down", case=False, na=False)
+            if down.any():
+                m = m[down]
         mouse = pd.DataFrame({"t": t[m.index], "value": m[evv] if evv else m[ev]})
 
     start_wall = None
+    # UTC の列があればそれを優先する（解析する PC の時差設定に左右されない）
+    if "Recording date UTC" in df.columns and "Recording start time UTC" in df.columns:
+        try:
+            start_wall = pd.to_datetime(f"{df['Recording date UTC'].iloc[0]} {df['Recording start time UTC'].iloc[0]}",
+                                        dayfirst=True, utc=True).timestamp()
+        except Exception:
+            start_wall = None
     st, dt = _pick(df, "start_time", False), _pick(df, "date", False)
-    if st and dt:
+    if start_wall is None and st and dt:
         try:
             start_wall = datetime.strptime(f"{df[dt].iloc[0]} {df[st].iloc[0]}", "%d/%m/%Y %H:%M:%S.%f").timestamp()
         except ValueError:
