@@ -380,8 +380,25 @@ _V3_EXTRA = (
     "- 対話AIだけが提案した具体物（料理名、品目、飲み物、照明、進行、相手の体調への配慮など）は、どのターンでもtitle・meaningへ入れない。\n"
     "  入れてよいのは、参加者が書いたことと、第3・4ターンで対話AIが決めた意味・優先だけ。\n"
 )
+# v3 では、v2 を gpt-6-luna で走らせて見えた 3 点も直す（実際の出力 18 回）：
+#   ・(b) の例に引きずられて、事前の一文と第1回の発話を 1 件にまとめすぎ、「まだ決めていないこと」が 2 枚並んだ
+#   ・第4回で、優先を示すカードの文面を言い換え、「カードは使わず」のような付け足しをした（刺激の見え方が参加者ごとに変わる）
+_V3_COUNT_RULE = (
+    _V2_COUNT_RULE
+    .replace("意味が近い2件（例：「気を使わずくつろぐ」と「ほっとできる」）を1件にまとめて枠を空ける。",
+             "ほぼ同じことを言っている2件を1件にまとめて枠を空ける。")
+    .replace("      id=\"pending-meaning\" の項目にする（",
+             "      id=\"pending-meaning\" の項目にする。pending-meaning は多くても1件にとどめ、事前アンカーと参加者の発話が別のことを\n"
+             "      言っていれば別々の項目にする（")
+)
+assert _V3_COUNT_RULE != _V2_COUNT_RULE and "多くても1件" in _V3_COUNT_RULE and "ほぼ同じこと" in _V3_COUNT_RULE
+_V3_EXTRA += (
+    "- 第3・4ターンで対話AIが決めた意味・優先を書く項目は、対話AIのその一文をそのまま使う。言い換えたり、\n"
+    "  ほかの内容（やらないこと、手段の変更など）を付け足したりしない。\n"
+)
 _V2_TEXT = ANALYSIS_INSTRUCTIONS.replace(_V1_COUNT_RULE, _V2_COUNT_RULE)
-ANALYSIS_PROMPTS = {"v1": ANALYSIS_INSTRUCTIONS, "v2": _V2_TEXT, "v3": _V2_TEXT.rstrip("\n") + "\n" + _V3_EXTRA}
+ANALYSIS_PROMPTS = {"v1": ANALYSIS_INSTRUCTIONS, "v2": _V2_TEXT,
+                    "v3": ANALYSIS_INSTRUCTIONS.replace(_V1_COUNT_RULE, _V3_COUNT_RULE).rstrip("\n") + "\n" + _V3_EXTRA}
 DEFAULT_ANALYSIS_PROMPT = os.environ.get("EXPERIMENT_ANALYSIS_PROMPT", "v1").strip()
 if DEFAULT_ANALYSIS_PROMPT not in ANALYSIS_PROMPTS:
     DEFAULT_ANALYSIS_PROMPT = "v1"
