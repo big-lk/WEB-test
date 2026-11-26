@@ -352,6 +352,30 @@ ANALYSIS_INSTRUCTIONS = """あなたは右側の価値状態を作る独立AIで
 - 実験目的、操作、誤り検出、思考過程、個人情報、助言を表示しない。
 """
 
+# 分析AI の指示文の版（2026-11-27）。v1＝従来（gpt-5.4-nano に合わせて調整したもの）。
+# 公開版の gpt-6-luna で v1 を使うと、3 枚が事前の一文の言い換えのまま動かず、その回の参加者の入力（「料理は簡単なもの」
+# 「テレビを見ながら」など）がカードに入らなかった（実際の出力 18 回で確認）。v2 はその点だけを直す。
+# 既定は環境変数 EXPERIMENT_ANALYSIS_PROMPT（未設定なら v1）。試験用の参加者番号はリクエストの analysisPrompt で選べる。
+_V1_COUNT_RULE = "- 互いに異なる価値を正確に3件出す。titleは8〜14字程度、meaningは一〜二行の短い日本語。\n"
+_V2_COUNT_RULE = (
+    "- 項目は正確に3件出す。titleは8〜14字程度、meaningは一〜二行の短い日本語。\n"
+    "- 3件の決め方：\n"
+    "  (a) このターンの参加者発話に、まだどの項目にも入っていない希望（料理の手間、食事中の過ごし方、飲み物、流れ、避けたいことなど）が\n"
+    "      あれば、必ずいずれかの項目に入れる。最も近い項目のmeaningに書き足すか、新しい項目にする。\n"
+    "  (b) 新しい項目にするとき枠が足りなければ、意味が近い2件（例：「気を使わずくつろぐ」と「ほっとできる」）を1件にまとめて枠を空ける。\n"
+    "      まとめた項目には、前ターンからある方のidを使う。\n"
+    "  (c) 事前アンカーの一文を言い換えただけの項目を2件以上に分けない。同じことを別の言葉で言った項目を並べない。\n"
+    "  (d) 参加者の発話と事前アンカーから読み取れる、互いに異なる価値が3件に満たないときは、無理に作らず、足りない分を\n"
+    "      id=\"pending-meaning\" の項目にする（title・meaningは何を書いてもシステムが決まった文面に置き換える。priority=未確定、focus=false）。\n"
+    "- 参加者が書いた具体的な言葉（「簡単なもの」「テレビを見ながら」「鍋」「和食」など）は、抽象的な言い換えにせず、\n"
+    "  titleかmeaningにその言葉のまま残す。\n"
+)
+assert _V1_COUNT_RULE in ANALYSIS_INSTRUCTIONS
+ANALYSIS_PROMPTS = {"v1": ANALYSIS_INSTRUCTIONS, "v2": ANALYSIS_INSTRUCTIONS.replace(_V1_COUNT_RULE, _V2_COUNT_RULE)}
+DEFAULT_ANALYSIS_PROMPT = os.environ.get("EXPERIMENT_ANALYSIS_PROMPT", "v1").strip()
+if DEFAULT_ANALYSIS_PROMPT not in ANALYSIS_PROMPTS:
+    DEFAULT_ANALYSIS_PROMPT = "v1"
+
 ANALYSIS_SCHEMA = {
     "type": "object",
     "properties": {
@@ -1155,6 +1179,22 @@ def run_validated_stage(
         stage=stage,
         attempts=attempts,
     )
+
+
+def normalize_pending_cards(text: str) -> str:
+    """分析AI が id="pending-meaning"（まだ出ていない枠）を返したとき、参加者に見える文面を登録済みのものに揃える。"""
+    try:
+        value = json.loads(text)
+    except (json.JSONDecodeError, TypeError):
+        return text
+    items = value.get("criteria") if isinstance(value, dict) else None
+    if not isinstance(items, list) or not any(isinstance(x, dict) and x.get("id") == "pending-meaning" for x in items):
+        return text
+    fixed = fallback_analysis(0, {"scenarioLabel": ""})["criteria"][2]
+    for item in items:
+        if isinstance(item, dict) and item.get("id") == "pending-meaning":
+            item.update(title=fixed["title"], meaning=fixed["meaning"], priority="未確定", focus=False, source="AI_INFERENCE")
+    return json.dumps(value, ensure_ascii=False)
 
 
 def fallback_analysis(turn: int, anchor: dict[str, str]) -> dict[str, Any]:
@@ -1997,6 +2037,9 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     ) = validate_request_body(body)
     safety_id = hashlib.sha256(session_id.encode("utf-8")).hexdigest()[:32]
     dialogue_model, analysis_model, model_override = resolve_models(body, session_id)
+    analysis_prompt = DEFAULT_ANALYSIS_PROMPT
+    if str(session_id).upper().startswith(TEST_ID_PREFIXES) and body.get("analysisPrompt") in ANALYSIS_PROMPTS:
+        analysis_prompt = body["analysisPrompt"]
     control_event = CONTROL_EVENTS[turn]
     card_mode = "separate" if body.get("eventCardMode") == "separate" else "merge"
     # v2.5: パネル固定（v2.3 のボタン由来の除外・v2.4 の固定維持）は比較用の任意設定。既定は無効。
@@ -2210,7 +2253,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     )
     analysis_payload = {
         "model": analysis_model,
-        "instructions": ANALYSIS_INSTRUCTIONS,
+        "instructions": ANALYSIS_PROMPTS[analysis_prompt],
         "input": analysis_input,
         "reasoning": {"effort": "low"},
         "text": {
@@ -2247,6 +2290,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     panel_sentence = "" if generic_mode else required_control_sentence
 
     def parse_and_repair(text: str) -> tuple[Any, list[str]]:
+        text = normalize_pending_cards(text)
         value, codes = parse_analysis(text, turn, panel_scenario)
         if generic_mode and turn in {3, 4}:
             # 事象カードの焦点・出どころ・優先度は enforce_generic_panel が後で決める
@@ -2415,6 +2459,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
             "dialogueModel": dialogue_model,
             "analysisModel": analysis_model,
             "modelOverride": model_override,
+            "analysisPrompt": analysis_prompt,
             "dialogueUsage": usage_summary(dialogue_raw),
             "analysisUsage": usage_summary(analysis_raw),
             "droppedParams": sorted(set(dialogue_raw.get("droppedParams", [])) | set(analysis_raw.get("droppedParams", []))),
