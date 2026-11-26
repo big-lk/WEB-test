@@ -537,3 +537,7 @@ html[data-layout="flow"] .ui-mini-chat { grid-row: 2; }
 html[data-layout="flow"] .ui-mini-prompt { grid-row: 3; }
 html[data-layout="flow"] .ui-mini-input { grid-row: 4; }
 html[data-layout="flow"] .ui-flow-lines > path:nth-of-type(1) { d: path("M315 400 C720 330 1110 320 1435 310"); }
+
+/* ?invite=rich（試作）：入力欄を 2 行から 4 行に広げる。小さい入力欄は「短く書くもの」という合図になるため。 */
+html[data-invite="rich"] .composer textarea { min-height: 116px; max-height: 190px; }
+

@@ -186,7 +186,7 @@ NEXT_TURN_GAPS = {
 }
 
 
-def personal_closing_problems(turn: int, text: str, user_texts: list[str]) -> list[str]:
+def personal_closing_problems(turn: int, text: str, user_texts: list[str], invite_rich: bool = False) -> list[str]:
     """closingMode="personal" の末尾の一文が条件を満たさない理由を返す（空なら合格）。"""
     sentences = [x.strip() for x in re.split(r"(?<=[。！？?\n])", text.rstrip()) if x.strip()]
     last = sentences[-1] if sentences else ""
@@ -195,8 +195,11 @@ def personal_closing_problems(turn: int, text: str, user_texts: list[str]) -> li
         problems.append("fixed_or_empty")
     if not last.endswith("ください。"):
         problems.append("not_request")
-    if len(last) > PERSONAL_CLOSING_MAX:
+    if len(last) > PERSONAL_CLOSING_MAX + (30 if invite_rich else 0):
         problems.append("too_long")
+    # inviteMode="rich"：一つだけでなく、いくつか具体的に書いてもらう頼み方になっているか
+    if invite_rich and not re.search(r"二つ三つ|いくつか|いくつでも|思いつく|思い浮かぶ", last):
+        problems.append("no_invitation")
     if re.search(r"[？?]|それとも|どちら|どっち|とは、?(何|どういう|どんな)|意味|一番大切|最も大切|優先", last):
         problems.append("probing")
     if not any(word in last for word in NEXT_TURN_THEME_WORDS[turn]):
@@ -2175,6 +2178,9 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     # flow 配置：回答の末尾を、参加者の言葉を入れた依頼文にする（第6回の終止文は従来どおり）
     closing_mode = body.get("closingMode") if body.get("closingMode") in {"personal", "gap", "gap2"} and turn <= 5 else "fixed"
     personal_closing = closing_mode == "personal"
+    # inviteMode="rich"（?invite=rich。使用者の提案 2026-11-27：参加者が一度に多く書くよう促す）：
+    # 末尾の依頼文で、一つだけでなく、思い浮かぶことを二つ三つ、場面や理由も添えて書いてもらうよう頼む。personal の末尾でだけ効く。
+    invite_rich = personal_closing and body.get("inviteMode") == "rich"
     all_user_texts = [row["content"] for row in history[0::2]] + [user_text, anchor["freeText"]]
 
     def finish_ending(text: str) -> str:
@@ -2182,7 +2188,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
 
     def closing_problems(text: str) -> list[str]:
         if closing_mode == "personal":
-            return personal_closing_problems(turn, text, all_user_texts)
+            return personal_closing_problems(turn, text, all_user_texts, invite_rich)
         if closing_mode == "gap2":
             return gap2_closing_problems(turn, text)
         return gap_closing_problems(turn, text) if closing_mode == "gap" else []
@@ -2257,7 +2263,9 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
            f"参加者の言葉の意味や優先順位は尋ねない。その言葉を次の入力に書くよう求めない"
            f"（「…という言葉も添えて／入れて書いてください」は不可。「…という希望もふまえて」「…も含めて」のようにつなぐ）。"
            + ("この回は「自分の言葉でまとめてください。」で終える。" if turn == 5 else "")
-           + f"{PERSONAL_CLOSING_MAX}字以内。\n"
+           + ("依頼では、一つだけ書けばよいという頼み方をしない。思い浮かぶことを二つ三つ、場面や理由も添えて書いてもらうよう頼む"
+              "（「…を、思い浮かぶ場面も交えて二つ三つ書いてください。」のように。「二つ三つ」「いくつか」のどちらかを必ず入れる）。" if invite_rich else "")
+           + f"{PERSONAL_CLOSING_MAX + (30 if invite_rich else 0)}字以内。\n"
            if personal_closing else
            (f"末尾の直前の一文: {NEXT_TURN_GAPS[turn]}ことだけを、「まだ」を使った短い陳述文で述べる"
             f"（疑問文にしない。すでに決まったことの評価はしない。必須の末尾と同じ言い回しを繰り返さない。40字以内）。\n" if closing_mode == "gap" else
@@ -2608,6 +2616,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
             "modelOverride": model_override,
             "analysisPrompt": analysis_prompt,
             "lengthMode": length_mode,
+            "inviteMode": "rich" if invite_rich else "default",
             "dialogueUsage": usage_summary(dialogue_raw),
             "analysisUsage": usage_summary(analysis_raw),
             "droppedParams": sorted(set(dialogue_raw.get("droppedParams", [])) | set(analysis_raw.get("droppedParams", []))),
