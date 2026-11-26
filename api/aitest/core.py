@@ -728,6 +728,7 @@ def dialogue_validation_codes(
     scenario_id: str = "",
     required_sentence: str = "",
     personal_closing: bool = False,
+    min_chars: int | None = None,
 ) -> list[str]:
     compact = re.sub(r"\s+", "", text)
     has_required = bool(required_sentence) and required_sentence in text
@@ -735,7 +736,7 @@ def dialogue_validation_codes(
     # The backboard gives target ranges, not a hard rejection boundary.
     # Keep a lower safety floor so a concise, complete nano-model response is
     # not retried merely to add reading load to the left AOI.
-    minimum = 100
+    minimum = min_chars or 100
     maximum = 480 if turn in {1, 2} else 430 if turn in {3, 4} else 280 if turn == 5 else 360
     if len(compact) < minimum:
         codes.append("R02_TOO_SHORT")
@@ -2131,6 +2132,10 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     ) = validate_request_body(body)
     safety_id = hashlib.sha256(session_id.encode("utf-8")).hexdigest()[:32]
     dialogue_model, analysis_model, model_override = resolve_models(body, session_id)
+    # lengthMode="target"（試験用の番号だけ）：gpt-6-luna の実際の出力は、verbosity=low のとき第1回 150〜210字・第5回 113〜145字で、
+    # 指定の目安（220〜360字、140〜230字）の下限に届かない。詳しさを一段上げ、目安の下限の約 9 割を最低字数にして比べる。
+    length_mode = "target" if (str(session_id).upper().startswith(TEST_ID_PREFIXES) and body.get("lengthMode") == "target") else "default"
+    min_chars = {1: 200, 2: 200, 3: 215, 4: 215, 5: 125, 6: 160}[turn] if length_mode == "target" else None
     analysis_prompt = DEFAULT_ANALYSIS_PROMPT
     if str(session_id).upper().startswith(TEST_ID_PREFIXES) and body.get("analysisPrompt") in ANALYSIS_PROMPTS:
         analysis_prompt = body["analysisPrompt"]
@@ -2244,7 +2249,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         "instructions": DIALOGUE_INSTRUCTIONS,
         "input": dialogue_input,
         "reasoning": {"effort": "medium" if turn in {3, 4} else "low"},
-        "text": {"verbosity": "low"},
+        "text": {"verbosity": "medium" if length_mode == "target" else "low"},
         # More reasoning headroom on the two event turns avoids paying for
         # several incomplete retries; the visible length remains validator-bound.
         "max_output_tokens": 3000 if turn == 3 else 3200 if turn == 4 else 1400,
@@ -2301,6 +2306,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
                 normalized,
                 anchor["freeText"],
                 user_text,
+                min_chars=min_chars,
                 experiment_variant=experiment_variant,
                 scenario_id=anchor["scenarioId"],
                 required_sentence=required_control_sentence,
@@ -2323,7 +2329,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
                 left = dialogue_validation_codes(turn, cleaned, anchor["freeText"], user_text,
                                                  experiment_variant=experiment_variant, scenario_id=anchor["scenarioId"],
                                                  required_sentence=required_control_sentence,
-                                                 personal_closing=personal_closing)
+                                                 personal_closing=personal_closing, min_chars=min_chars)
                 if not (set(left) & HARD_DIALOGUE_CODES):
                     usable.append((cleaned, raw, latency, ["SANITIZED"] + left))
             if not usable:
@@ -2570,6 +2576,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
             "analysisModel": analysis_model,
             "modelOverride": model_override,
             "analysisPrompt": analysis_prompt,
+            "lengthMode": length_mode,
             "dialogueUsage": usage_summary(dialogue_raw),
             "analysisUsage": usage_summary(analysis_raw),
             "droppedParams": sorted(set(dialogue_raw.get("droppedParams", [])) | set(analysis_raw.get("droppedParams", []))),
