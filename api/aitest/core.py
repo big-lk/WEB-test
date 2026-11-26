@@ -411,6 +411,18 @@ _V4_EXTRA = _V3_EXTRA.replace("meaningは60字以内。", "meaningは12〜60字�
 _V4_EXTRA = _V4_EXTRA[: _V4_EXTRA.index("- 第3・4ターンで対話AIが決めた意味・優先を書く項目は")]
 assert "枠が余っているときは" in _V4_COUNT_RULE and "12〜60字" in _V4_EXTRA and "そのまま使う" not in _V4_EXTRA
 ANALYSIS_PROMPTS["v4"] = ANALYSIS_INSTRUCTIONS.replace(_V1_COUNT_RULE, _V4_COUNT_RULE).rstrip("\n") + "\n" + _V4_EXTRA
+# v5：v4 を gpt-6-luna で走らせて残った 3 点（実際の出力 18 回、新しい入力がカードに入ったのは 13/17）：
+#   ・第3回は事象の項目が 1 枠を使うので、その回の参加者の発話（「テレビを見ながら」「写真と失敗談」）が入らなかった
+#   ・参加者が最後に「大切にしたい」と書いたこと（「遠慮しないこと」）が、途中で消えたまま戻らなかった
+#   ・対話AIが決めた扱い（「準備と片付けはすべてこちらで」）が別の項目の meaning にも入り、参加者が断った後も残った
+_V5_EXTRA = _V4_EXTRA + (
+    "- 第3・4ターンでも、そのターンの参加者発話は、対話AIが決めた意味・優先を書く項目とは別の項目に必ず入れる。\n"
+    "  枠が足りなければ、料理・飲み物・進め方のような具体的な希望どうしを1件にまとめて枠を空ける。「入れない」という選択はしない。\n"
+    "- 参加者が「大切にしたい」「大事なのは」「避けたい」「やめたい」と書いたことは、そのターン以降、必ずどれかの項目のtitleかmeaningに残す。\n"
+    "- 対話AIが決めた意味・優先は、該当する1件だけに書く。ほかの項目のmeaningには書かない。\n"
+    "  参加者がそれを否定・修正したら、どの項目からも取り除き、参加者の言ったとおりに直す。\n"
+)
+ANALYSIS_PROMPTS["v5"] = ANALYSIS_INSTRUCTIONS.replace(_V1_COUNT_RULE, _V4_COUNT_RULE).rstrip("\n") + "\n" + _V5_EXTRA
 DEFAULT_ANALYSIS_PROMPT = os.environ.get("EXPERIMENT_ANALYSIS_PROMPT", "v1").strip()
 if DEFAULT_ANALYSIS_PROMPT not in ANALYSIS_PROMPTS:
     DEFAULT_ANALYSIS_PROMPT = "v1"
