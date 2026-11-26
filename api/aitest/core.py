@@ -201,6 +201,12 @@ def personal_closing_problems(turn: int, text: str, user_texts: list[str]) -> li
         problems.append("probing")
     if not any(word in last for word in NEXT_TURN_THEME_WORDS[turn]):
         problems.append("off_theme")
+    # 実際の出力で多かった形：「…という言葉も添えて／入れて書いてください」。参加者に、その言葉を書くよう求めることになる
+    if re.search(r"(言葉|一言)[もを]?(添えて|入れて|使って)|」を添えて|手がかりに", last):
+        problems.append("asks_to_copy")
+    # 第5回の依頼は、次の回（まとめ）の指示を兼ねる：「自分の言葉でまとめてください」を落とさない
+    if turn == 5 and "まとめ" not in last:
+        problems.append("not_summary_request")
     said = "\n".join(user_texts)
     compact = re.sub(r"[\s、。「」『』（）()・]", "", last)
     shared = [compact[i:i + 4] for i in range(len(compact) - 3)
@@ -955,7 +961,7 @@ VALIDATION_GUIDANCE = {
     "R08_JAPANESE_ENDING": "指定された日本語の終止文を一字も変えず末尾に置いてください",
     "R22_GAP_CLOSING": "指定された終止文の直前に、次の回の主題がまだ決まっていないことを「まだ」を使った陳述文で一文入れてください。疑問文にはしないでください",
     "R23_GAP2_CLOSING": "指定された終止文の直前の一文を、この回答で決めた具体的なものに結びつけて、まだ決まっていない点を「まだ」を使った陳述文で述べてください。終止文に出てくる語句は繰り返さず、疑問文にもしないでください",
-    "R21_PERSONAL_CLOSING": "末尾の一文を、次の回の主題についての依頼文（「〜を書いてください。」で終える）にし、参加者が書いた言葉を一つそのまま入れてください。疑問文にせず、言葉の意味や優先順位は尋ねないでください",
+    "R21_PERSONAL_CLOSING": "末尾の一文を、次の回の主題についての依頼文（「〜を書いてください。」、第5回は「自分の言葉でまとめてください。」で終える）にし、参加者が書いた言葉を一つそのまま入れてください。疑問文にせず、言葉の意味や優先順位は尋ねず、その言葉を書くよう求める言い方（「…という言葉も添えて」など）も避けてください",
     "R09_DINNER_CONTEXT": "料理または食事中の過ごし方へ明確につないでください",
     "R10_FIXATION_MISSING": "一つの多義的価値を、合理的だが狭い一つの意味として確定口調で具体化してください",
     "R11_PRIORITY_PROXY_MISSING": "二つの既存価値に優先関係を置き、一方が具体案で弱まることを示してください",
@@ -2210,7 +2216,10 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         f"{' 強制文は最新入力への短い応答に続く第2文として、冒頭160字以内に置く。' if required_control_sentence else ''}\n"
         + (f"末尾の一文: 次の回の主題「{NEXT_TURN_THEMES[turn]}」について書いてもらう依頼の一文で終える。"
            f"その一文には、参加者がこれまでに書いた具体的な言葉を一つそのまま入れる。疑問文にしない（「〜を書いてください。」で終える）。"
-           f"参加者の言葉の意味や優先順位は尋ねない。{PERSONAL_CLOSING_MAX}字以内。\n"
+           f"参加者の言葉の意味や優先順位は尋ねない。その言葉を次の入力に書くよう求めない"
+           f"（「…という言葉も添えて／入れて書いてください」は不可。「…という希望もふまえて」「…も含めて」のようにつなぐ）。"
+           + ("この回は「自分の言葉でまとめてください。」で終える。" if turn == 5 else "")
+           + f"{PERSONAL_CLOSING_MAX}字以内。\n"
            if personal_closing else
            (f"末尾の直前の一文: {NEXT_TURN_GAPS[turn]}ことだけを、「まだ」を使った短い陳述文で述べる"
             f"（疑問文にしない。すでに決まったことの評価はしない。必須の末尾と同じ言い回しを繰り返さない。40字以内）。\n" if closing_mode == "gap" else
