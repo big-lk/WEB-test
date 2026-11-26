@@ -399,6 +399,18 @@ _V3_EXTRA += (
 _V2_TEXT = ANALYSIS_INSTRUCTIONS.replace(_V1_COUNT_RULE, _V2_COUNT_RULE)
 ANALYSIS_PROMPTS = {"v1": ANALYSIS_INSTRUCTIONS, "v2": _V2_TEXT,
                     "v3": ANALYSIS_INSTRUCTIONS.replace(_V1_COUNT_RULE, _V3_COUNT_RULE).rstrip("\n") + "\n" + _V3_EXTRA}
+# v4：v3 を gpt-6-luna で走らせて見えた点（実際の出力 18 回）：
+#   ・「60字以内」に引かれて meaning が「和食がいい。」のように短くなりすぎ、長さの検査（8字以上・かな6字以上）に 2 回落ちて、
+#     パネル全体が予備の表示に置き換わった（台本 C の第2・3回）→ 下限を明記する
+#   ・枠が余っているのに 2 件をまとめて pending-meaning を作った（台本 B の第2回）→ まとめるのは枠が足りないときだけ
+#   ・第3・4ターンの文面は、v2 以降はシステムが登録済みの文面に必ず置き換える（下の force_registered）ので、指示からは外す
+_V4_COUNT_RULE = _V3_COUNT_RULE.replace(
+    "ほぼ同じことを言っている2件を1件にまとめて枠を空ける。",
+    "ほぼ同じことを言っている2件を1件にまとめて枠を空ける。枠が余っているときは、まとめない。")
+_V4_EXTRA = _V3_EXTRA.replace("meaningは60字以内。", "meaningは12〜60字の文にする（短すぎる例：「和食がいい。」→「夕食の料理は和食がいい。」）。")
+_V4_EXTRA = _V4_EXTRA[: _V4_EXTRA.index("- 第3・4ターンで対話AIが決めた意味・優先を書く項目は")]
+assert "枠が余っているときは" in _V4_COUNT_RULE and "12〜60字" in _V4_EXTRA and "そのまま使う" not in _V4_EXTRA
+ANALYSIS_PROMPTS["v4"] = ANALYSIS_INSTRUCTIONS.replace(_V1_COUNT_RULE, _V4_COUNT_RULE).rstrip("\n") + "\n" + _V4_EXTRA
 DEFAULT_ANALYSIS_PROMPT = os.environ.get("EXPERIMENT_ANALYSIS_PROMPT", "v1").strip()
 if DEFAULT_ANALYSIS_PROMPT not in ANALYSIS_PROMPTS:
     DEFAULT_ANALYSIS_PROMPT = "v1"
@@ -1943,7 +1955,8 @@ def generic_event_title(turn: int, parts: dict[str, str]) -> str:
 
 
 def enforce_generic_panel(turn: int, criteria: list[dict[str, Any]], parts: dict[str, str], repairs: list[str],
-                          card_mode: str = "merge", locked_ids: set[str] | None = None) -> None:
+                          card_mode: str = "merge", locked_ids: set[str] | None = None,
+                          force_registered: bool = False) -> None:
     """一般的解釈の事象カードを右側に読める形で置く（第3回：語句と一般的意味、第4回：優先関係）。
     card_mode="separate"（v2.2）：既存のカード（参加者が固定したカードを含む）を書き換えず、
     最も優先度の低いカードの位置に新しい事象カードを置く。"""
@@ -2007,7 +2020,9 @@ def enforce_generic_panel(turn: int, criteria: list[dict[str, Any]], parts: dict
             and not any(n in str(c.get("meaning", "")) for n in PRIORITY_NEGATIONS)
         title = f"{preferred.removesuffix('こと')}を優先"[:18]
     target = max(criteria, key=score)
-    if not ok(target):
+    # force_registered：分析AI の書き方がたまたま条件を満たしていても、事象カードの文面は登録済みのものに揃える。
+    # （v2 の実際の出力で、第4回のカードに「カードは使わず」という付け足しが入ったまま通った。刺激の見え方を参加者間で揃えるため）
+    if force_registered or not ok(target):
         target["meaning"] = meaning
         repairs.append(f"generic_meaning:{target.get('id')}")
         if turn == 4 or phrase not in str(target.get("title", "")):
@@ -2375,7 +2390,8 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
                 hit = max(previous_criteria, key=lambda c: text_similarity(quoted, c.get("title", "")), default=None)
                 if hit and text_similarity(quoted, hit.get("title", "")) >= 0.5:
                     locked_ids.add(hit["id"])
-        enforce_generic_panel(turn, analysis["criteria"], generic_info["parts"], analysis_repairs, card_mode, locked_ids)
+        enforce_generic_panel(turn, analysis["criteria"], generic_info["parts"], analysis_repairs, card_mode, locked_ids,
+                              force_registered=analysis_prompt != "v1")
     delegation_from_text: list[str] = []
     if not analysis_fallback:
         for quoted, state in delegation_requests(user_text):
