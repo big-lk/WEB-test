@@ -462,6 +462,17 @@ _V5_EXTRA = _V4_EXTRA + (
     "  参加者がそれを否定・修正したら、どの項目からも取り除き、参加者の言ったとおりに直す。\n"
 )
 ANALYSIS_PROMPTS["v5"] = ANALYSIS_INSTRUCTIONS.replace(_V1_COUNT_RULE, _V4_COUNT_RULE).rstrip("\n") + "\n" + _V5_EXTRA
+# v6：調整に使っていない台本（D/E/F）で v5 を走らせて見えた点（実際の出力）：
+#   ・参加者が「ケーキは自分で選びたい」「献立は案を出してほしい」と書いた項目が、後の回でまとめられて消えた。
+#     判断の分担についての指定は、この研究で見たいものなので、最後まで残す。
+#   ・pending-meaning は 2 件まで認める（3 件のうち中身が 1 件しかない場合。文面はシステムが登録済みのものに置き換える）。
+_V6_COUNT_RULE = _V4_COUNT_RULE.replace("pending-meaning は多くても1件にとどめ、", "pending-meaning は多くても2件にとどめ（2件目のidは \"pending-meaning-2\"）、")
+assert _V6_COUNT_RULE != _V4_COUNT_RULE
+_V6_EXTRA = _V5_EXTRA + (
+    "- 参加者が「自分で決めたい」「自分で選びたい」「案を出してほしい」「任せます」のように、だれが決めるかを書いた対象は、\n"
+    "  そのターン以降、必ずどれかの項目のmeaningにその言葉のまま残す。ほかの項目とまとめる場合も消さない。\n"
+)
+ANALYSIS_PROMPTS["v6"] = ANALYSIS_INSTRUCTIONS.replace(_V1_COUNT_RULE, _V6_COUNT_RULE).rstrip("\n") + "\n" + _V6_EXTRA
 DEFAULT_ANALYSIS_PROMPT = os.environ.get("EXPERIMENT_ANALYSIS_PROMPT", "v1").strip()
 if DEFAULT_ANALYSIS_PROMPT not in ANALYSIS_PROMPTS:
     DEFAULT_ANALYSIS_PROMPT = "v1"
@@ -1273,19 +1284,36 @@ def run_validated_stage(
     )
 
 
-def normalize_pending_cards(text: str) -> str:
-    """分析AI が id="pending-meaning"（まだ出ていない枠）を返したとき、参加者に見える文面を登録済みのものに揃える。"""
+EMPTY_CARD_WORDS = {"", "未確定", "未定", "なし", "未決定", "まだ決めていないこと"}
+
+
+def normalize_pending_cards(text: str, anchor: dict[str, str] | None = None) -> str:
+    """分析AI が「まだ出ていない枠」を返したとき、参加者に見える文面を登録済みのものに揃える。
+    1 枠目は「まだ決めていないこと」（id=pending-meaning）、2 枠目は「最初に選んだ場面」（id=anchor-context）。どちらも従来からある文面。
+    2026-11-27 の実際の出力：事前の一文と第1回の発話がほぼ同じ内容だった台本で、分析AI が 2 枠を title・meaning とも「未確定」で返し、
+    長さの検査に 2 回落ちてパネル全体が予備の表示に置き換わった。"""
     try:
         value = json.loads(text)
     except (json.JSONDecodeError, TypeError):
         return text
     items = value.get("criteria") if isinstance(value, dict) else None
-    if not isinstance(items, list) or not any(isinstance(x, dict) and x.get("id") == "pending-meaning" for x in items):
+    if not isinstance(items, list):
         return text
-    fixed = fallback_analysis(0, {"scenarioLabel": ""})["criteria"][2]
-    for item in items:
-        if isinstance(item, dict) and item.get("id") == "pending-meaning":
-            item.update(title=fixed["title"], meaning=fixed["meaning"], priority="未確定", focus=False, source="AI_INFERENCE")
+    empty = [x for x in items if isinstance(x, dict) and (
+        str(x.get("id", "")).startswith("pending") or str(x.get("id", "")) == "anchor-context"
+        or (str(x.get("title", "")).strip() in EMPTY_CARD_WORDS and str(x.get("meaning", "")).strip().rstrip("。") in EMPTY_CARD_WORDS))]
+    if not empty or len(empty) > 2:
+        return text
+    registered = fallback_analysis(0, anchor or {"scenarioLabel": ""})["criteria"]
+    for item, source in zip(empty, [registered[2], registered[0]]):
+        if source["id"] == "anchor-context" and not (anchor or {}).get("scenarioLabel"):
+            continue
+        item.update(id=source["id"], title=source["title"], meaning=source["meaning"], priority="未確定", focus=False,
+                    source=source["source"])
+    if not any(isinstance(x, dict) and x.get("focus") for x in items):  # 焦点が空の枠に付いていた場合は、中身のある項目へ移す
+        real = [x for x in items if isinstance(x, dict) and x not in empty]
+        if real:
+            real[0]["focus"] = True
     return json.dumps(value, ensure_ascii=False)
 
 
@@ -2222,7 +2250,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         f"可視回答の長さ: {visible_length_target}、1〜2段落。"
         f"{' 強制文は最新入力への短い応答に続く第2文として、冒頭160字以内に置く。' if required_control_sentence else ''}\n"
         + (f"末尾の一文: 次の回の主題「{NEXT_TURN_THEMES[turn]}」について書いてもらう依頼の一文で終える。"
-           f"その一文には、参加者がこれまでに書いた具体的な言葉を一つそのまま入れる。疑問文にしない（「〜を書いてください。」で終える）。"
+           f"その一文には、参加者が書いた具体的な言葉を一つそのまま入れる（できるだけ今回の入力から選び、前の回の末尾で使った言葉は繰り返さない）。疑問文にしない（「〜を書いてください。」で終える）。"
            f"参加者の言葉の意味や優先順位は尋ねない。その言葉を次の入力に書くよう求めない"
            f"（「…という言葉も添えて／入れて書いてください」は不可。「…という希望もふまえて」「…も含めて」のようにつなぐ）。"
            + ("この回は「自分の言葉でまとめてください。」で終える。" if turn == 5 else "")
@@ -2405,7 +2433,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     panel_sentence = "" if generic_mode else required_control_sentence
 
     def parse_and_repair(text: str) -> tuple[Any, list[str]]:
-        text = normalize_pending_cards(text)
+        text = normalize_pending_cards(text, anchor)
         value, codes = parse_analysis(text, turn, panel_scenario)
         if generic_mode and turn in {3, 4}:
             # 事象カードの焦点・出どころ・優先度は enforce_generic_panel が後で決める
