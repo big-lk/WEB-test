@@ -84,3 +84,11 @@ def test_prolab_raw_convert_roundtrip():
     assert list(gaze.mouse_events.t.round(2)) == [1.0, 3.0], gaze.mouse_events         # 押した時刻だけ
     assert abs(gaze.recording_start_wall - 1795681450.44) < 0.01, gaze.recording_start_wall  # UTC として読む
     assert 0.85 < gaze.samples.valid.mean() < 0.9
+
+
+def test_reading_extras_present():
+    """追加の指標：読解区間の行に、焦点のカードへの注視と注視の並びが入る。"""
+    info, table, qa = run("UI_B")
+    r = table[table.toi == "reading"]
+    assert {"target_card", "gaze_sequence", "card_dwell_1"} <= set(r.columns), list(r.columns)
+    assert r.gaze_sequence.astype(str).str.len().gt(0).all()

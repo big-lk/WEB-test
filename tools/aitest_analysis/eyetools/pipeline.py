@@ -7,6 +7,7 @@ from pathlib import Path
 import pandas as pd
 
 from .aoi import layout_from_session
+from .extra_metrics import reading_extras
 from .gaze import GazeExport, load_prolab_tsv
 from .metrics import assign_aoi, toi_metrics
 from .session import Session, build_tois, load_session, parse_ts, validate
@@ -44,6 +45,8 @@ def process(session: Session, gaze: GazeExport, margin: float = 0.0) -> tuple[pd
     rows = []
     for toi in build_tois(session):
         m = toi_metrics(fix, to_tobii(toi.start), to_tobii(toi.end), gaze.samples)
+        if toi.kind == "reading":  # 追加の指標（記述・探索用）
+            m.update(reading_extras(session, fix, toi, to_tobii))
         rows.append({"participant": session.participant, "condition": session.condition, "turn": toi.turn,
                      "toi": toi.kind, "duration_s": toi.duration, "start_source": toi.start_source,
                      "phase": "after_deviation" if toi.turn in (4, 5) else ("baseline" if toi.turn in (2, 3) else "other"),
