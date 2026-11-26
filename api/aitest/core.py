@@ -371,7 +371,17 @@ _V2_COUNT_RULE = (
     "  titleかmeaningにその言葉のまま残す。\n"
 )
 assert _V1_COUNT_RULE in ANALYSIS_INSTRUCTIONS
-ANALYSIS_PROMPTS = {"v1": ANALYSIS_INSTRUCTIONS, "v2": ANALYSIS_INSTRUCTIONS.replace(_V1_COUNT_RULE, _V2_COUNT_RULE)}
+# v3＝v2 ＋ 実際の出力（claude-haiku-5-5、18 回）で見えた 2 点：
+#   ・meaning に「参加者が書いた『和食がいい』という料理の希望。」のような、本人に見せる表示として不自然な言い方が出る
+#   ・第5・6回で、対話AIだけが出した具体物（「汁物や煮物」「母の体調」など）が meaning に入る
+_V3_EXTRA = (
+    "- title・meaningは参加者本人が画面で読む表示である。「参加者が」「参加者の」「事前の希望」「対話で」のような外から見た言い方をせず、\n"
+    "  希望の内容そのものを書く（例：「料理は和食にしたい。」）。meaningは60字以内。\n"
+    "- 対話AIだけが提案した具体物（料理名、品目、飲み物、照明、進行、相手の体調への配慮など）は、どのターンでもtitle・meaningへ入れない。\n"
+    "  入れてよいのは、参加者が書いたことと、第3・4ターンで対話AIが決めた意味・優先だけ。\n"
+)
+_V2_TEXT = ANALYSIS_INSTRUCTIONS.replace(_V1_COUNT_RULE, _V2_COUNT_RULE)
+ANALYSIS_PROMPTS = {"v1": ANALYSIS_INSTRUCTIONS, "v2": _V2_TEXT, "v3": _V2_TEXT.rstrip("\n") + "\n" + _V3_EXTRA}
 DEFAULT_ANALYSIS_PROMPT = os.environ.get("EXPERIMENT_ANALYSIS_PROMPT", "v1").strip()
 if DEFAULT_ANALYSIS_PROMPT not in ANALYSIS_PROMPTS:
     DEFAULT_ANALYSIS_PROMPT = "v1"
