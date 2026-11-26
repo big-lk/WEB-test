@@ -150,6 +150,12 @@ for i, text in enumerate(REAL_T5):
     check(f"gap turn 5 real output {i + 1} accepted", r["meta"]["closingFallback"] is False and "まだ" in r["dialogue"]
           and r["dialogue"].endswith(core.TURN_ENDINGS[5]) and len(r["meta"]["dialogueAttempts"]) == 1,
           f'{r["meta"]["closingFallback"]} {len(r["meta"]["dialogueAttempts"])} {r["dialogue"][-80:]}')
+# 12c) personal・第5回：依頼文そのものが「大切にしたい…避けたい…」を含むので、代筆の除去に巻き込まれないこと
+P5 = ("ゆっくり食べたいという希望に合わせ、食べる速さを急がず、会話の間も取りながら過ごす流れにします。" + PAD
+      + "最後に、「簡単な鍋」も含めて、この夕食で大切にしたいことや避けたいことを、自分の言葉でまとめてください。")
+r = run(P5, turn=5, mode="personal")
+check("personal turn 5 request sentence kept", r["meta"]["closingFallback"] is False and r["dialogue"].endswith("自分の言葉でまとめてください。")
+      and "「簡単な鍋」" in r["dialogue"] and len(r["meta"]["dialogueAttempts"]) == 1, f'{r["meta"]["closingFallback"]} {r["dialogue"][-70:]}')
 GHOST = "ゆっくり食べる流れにします。大切にしたいことは落ち着いた時間、避けたいことは急ぐことです。" + PAD
 for mode in ("fixed", "gap"):
     r = run(core.ensure_exact_turn_ending(5, GHOST), turn=5, mode=mode)
