@@ -599,7 +599,7 @@ async function submitTurn() {
         panelLock: QUERY.get("lock") === "1",
         // flow 配置：回答の末尾を、固定の終止文ではなく、参加者の言葉を入れた依頼文にする（両 UI 共通）
         // 比較用に ?closing=fixed|personal|gap で切り替えられる（gap＝固定の終止文の前に「まだ決まっていないこと」を一文入れる）
-        closingMode: ["fixed", "personal", "gap"].includes(QUERY.get("closing")) ? QUERY.get("closing")
+        closingMode: ["fixed", "personal", "gap", "gap2"].includes(QUERY.get("closing")) ? QUERY.get("closing")
           : (LAYOUT_VARIANT === "flow" ? "personal" : "fixed"),
         // 試験用の参加者番号（TEST- など）に限り、?model=… でモデルを切り替えられる（サーバー側で確認する）
         ...(QUERY.get("model") ? { model: QUERY.get("model") } : {}),

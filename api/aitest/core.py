@@ -229,6 +229,37 @@ def gap_closing_problems(turn: int, text: str) -> list[str]:
     return problems
 
 
+def common_run(a: str, b: str) -> int:
+    """二つの文に共通して現れる、いちばん長い連続部分の字数。"""
+    best = 0
+    for i in range(len(a)):
+        for j in range(i + best + 1, len(a) + 1):
+            if a[i:j] in b:
+                best = j - i
+            else:
+                break
+    return best
+
+
+def gap2_closing_problems(turn: int, text: str) -> list[str]:
+    """closingMode="gap2"：固定の終止文の直前の一文が、「まだ」を含む陳述文で、終止文の言い回しを繰り返していないかを見る。"""
+    stripped = text.rstrip()
+    if not stripped.endswith(TURN_ENDINGS[turn]):
+        return ["no_fixed_ending"]
+    sentences = [x.strip() for x in re.split(r"(?<=[。！？?\n])", stripped[: -len(TURN_ENDINGS[turn])]) if x.strip()]
+    before = sentences[-1] if sentences else ""
+    problems: list[str] = []
+    if "まだ" not in before:
+        problems.append("no_gap_statement")
+    if common_run(before, TURN_ENDINGS[turn]) >= 8:
+        problems.append("repeats_ending")
+    if len(before) > PERSONAL_CLOSING_MAX:
+        problems.append("too_long")
+    if re.search(r"[？?]", before):
+        problems.append("question")
+    return problems
+
+
 def replace_with_fixed_closing(turn: int, text: str) -> str:
     """個別の末尾が条件を満たさなかったとき：依頼文の形の末尾は取り除き、従来の固定の終止文を付ける。"""
     sentences = [x for x in re.split(r"(?<=[。！？?\n])", text.rstrip()) if x.strip()]
@@ -923,6 +954,7 @@ VALIDATION_GUIDANCE = {
     "R07_TARGET_EXPOSURE": "研究目的や修正を直接求める表現を削除してください",
     "R08_JAPANESE_ENDING": "指定された日本語の終止文を一字も変えず末尾に置いてください",
     "R22_GAP_CLOSING": "指定された終止文の直前に、次の回の主題がまだ決まっていないことを「まだ」を使った陳述文で一文入れてください。疑問文にはしないでください",
+    "R23_GAP2_CLOSING": "指定された終止文の直前の一文を、この回答で決めた具体的なものに結びつけて、まだ決まっていない点を「まだ」を使った陳述文で述べてください。終止文に出てくる語句は繰り返さず、疑問文にもしないでください",
     "R21_PERSONAL_CLOSING": "末尾の一文を、次の回の主題についての依頼文（「〜を書いてください。」で終える）にし、参加者が書いた言葉を一つそのまま入れてください。疑問文にせず、言葉の意味や優先順位は尋ねないでください",
     "R09_DINNER_CONTEXT": "料理または食事中の過ごし方へ明確につないでください",
     "R10_FIXATION_MISSING": "一つの多義的価値を、合理的だが狭い一つの意味として確定口調で具体化してください",
@@ -2100,7 +2132,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     # 正式実験では右側パネルは常に「AIの読み取り内容」であり、UI B のボタンはパネルにも AI にも作用しない。
     panel_lock = body.get("panelLock") is True
     # flow 配置：回答の末尾を、参加者の言葉を入れた依頼文にする（第6回の終止文は従来どおり）
-    closing_mode = body.get("closingMode") if body.get("closingMode") in {"personal", "gap"} and turn <= 5 else "fixed"
+    closing_mode = body.get("closingMode") if body.get("closingMode") in {"personal", "gap", "gap2"} and turn <= 5 else "fixed"
     personal_closing = closing_mode == "personal"
     all_user_texts = [row["content"] for row in history[0::2]] + [user_text, anchor["freeText"]]
 
@@ -2110,6 +2142,8 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     def closing_problems(text: str) -> list[str]:
         if closing_mode == "personal":
             return personal_closing_problems(turn, text, all_user_texts)
+        if closing_mode == "gap2":
+            return gap2_closing_problems(turn, text)
         return gap_closing_problems(turn, text) if closing_mode == "gap" else []
     previous_raw = body.get("previousCriteria", [])
     previous_criteria: list[dict[str, str]] = []
@@ -2179,7 +2213,13 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
            f"参加者の言葉の意味や優先順位は尋ねない。{PERSONAL_CLOSING_MAX}字以内。\n"
            if personal_closing else
            (f"末尾の直前の一文: {NEXT_TURN_GAPS[turn]}ことだけを、「まだ」を使った短い陳述文で述べる"
-            f"（疑問文にしない。すでに決まったことの評価はしない。必須の末尾と同じ言い回しを繰り返さない。40字以内）。\n" if closing_mode == "gap" else "")
+            f"（疑問文にしない。すでに決まったことの評価はしない。必須の末尾と同じ言い回しを繰り返さない。40字以内）。\n" if closing_mode == "gap" else
+            # gap2：実際の出力で、gap の一文が必須の末尾とほぼ同じ内容の繰り返しになった（「食事中の会話や距離感は、まだ決まっていません。
+            # 次は、食事中の会話や距離感など…」）。この回答で決めた具体的なものに結びつけて、何がまだ空いているかを言う。
+            f"末尾の直前の一文: この回答の中で決めた具体的なもの（料理や過ごし方など、この回答に出てきた語）を一つ挙げ、"
+            f"それについてまだ決まっていない点を、「まだ」を使った短い陳述文で述べる"
+            f"（例：「鍋を囲んでいるあいだの時間は、まだ空いています。」）。必須の末尾に出てくる語句をそのまま使わない。"
+            f"疑問文にしない。すでに決まったことの評価はしない。40字以内。\n" if closing_mode == "gap2" else "")
            + f"必須の末尾: {TURN_ENDINGS[turn]}\n")
         + f"事前場面: {anchor['scenarioLabel']}\n"
         f"事前の一文: {anchor['freeText']}\n"
@@ -2210,10 +2250,11 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     final_relation_inserted: list[str] = []
 
     def parse_dialogue_candidate(text: str) -> tuple[str, list[str]]:
-        normalized = finish_ending(drop_participant_voice(text, turn, closing_mode == "gap", personal_closing))
+        normalized = finish_ending(drop_participant_voice(text, turn, closing_mode in {"gap", "gap2"}, personal_closing))
         extra = []
         if closing_problems(normalized):
-            extra.append("R21_PERSONAL_CLOSING" if personal_closing else "R22_GAP_CLOSING")
+            extra.append("R21_PERSONAL_CLOSING" if personal_closing else
+                         "R23_GAP2_CLOSING" if closing_mode == "gap2" else "R22_GAP_CLOSING")
         if turn in {3, 4} and required_control_sentence and required_control_sentence not in normalized:
             # v2.5: 必須文がほぼそのまま書かれ、括弧などが欠けた場合は、その文を登録文に置き換える
             parts_ = re.split(r"(?<=[。！\n])", normalized)
