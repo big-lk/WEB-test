@@ -9,9 +9,35 @@
 - サーバー：`api/aitest/core.py`（オンライン版・OpenAI）、`offline_engine.py` + `offline_corpus.py`（オフライン版・生成AIなし）
 - オフライン版ローカルサーバー：`tools/offline/serve.py` → http://127.0.0.1:8765/aitest/
 - 分析：`tools/aitest_analysis/analyze.py`、視線：`tools/aitest_analysis/eyetools/`
-- テスト：`python tests/aitest/test_offline_engine.py`、`python tests/aitest/test_v17_offline.py`、`node tests/aitest/example_sentence_test.mjs`
+- テスト：`python tests/aitest/test_offline_engine.py`、`python tests/aitest/test_v17_offline.py`、`python tests/aitest/test_model_switch.py`、`node tests/aitest/example_sentence_test.mjs`
 - 公開版：https://www.lkdesigner.top/aitest/ （オフライン版で試す：`?engine=offline`）
 - 変更を push するときは `main` と `aitest-v1.7-stability` の両方へ。
+
+## 画面の配置（2026-11-26 追加、ブランチ aitest-layout-side）
+- URL に何も付けなければ従来の配置（公開版と同じ）。`?layout=side`＝間隔だけ広げた版、`?layout=flow`＝部品を一本の流れに並べ直した版。
+  どちらも右側パネル 760px、ボタンは本文の右に縦並び、カード位置は UI A / UI B で同じ、例文の場所は確保済み。
+- side / flow の本番では、ボタンを押した後のトースト（例文作成へ誘導する表示）を出さない。練習では出す。
+- flow は `closingMode: "personal"` をサーバーに送る：第1〜5回の回答の末尾を、固定の終止文ではなく「参加者の言葉を一つ入れた、次の回の主題についての依頼文」にする。
+  疑問文にはしない（R06 は従来どおり）。条件を満たさなければ固定の終止文に戻し、`meta.closingFallback` に残す。オフライン版は固定の終止文のまま。
+  検証：`python tests/aitest/test_personal_closing.py`（偽の応答による。オンラインの実際の出力は未確認）。
+- 末尾の方式は `?closing=fixed|personal|gap` で切り替えられる（比較用）。gap＝固定の終止文の直前に「次の主題はまだ決まっていない」ことを短い陳述文で入れる。
+  同じ台本で 3 方式を並べる：`python tools/aitest_analysis/closing_compare.py`（`--engine online` は OPENAI_API_KEY が必要）。
+  オフライン版の personal / gap の文面は試作（`offline_engine.py` の PERSONAL_CLOSINGS / GAP_STATEMENTS）。正式に使う前に使用者の確認が必要。
+- ログは logging-patch-v3：`TEXT_1〜3`（カード本文）、`EXAMPLE_TEXT`、`layout`、例文作成後とパネルスクロール時の `aoi_layout`。
+- 回答とカードの自動チェック：`python tools/aitest_analysis/quality_check.py SESSION.json`（基準はプロジェクト文書「第二実験_AI応答_改善基準と達成度評価」）。
+- 配置の検証は Linux の Chrome（Noto フォント）で行った。実験機（Windows）での見え方と視線の分離は未確認。
+
+## モデルの切り替え（2026-11-27 追加、ブランチ aitest-layout-side）
+- 既定のモデルを `gpt-5.4-nano` から `gpt-6-luna` に変えた（使用者の指示。料金は Claude Haiku 5.5 と同じ 0.10 / 0.50 USD）。環境変数 `EXPERIMENT_DIALOGUE_MODEL` / `EXPERIMENT_ANALYSIS_MODEL` で変えられる
+  （従来の `OPENAI_DIALOGUE_MODEL` / `OPENAI_ANALYSIS_MODEL` も有効）。
+- 名前が `claude-` で始まるモデル（`claude-haiku-5-5`）は Claude API へ送る。鍵は `ANTHROPIC_API_KEY`。OpenAI は従来どおり `OPENAI_API_KEY`。
+- 試験用の参加者番号（`TEST-` / `PREVIEW-` / `SIMTEST-`）に限り、URL の `?model=gpt-6-luna|claude-haiku-5-5|gpt-6.1-terra|gpt-5.4-nano` で切り替えられる。
+  正式な参加者番号では無視される。使ったモデル・トークン数は各回の `meta`（dialogueModel, modelOverride, dialogueUsage など）に残る。
+- 手元で実際のモデルを試す：`.env.example` を `.env` に複製して鍵を書く（鍵は使用者が自分で書く。Claude に鍵を扱わせない）→
+  `python tools/aitest_analysis/model_compare.py --check`（接続確認）→ `python tools/aitest_analysis/model_compare.py`（台本3本×6回の比較）。
+  画面で試す：`python tools/offline/serve.py --online --open`。
+- 検証：`python tests/aitest/test_model_switch.py`（偽の通信による。**実際の API での動作は未確認**）。
+- 正式実験で Claude を使う場合は、研究計画書の「OpenAI Responses API」の記載と外部送信先の説明が変わるので、先に指導教員へ報告する。
 
 ## 守ること
 - `.env` や API キーは絶対にコミットしない。

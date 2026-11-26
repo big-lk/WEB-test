@@ -94,6 +94,7 @@
   function card(c) {
     const el = document.createElement("article");
     el.className = `criterion-card practice-item${c.priority === "中心" ? " focus" : ""}`;
+    el.dataset.priority = c.priority || "";
     el.dataset.key = c.id;
     el.innerHTML = `<div class="criterion-title"><h3></h3></div><div class="criterion-tags"><span></span></div>`
       + `<p class="criterion-label">AIはこう受け取っています</p><p class="criterion-interpretation"></p>`;

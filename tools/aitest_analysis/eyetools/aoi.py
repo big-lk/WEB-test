@@ -24,6 +24,10 @@ GROUP = {
     # v0.2（2026-11-22）：UI B のボタン行。カードより小さい矩形なので、ボタン上の注視はこちらに入り、
     # PANEL はカード本文だけになる（UI B のカードが広い分の混同を避ける。分析計画 H3）
     "BTN_1": "PANEL_BUTTONS", "BTN_2": "PANEL_BUTTONS", "BTN_3": "PANEL_BUTTONS",
+    # logging-patch-v3（2026-11-26）：カード本文だけの矩形。カード内の余白に落ちた点は hit() が
+    # 本文かボタンの近い方に割り当てるので、v3 のログでは PANEL＝本文（TEXT_n）になる。
+    "TEXT_1": "PANEL", "TEXT_2": "PANEL", "TEXT_3": "PANEL",
+    "EXAMPLE_TEXT": "EXAMPLE_B",
 }
 
 STATIC = {
@@ -48,12 +52,28 @@ def inside(x: float, y: float, r: Rect, margin: float = 0.0) -> bool:
     return rx - margin <= x <= rx + rw + margin and ry - margin <= y <= ry + rh + margin
 
 
+def _distance(x: float, y: float, r: Rect) -> float:
+    rx, ry, rw, rh = r
+    dx, dy = max(rx - x, 0.0, x - (rx + rw)), max(ry - y, 0.0, y - (ry + rh))
+    return (dx * dx + dy * dy) ** 0.5
+
+
 def hit(x: float, y: float, rects: dict[str, Rect], margin: float = 0.0) -> str:
-    """最も小さい（＝内側の）矩形を優先して返す。どこにもなければ 'OTHER'。"""
+    """最も小さい（＝内側の）矩形を優先して返す。どこにもなければ 'OTHER'。
+
+    logging-patch-v3 のログ（TEXT_n がある）では、カード内の余白（本文でもボタンでもない所）に落ちた点を、
+    同じカードの本文 TEXT_n とボタン BTN_n のうち近い方に割り当てる。視線の誤差で余白に落ちた注視を、
+    本文とボタンのどちらにも偏らせないため。TEXT_n のない古いログでは従来どおり CARD_n を返す。
+    """
     best, area = "OTHER", float("inf")
     for name, r in rects.items():
         if inside(x, y, r, margin) and r[2] * r[3] < area:
             best, area = name, r[2] * r[3]
+    if best.startswith("CARD_"):
+        n = best[5:]
+        parts = {k: rects[k] for k in (f"TEXT_{n}", f"BTN_{n}") if k in rects}
+        if f"TEXT_{n}" in parts:
+            best = min(parts, key=lambda k: _distance(x, y, parts[k]))
     return best
 
 

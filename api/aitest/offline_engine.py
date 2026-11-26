@@ -922,6 +922,50 @@ def compose_final(p: Picker, st: State, f: Features, deleg: list[str], used: str
 
 
 # ================================================================= 公開関数
+# ---- 回答の末尾の比較用（closingMode）。オフライン版では登録した型から組み立てる。文面は試作 ----------
+PERSONAL_CLOSINGS = {
+    1: "次は、「{q}」と同時に大切にしたい、別の気持ちや雰囲気を一つ加えてください。",
+    2: "次は、「{q}」という夕食で、食事中の会話や距離感など、料理以外でどんな時間にしたいかを書いてください。",
+    3: "次は、「{q}」という食卓で、二人がどう過ごしているとよいかを書いてください。",
+    4: "次は、「{q}」を踏まえて、食べ始めから食後まで、二人にとって自然な流れを書いてください。",
+    5: "最後に、「{q}」も含めて、この夕食で大切にしたいことや避けたいことを、自分の言葉でまとめてください。",
+}
+GAP_STATEMENTS = {   # 短く、「まだ決まっていないこと」だけを言う。すでに決まったことの評価はしない（修正の直後に食い違うため）
+    1: "ほかに大切にしたい気持ちや雰囲気は、まだ出ていません。",
+    2: "食べているあいだの時間は、まだ空いています。",
+    3: "食卓に座った二人の様子は、まだ描けていません。",
+    4: "食べ始めから食後までの流れは、まだ決まっていません。",
+    5: "全体のまとめが、まだ残っています。",
+}
+
+
+def quote_from(user_text: str) -> str | None:
+    """参加者の最新の入力から、そのまま引ける短い言葉を取り出す（取れなければ None）。
+
+    一文目がそのまま 30 字以内に収まるときだけ使う。途中で切った言葉や、修正・ためらいの言葉
+    （「ちょっと違います」「うーん」など）は、引くと不自然になるので使わない。
+    """
+    first = re.split(r"[。\n！!？?]", user_text.strip())[0]
+    first = re.sub(r"^(あと|あとは|それと|それから|でも|ただ|ちなみに)[、,]\s*", "", first).replace("「", "").replace("」", "").strip()
+    if re.search(r"違|うーん|えーと|いいえ|ではなく|じゃなく|^それは|なくていい", first):
+        return None
+    return first if 4 <= len(first) <= 30 else None
+
+
+def offline_closing(turn: int, text: str, mode: str, user_text: str, user_texts: list[str], anchor_text: str) -> tuple[str, bool]:
+    """固定の終止文で終わっている回答を、指定の方式の末尾に組み替える。できなければ固定のまま（True＝回退）。"""
+    fixed = core.TURN_ENDINGS[turn]
+    base = text[: -len(fixed)] if text.endswith(fixed) else text
+    if mode == "personal":
+        q = quote_from(user_text)
+        candidate = base + PERSONAL_CLOSINGS[turn].format(q=q) if q else ""
+        if candidate and not core.personal_closing_problems(turn, candidate, user_texts + [anchor_text]):
+            return candidate, False
+        return text, True
+    candidate = base + GAP_STATEMENTS[turn] + fixed
+    return (candidate, False) if not core.gap_closing_problems(turn, candidate) else (text, True)
+
+
 def run_offline(body: dict[str, Any]) -> dict[str, Any]:
     (turn, user_text, history, delegation, source_criteria, condition, session_id, anchor,
      variant) = core.validate_request_body(body)
@@ -932,8 +976,13 @@ def run_offline(body: dict[str, Any]) -> dict[str, Any]:
     st = build_state(anchor["scenarioId"], variant, anchor["freeText"], user_texts, history)
     text, nodes, required = compose(turn, st, session_id, history)
     text = core.ensure_exact_turn_ending(turn, text)
+    closing_mode, closing_fallback = "fixed", False
+    if turn <= 5 and body.get("closingMode") in ("personal", "gap"):
+        closing_mode = body["closingMode"]
+        text, closing_fallback = offline_closing(turn, text, closing_mode, user_text, user_texts, anchor["freeText"])
     codes = core.dialogue_validation_codes(turn, text, anchor["freeText"], user_text, experiment_variant=variant,
-                                           scenario_id=anchor["scenarioId"], required_sentence=required)
+                                           scenario_id=anchor["scenarioId"], required_sentence=required,
+                                           personal_closing=closing_mode == "personal" and not closing_fallback)
     criteria = [c.as_dict(c.id == st.focus) for c in st.cards]
     if sum(c["focus"] for c in criteria) != 1:
         for i, c in enumerate(criteria):
@@ -979,6 +1028,8 @@ def run_offline(body: dict[str, Any]) -> dict[str, Any]:
             "eventDelegation": None, "eventTarget": event_target, "genericStimulus": gen_info,
             "eventCardMode": "merge", "panelLock": False,
             "finalRelationInserted": bool(turn == 6 and st.e2 and st.e2["corrected_at"] is None),
+            "closingMode": closing_mode,
+            "closingFallback": closing_fallback,
             "delegationFromText": [f"{x}={s}" for x, s, _ in st.turns[-1].delegations],
             "requiredControlSentence": required or None,
             "offlineTrace": {

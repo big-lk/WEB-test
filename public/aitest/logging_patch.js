@@ -1,5 +1,8 @@
 /*
- * aitest 実験画面 ログ強化パッチ（logging_patch.js） v2（v2: UI B のボタン行を BTN_1〜3 として記録）
+ * aitest 実験画面 ログ強化パッチ（logging_patch.js） v3
+ *   v2: UI B のボタン行を BTN_1〜3 として記録
+ *   v3: カード本文の矩形 TEXT_1〜3、例文表示 EXAMPLE_TEXT、配置名 layout を記録。
+ *       例文を作った直後と、右側パネルをスクロールしたときにも aoi_layout を残す。
  * 対象：app.js v5.0.18（SESSION_SCHEMA_VERSION 8）
  *
  * 使い方：index.html の app.js の <script> の直後に 1 行追加するだけ。
@@ -17,7 +20,7 @@
  */
 (function () {
   "use strict";
-  const PATCH_VERSION = "logging-patch-v2";
+  const PATCH_VERSION = "logging-patch-v3";
   if (typeof logEvent !== "function" || typeof renderAll !== "function") {
     console.warn("[logging_patch] app.js が先に読み込まれていません");
     return;
@@ -70,9 +73,13 @@
     const answers = els.chatStage.querySelectorAll(".message.ai .message-bubble");
     const latest = clip(rect(answers[answers.length - 1]), stage);
     const cardEls = [...els.criteriaList.querySelectorAll(".criterion-card")];
-    const cards = cardEls.map(rect);
+    const listBox = rect(els.criteriaList);
+    const cards = cardEls.map((c) => clip(rect(c), listBox));
+    // カード本文（見出し・タグ・「AIはこう受け取っています」・解釈文）だけの矩形。両 UI で同じ要素を囲む
+    const texts = cardEls.map((c) => clip(union([".criterion-title", ".criterion-tags", ".criterion-label", ".criterion-interpretation"]
+      .map((sel) => rect(c.querySelector(sel)))), listBox));
     // UI B：カード内のボタン行を別の矩形として記録（小さい矩形が優先されるので、カード本文とボタンを分けて集計できる）
-    const buttons = cardEls.map((c) => rect(c.querySelector(".delegation-block")));
+    const buttons = cardEls.map((c) => clip(rect(c.querySelector(".delegation-block")), listBox));
     const rects = {
       AI_LATEST: latest,
       HISTORY: stage,  // AI_LATEST と重なる部分は、小さい矩形（AI_LATEST）が優先される
@@ -80,8 +87,10 @@
       GUIDE: union([rect(els.promptKicker), rect(els.promptText), rect(els.guideText), rect(els.turnAnchor)]),
       HELP: rect(els.insightHelp),
       CARD_1: cards[0] || null, CARD_2: cards[1] || null, CARD_3: cards[2] || null,
+      TEXT_1: texts[0] || null, TEXT_2: texts[1] || null, TEXT_3: texts[2] || null,
       BTN_1: buttons[0] || null, BTN_2: buttons[1] || null, BTN_3: buttons[2] || null,
-      EXAMPLE: session?.condition === "UI_B" ? rect(els.exampleAssist) : null
+      EXAMPLE: session?.condition === "UI_B" ? rect(els.exampleAssist) : null,
+      EXAMPLE_TEXT: session?.condition === "UI_B" ? rect(els.exampleGuide) : null
     };
     Object.keys(rects).forEach((k) => { if (!rects[k]) delete rects[k]; });
     return rects;
@@ -92,10 +101,11 @@
     markPatched();
     const rects = currentLayout();
     const json = JSON.stringify(rects);
-    if (json === lastLayoutJson && reason === "scroll") return;
+    if (json === lastLayoutJson && (reason === "scroll" || reason === "panel_scroll")) return;
     lastLayoutJson = json;
     pushQuiet("aoi_layout", { reason, at: isoNow(), scrollTop: Math.round(els.chatStage.scrollTop),
       fullscreen: Boolean(document.fullscreenElement), dpr: devicePixelRatio,
+      layout: document.documentElement.dataset.layout || "default",
       viewport: [innerWidth, innerHeight], rects });
   }
   const afterPaint = (fn) => requestAnimationFrame(() => requestAnimationFrame(fn));
@@ -135,6 +145,18 @@
       logLayout("scroll");
     }, 100);
   }, { passive: true });
+  // 右側パネル（カード一覧）のスクロール：通常は起きないが、起きたらカード位置が変わるので残す
+  let panelScrollTimer = null;
+  els.criteriaList.addEventListener("scroll", () => {
+    if (panelScrollTimer) return;
+    panelScrollTimer = setTimeout(() => {
+      panelScrollTimer = null;
+      pushQuiet("panel_scroll", { scrollTop: Math.round(els.criteriaList.scrollTop) });
+      logLayout("panel_scroll");
+    }, 100);
+  }, { passive: true });
+  // 例文を作った直後：例文表示の位置（EXAMPLE_TEXT）と、変化した配置を残す
+  els.createExample?.addEventListener("click", () => afterPaint(() => logLayout("example")));
   window.addEventListener("resize", () => afterPaint(() => logLayout("resize")));
   document.addEventListener("fullscreenchange", () => afterPaint(() => logLayout("fullscreen")));
 

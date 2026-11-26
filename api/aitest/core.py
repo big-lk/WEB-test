@@ -16,6 +16,7 @@ import socket
 import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 import webbrowser
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -42,8 +43,20 @@ RATE_LIMIT_STATE: dict[str, list[float]] = {}
 RATE_LIMIT_LOCK = threading.Lock()
 
 API_URL = "https://api.openai.com/v1/responses"
-DIALOGUE_MODEL = os.environ.get("OPENAI_DIALOGUE_MODEL", "gpt-5.4-nano")
-ANALYSIS_MODEL = os.environ.get("OPENAI_ANALYSIS_MODEL", "gpt-5.4-nano")
+ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
+ANTHROPIC_VERSION = "2023-06-01"
+# モデルの切り替え（2026-11-27）。
+# ・既定は gpt-6-luna（それまでは gpt-5.4-nano）。環境変数 EXPERIMENT_DIALOGUE_MODEL / EXPERIMENT_ANALYSIS_MODEL で変える
+#   （従来の OPENAI_DIALOGUE_MODEL / OPENAI_ANALYSIS_MODEL もそのまま使える）。
+# ・名前が "claude-" で始まるモデルは Claude API（ANTHROPIC_API_KEY）、それ以外は OpenAI Responses API（OPENAI_API_KEY）へ送る。
+# ・試験用の参加者番号（TEST- / PREVIEW- / SIMTEST-）に限り、リクエストの model で下の候補へ切り替えられる（?model=…）。
+#   正式な参加者番号では無視されるので、参加者ごとにモデルが変わることはない。
+DEFAULT_MODEL = "gpt-6-luna"
+DIALOGUE_MODEL = (os.environ.get("EXPERIMENT_DIALOGUE_MODEL") or os.environ.get("OPENAI_DIALOGUE_MODEL") or DEFAULT_MODEL).strip()
+ANALYSIS_MODEL = (os.environ.get("EXPERIMENT_ANALYSIS_MODEL") or os.environ.get("OPENAI_ANALYSIS_MODEL") or DEFAULT_MODEL).strip()
+TEST_MODEL_CHOICES = {m.strip() for m in os.environ.get(
+    "EXPERIMENT_TEST_MODELS", "gpt-6-luna,claude-haiku-5-5,gpt-6.1-terra,gpt-5.4-nano").split(",") if m.strip()}
+TEST_ID_PREFIXES = ("TEST-", "PREVIEW-", "SIMTEST-")
 PROMPT_VERSION = "judgment-delegation-guided-turns-v2.7"
 # v2.8: 生成AIを使わないオフライン版（offline_engine）。EXPERIMENT_ENGINE=offline、またはリクエストの engine="offline" で使う。
 OFFLINE_DEFAULT = os.environ.get("EXPERIMENT_ENGINE", "").strip().lower() == "offline"
@@ -143,6 +156,85 @@ TURN_ENDINGS = {
     5: "最後に、この夕食で大切にしたいことや避けたいことを、自分の言葉でまとめてください。",
     6: "現在の方針は以上です。未決定の部分は残したまま、実行に必要な内容だけを整理しました。",
 }
+
+# closingMode="personal"（画面の ?layout=flow が送る）で使う。
+# flow 配置では今回の案内が入力欄のすぐ上にあるので、回答の末尾を毎回同じ終止文にせず、
+# 「参加者が書いた言葉を一つ入れた、次の回の主題についての依頼文」で終える。
+# 疑問文にはしない（R06 のとおり、AI は参加者に質問しない）。言葉の意味や優先順位も尋ねない（第3・4回のずれを先に解いてしまうため）。
+# 条件を満たす末尾が得られなかったときは、従来の固定の終止文に戻す。
+NEXT_TURN_THEMES = {
+    1: "この目標と同時に大切にしたい、別の気持ちや雰囲気",
+    2: "食事中の会話や距離感など、料理以外でどんな時間にしたいか",
+    3: "この案の食卓で、二人がどう過ごしているとよいか",
+    4: "食べ始めから食後までの、二人にとって自然な流れ",
+    5: "この夕食で最後に大切にしたいことや避けたいこと",
+}
+NEXT_TURN_THEME_WORDS = {
+    1: ("気持ち", "雰囲気"), 2: ("会話", "距離", "時間", "過ごし"), 3: ("食卓", "過ごし", "様子"),
+    4: ("流れ", "食べ始め", "食後"), 5: ("大切", "避けたい", "まとめ"),
+}
+PERSONAL_CLOSING_MAX = 90
+# closingMode="gap"（比較用）：固定の終止文はそのまま使い、その直前に
+# 「次の回の主題はまだ決まっていないこと」だけを短い陳述文で一文入れる。
+# 参加者が、計画のどこが空いているかを回答から読み取れるようにする案。
+NEXT_TURN_GAPS = {
+    1: "同時に大切にしたい別の気持ちや雰囲気は、まだ出ていない",
+    2: "食事中の会話や距離感など、料理以外の時間は、まだ何も決まっていない",
+    3: "実際に食卓に座った二人の様子は、まだ描けていない",
+    4: "食べ始めから食後までの流れは、まだ決まっていない",
+    5: "全体として大切にしたいことと避けたいことのまとめが、まだ残っている",
+}
+
+
+def personal_closing_problems(turn: int, text: str, user_texts: list[str]) -> list[str]:
+    """closingMode="personal" の末尾の一文が条件を満たさない理由を返す（空なら合格）。"""
+    sentences = [x.strip() for x in re.split(r"(?<=[。！？?\n])", text.rstrip()) if x.strip()]
+    last = sentences[-1] if sentences else ""
+    problems: list[str] = []
+    if not last or last == TURN_ENDINGS[turn]:
+        problems.append("fixed_or_empty")
+    if not last.endswith("ください。"):
+        problems.append("not_request")
+    if len(last) > PERSONAL_CLOSING_MAX:
+        problems.append("too_long")
+    if re.search(r"[？?]|それとも|どちら|どっち|とは、?(何|どういう|どんな)|意味|一番大切|最も大切|優先", last):
+        problems.append("probing")
+    if not any(word in last for word in NEXT_TURN_THEME_WORDS[turn]):
+        problems.append("off_theme")
+    said = "\n".join(user_texts)
+    compact = re.sub(r"[\s、。「」『』（）()・]", "", last)
+    shared = [compact[i:i + 4] for i in range(len(compact) - 3)
+              if compact[i:i + 4] in said and re.search(r"[\u30a0-\u30ff\u4e00-\u9fff]", compact[i:i + 4])]
+    if not shared:
+        problems.append("no_user_words")
+    return problems
+
+
+def gap_closing_problems(turn: int, text: str) -> list[str]:
+    """closingMode="gap"：固定の終止文の直前の一文が「まだ決まっていないこと」を述べているかを見る（空なら合格）。"""
+    stripped = text.rstrip()
+    if not stripped.endswith(TURN_ENDINGS[turn]):
+        return ["no_fixed_ending"]
+    sentences = [x.strip() for x in re.split(r"(?<=[。！？?\n])", stripped[: -len(TURN_ENDINGS[turn])]) if x.strip()]
+    before = sentences[-1] if sentences else ""
+    problems: list[str] = []
+    if "まだ" not in before:
+        problems.append("no_gap_statement")
+    if not any(word in before for word in NEXT_TURN_THEME_WORDS[turn]):
+        problems.append("gap_off_theme")
+    if len(before) > PERSONAL_CLOSING_MAX:
+        problems.append("too_long")
+    if re.search(r"[？?]", before):
+        problems.append("question")
+    return problems
+
+
+def replace_with_fixed_closing(turn: int, text: str) -> str:
+    """個別の末尾が条件を満たさなかったとき：依頼文の形の末尾は取り除き、従来の固定の終止文を付ける。"""
+    sentences = [x for x in re.split(r"(?<=[。！？?\n])", text.rstrip()) if x.strip()]
+    if sentences and sentences[-1].strip().endswith("ください。") and len(sentences) > 1:
+        sentences = sentences[:-1]
+    return ensure_exact_turn_ending(turn, "".join(sentences))
 
 TURN_DIRECTIVES = {
     1: """
@@ -515,6 +607,7 @@ def dialogue_validation_codes(
     experiment_variant: str = "standard",
     scenario_id: str = "",
     required_sentence: str = "",
+    personal_closing: bool = False,
 ) -> list[str]:
     compact = re.sub(r"\s+", "", text)
     has_required = bool(required_sentence) and required_sentence in text
@@ -564,7 +657,7 @@ def dialogue_validation_codes(
     ]
     if any(term in text for term in forbidden):
         codes.append("R07_TARGET_EXPOSURE")
-    if not text.rstrip().endswith(TURN_ENDINGS[turn]):
+    if not personal_closing and not text.rstrip().endswith(TURN_ENDINGS[turn]):
         codes.append("R08_JAPANESE_ENDING")
     dinner_terms = [
         "夕食",
@@ -748,6 +841,8 @@ VALIDATION_GUIDANCE = {
     "R06_DIRECT_QUESTION": "疑問文をすべて削除し、指定の陳述文で終えてください",
     "R07_TARGET_EXPOSURE": "研究目的や修正を直接求める表現を削除してください",
     "R08_JAPANESE_ENDING": "指定された日本語の終止文を一字も変えず末尾に置いてください",
+    "R22_GAP_CLOSING": "指定された終止文の直前に、次の回の主題がまだ決まっていないことを「まだ」を使った陳述文で一文入れてください。疑問文にはしないでください",
+    "R21_PERSONAL_CLOSING": "末尾の一文を、次の回の主題についての依頼文（「〜を書いてください。」で終える）にし、参加者が書いた言葉を一つそのまま入れてください。疑問文にせず、言葉の意味や優先順位は尋ねないでください",
     "R09_DINNER_CONTEXT": "料理または食事中の過ごし方へ明確につないでください",
     "R10_FIXATION_MISSING": "一つの多義的価値を、合理的だが狭い一つの意味として確定口調で具体化してください",
     "R11_PRIORITY_PROXY_MISSING": "二つの既存価値に優先関係を置き、一方が具体案で弱まることを示してください",
@@ -790,7 +885,173 @@ def output_text(response: dict[str, Any]) -> str:
     return text
 
 
+def provider_of(model: str) -> str:
+    return "anthropic" if str(model).startswith("claude-") else "openai"
+
+
+def provider_key_present(model: str) -> bool:
+    name = "ANTHROPIC_API_KEY" if provider_of(model) == "anthropic" else "OPENAI_API_KEY"
+    return bool(os.environ.get(name, "").strip())
+
+
+def resolve_models(body: dict[str, Any], session_id: str) -> tuple[str, str, bool]:
+    """このリクエストで使う（会話AI, 分析AI, 切り替えたか）。切り替えは試験用の参加者番号と登録済みの候補に限る。"""
+    if not str(session_id).upper().startswith(TEST_ID_PREFIXES):
+        return DIALOGUE_MODEL, ANALYSIS_MODEL, False
+    requested = body.get("model")
+    dialogue = requested if isinstance(requested, str) and requested in TEST_MODEL_CHOICES else None
+    requested_analysis = body.get("analysisModel")
+    analysis = requested_analysis if isinstance(requested_analysis, str) and requested_analysis in TEST_MODEL_CHOICES else dialogue
+    if not dialogue and not analysis:
+        return DIALOGUE_MODEL, ANALYSIS_MODEL, False
+    return dialogue or DIALOGUE_MODEL, analysis or ANALYSIS_MODEL, True
+
+
+def usage_summary(raw: dict[str, Any]) -> dict[str, int] | None:
+    usage = raw.get("usage") if isinstance(raw, dict) else None
+    if not isinstance(usage, dict):
+        return None
+    return {key: usage[key] for key in ("input_tokens", "output_tokens") if isinstance(usage.get(key), int)} or None
+
+
+def call_model(payload: dict[str, Any]) -> tuple[str, dict[str, Any], float]:
+    """モデル名で送り先を決める。payload は OpenAI Responses API の形のまま受け取る。"""
+    if provider_of(payload.get("model", "")) == "anthropic":
+        return call_anthropic(payload)
+    return call_openai(payload)
+
+
+# Claude API の構造化出力が受け付けない制約。検証は従来どおりこちら側（parser）で行うので、
+# スキーマからは外して description に書き写すだけにする。
+ANTHROPIC_UNSUPPORTED_SCHEMA_KEYS = ("minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf",
+                                     "minLength", "maxLength", "maxItems")
+
+
+def anthropic_schema(node: Any) -> Any:
+    if isinstance(node, list):
+        return [anthropic_schema(item) for item in node]
+    if not isinstance(node, dict):
+        return node
+    out: dict[str, Any] = {}
+    notes: list[str] = []
+    for key, value in node.items():
+        if key in ANTHROPIC_UNSUPPORTED_SCHEMA_KEYS or (key == "minItems" and isinstance(value, int) and value > 1):
+            notes.append(f"{key}: {value}")
+        elif key in {"properties", "$defs", "definitions"} and isinstance(value, dict):
+            out[key] = {name: anthropic_schema(sub) for name, sub in value.items()}
+        elif key in {"items", "anyOf", "allOf", "oneOf"}:
+            out[key] = anthropic_schema(value)
+        else:
+            out[key] = value
+    if notes:
+        out["description"] = "、".join(filter(None, [str(out.get("description", "")).strip(), "（" + "、".join(notes) + "）"]))
+    return out
+
+
+def anthropic_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    """OpenAI Responses API 形の payload を Claude Messages API の形へ写す。
+    ・instructions → system、input → user の一通。末尾に assistant の書き出しは置かない（Claude Haiku 5.5 は 400 を返す）。
+    ・temperature などは送らない。考える量は output_config.effort で指定する（thinking は既定の adaptive のまま）。
+    ・考えるためのトークンも max_tokens に数えられ、同じ文章でもトークン数が多めになるので、上限は広めにとる。"""
+    out: dict[str, Any] = {
+        "model": payload["model"],
+        "max_tokens": max(4096, int(payload.get("max_output_tokens") or 0) * 2),
+        "system": payload.get("instructions", ""),
+        "messages": [{"role": "user", "content": payload.get("input", "")}],
+    }
+    config: dict[str, Any] = {}
+    effort = (payload.get("reasoning") or {}).get("effort")
+    if effort in {"low", "medium", "high"}:
+        config["effort"] = effort
+    fmt = (payload.get("text") or {}).get("format") or {}
+    if fmt.get("type") == "json_schema" and isinstance(fmt.get("schema"), dict):
+        config["format"] = {"type": "json_schema", "schema": anthropic_schema(fmt["schema"])}
+    if config:
+        out["output_config"] = config
+    if payload.get("safety_identifier"):
+        out["metadata"] = {"user_id": str(payload["safety_identifier"])}
+    return out
+
+
+def call_anthropic(payload: dict[str, Any]) -> tuple[str, dict[str, Any], float]:
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
+    if not api_key:
+        raise ExperimentError("T01_API_KEY_MISSING", "ANTHROPIC_API_KEY is not configured.", stage="api", status=503)
+    request = urllib.request.Request(
+        ANTHROPIC_API_URL,
+        data=json.dumps(anthropic_payload(payload), ensure_ascii=False).encode("utf-8"),
+        headers={"x-api-key": api_key, "anthropic-version": ANTHROPIC_VERSION, "Content-Type": "application/json"},
+        method="POST",
+    )
+    started = time.perf_counter()
+    try:
+        with urllib.request.urlopen(request, timeout=90) as response:
+            data = json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")
+        try:
+            message = str((json.loads(detail).get("error") or {}).get("message", detail))
+        except (json.JSONDecodeError, AttributeError):
+            message = detail
+        quota = "credit balance" in message.lower() or "billing" in message.lower()
+        code = "T03_QUOTA_EXCEEDED" if quota else "T03_RATE_LIMIT" if exc.code == 429 else "T02_API_REJECTED"
+        raise ExperimentError(
+            code,
+            f"Claude API: {redact_secret(message)}",
+            stage="api",
+            retryable=not quota and (exc.code >= 500 or exc.code == 429),
+        ) from exc
+    except (urllib.error.URLError, TimeoutError, socket.timeout) as exc:
+        raise ExperimentError("T04_NETWORK_FAILURE", "Claude API request failed.", stage="api", retryable=True) from exc
+    except json.JSONDecodeError as exc:
+        raise ExperimentError("T04_INVALID_API_RESPONSE", "Claude API returned invalid JSON.", stage="api", retryable=True) from exc
+    latency = round((time.perf_counter() - started) * 1000, 1)
+    stop = data.get("stop_reason")
+    if stop == "refusal":
+        raise ExperimentError("T04_MODEL_REFUSAL", "Claude API declined the request.", stage="api", retryable=True)
+    if stop == "max_tokens":
+        raise ExperimentError("T04_INCOMPLETE_API_RESPONSE", "Claude API response was incomplete.", stage="api", retryable=True)
+    # thinking ブロックが先に来ることがあるので、位置ではなく type で本文を選ぶ
+    text = "".join(block.get("text", "") for block in data.get("content", []) if block.get("type") == "text").strip()
+    if not text:
+        raise ExperimentError("T04_EMPTY_API_RESPONSE", "AI response was empty.", stage="api", retryable=True)
+    return text, data, latency
+
+
+# モデルによって受け付けない可能性がある、内容に関わらない補助的な指定。拒否されたときだけ外して一度だけ送り直す。
+OPENAI_OPTIONAL_PARAMS = ("verbosity", "safety_identifier")
+
+
+def without_rejected_params(payload: dict[str, Any], message: str) -> tuple[dict[str, Any], list[str]] | None:
+    lowered = message.lower()
+    if not any(word in lowered for word in ("unsupported", "not supported", "unknown parameter", "unrecognized")):
+        return None
+    dropped = [name for name in OPENAI_OPTIONAL_PARAMS if name in lowered]
+    if not dropped:
+        return None
+    reduced = dict(payload)
+    if "safety_identifier" in dropped:
+        reduced.pop("safety_identifier", None)
+    if "verbosity" in dropped and isinstance(reduced.get("text"), dict):
+        reduced["text"] = {k: v for k, v in reduced["text"].items() if k != "verbosity"}
+        if not reduced["text"]:
+            reduced.pop("text")
+    return reduced, dropped
+
+
 def call_openai(payload: dict[str, Any]) -> tuple[str, dict[str, Any], float]:
+    try:
+        return openai_request(payload)
+    except ExperimentError as exc:
+        fallback = without_rejected_params(payload, str(exc)) if exc.code == "T02_API_REJECTED" else None
+        if fallback is None:
+            raise
+        text, data, latency = openai_request(fallback[0])
+        data["droppedParams"] = fallback[1]
+        return text, data, latency
+
+
+def openai_request(payload: dict[str, Any]) -> tuple[str, dict[str, Any], float]:
     api_key = os.environ.get("OPENAI_API_KEY", "").strip()
     if not api_key:
         raise ExperimentError("T01_API_KEY_MISSING", "OPENAI_API_KEY is not configured.", stage="api", status=503)
@@ -849,7 +1110,7 @@ def run_validated_stage(
     working = dict(payload)
     for number in range(1, max_attempts + 1):
         try:
-            text, raw, latency = call_openai(working)
+            text, raw, latency = call_model(working)
         except ExperimentError as exc:
             attempts.append({"attempt": number, "status": "api_error", "exceptionCode": exc.code})
             if number < max_attempts and exc.retryable:
@@ -1539,7 +1800,7 @@ def least_overlapping(candidates: list[str], participant_text: str) -> str:
 
 
 def generate_generic_stimulus(turn: int, variant: str, anchor: dict[str, str], history: list[dict[str, str]],
-                              user_text: str) -> tuple[str, dict[str, Any]]:
+                              user_text: str, analysis_model: str | None = None) -> tuple[str, dict[str, Any]]:
     scenario = anchor["scenarioId"]
     early = anchor["freeText"] + "".join(r["content"] for r in history if r["role"] == "user")
     participant_text = early + user_text
@@ -1561,7 +1822,7 @@ def generate_generic_stimulus(turn: int, variant: str, anchor: dict[str, str], h
     else:
         demoted = ""
         payload = {
-            "model": ANALYSIS_MODEL, "instructions": GENERIC_EXTRACT_INSTRUCTIONS,
+            "model": analysis_model or ANALYSIS_MODEL, "instructions": GENERIC_EXTRACT_INSTRUCTIONS,
             "input": f"事前の一文: {anchor['freeText']}\n参加者の入力:\n" + "\n".join(
                 [r["content"] for r in history if r["role"] == "user"] + [user_text]),
             "reasoning": {"effort": "low"},
@@ -1571,7 +1832,7 @@ def generate_generic_stimulus(turn: int, variant: str, anchor: dict[str, str], h
         }
         for _ in range(2):
             try:
-                text, _, latency = call_openai(payload)
+                text, _, latency = call_model(payload)
                 value = json.loads(text).get("demoted", "").strip().rstrip("。")
                 info["attempts"].append({"latencyMs": round(latency), "value": value})
                 if 4 <= len(value) <= 22 and value.endswith("こと") and re.search(r"[\u3040-\u30ff]", value):
@@ -1729,11 +1990,24 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         experiment_variant,
     ) = validate_request_body(body)
     safety_id = hashlib.sha256(session_id.encode("utf-8")).hexdigest()[:32]
+    dialogue_model, analysis_model, model_override = resolve_models(body, session_id)
     control_event = CONTROL_EVENTS[turn]
     card_mode = "separate" if body.get("eventCardMode") == "separate" else "merge"
     # v2.5: パネル固定（v2.3 のボタン由来の除外・v2.4 の固定維持）は比較用の任意設定。既定は無効。
     # 正式実験では右側パネルは常に「AIの読み取り内容」であり、UI B のボタンはパネルにも AI にも作用しない。
     panel_lock = body.get("panelLock") is True
+    # flow 配置：回答の末尾を、参加者の言葉を入れた依頼文にする（第6回の終止文は従来どおり）
+    closing_mode = body.get("closingMode") if body.get("closingMode") in {"personal", "gap"} and turn <= 5 else "fixed"
+    personal_closing = closing_mode == "personal"
+    all_user_texts = [row["content"] for row in history[0::2]] + [user_text, anchor["freeText"]]
+
+    def finish_ending(text: str) -> str:
+        return text.rstrip() if personal_closing else ensure_exact_turn_ending(turn, text)
+
+    def closing_problems(text: str) -> list[str]:
+        if closing_mode == "personal":
+            return personal_closing_problems(turn, text, all_user_texts)
+        return gap_closing_problems(turn, text) if closing_mode == "gap" else []
     previous_raw = body.get("previousCriteria", [])
     previous_criteria: list[dict[str, str]] = []
     if isinstance(previous_raw, list):
@@ -1750,7 +2024,8 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     strong_stimulus = experiment_variant == "strong_ambiguity" and turn in {3, 4}
     generic_info: dict[str, Any] | None = None
     if experiment_variant in GENERIC_VARIANTS and turn in {3, 4}:
-        required_control_sentence, generic_info = generate_generic_stimulus(turn, experiment_variant, anchor, history, user_text)
+        required_control_sentence, generic_info = generate_generic_stimulus(
+            turn, experiment_variant, anchor, history, user_text, analysis_model)
     elif strong_stimulus:
         required_control_sentence = strong_ambiguity_sentence(anchor["scenarioId"], turn)
     elif turn == 3:
@@ -1796,13 +2071,19 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         f"{'今回の強制文（一字も変えず、可視回答に正確に含める）: ' + required_control_sentence if required_control_sentence else ''}\n"
         f"可視回答の長さ: {visible_length_target}、1〜2段落。"
         f"{' 強制文は最新入力への短い応答に続く第2文として、冒頭160字以内に置く。' if required_control_sentence else ''}\n"
-        f"必須の末尾: {TURN_ENDINGS[turn]}\n"
-        f"事前場面: {anchor['scenarioLabel']}\n"
+        + (f"末尾の一文: 次の回の主題「{NEXT_TURN_THEMES[turn]}」について書いてもらう依頼の一文で終える。"
+           f"その一文には、参加者がこれまでに書いた具体的な言葉を一つそのまま入れる。疑問文にしない（「〜を書いてください。」で終える）。"
+           f"参加者の言葉の意味や優先順位は尋ねない。{PERSONAL_CLOSING_MAX}字以内。\n"
+           if personal_closing else
+           (f"末尾の直前の一文: {NEXT_TURN_GAPS[turn]}ことだけを、「まだ」を使った短い陳述文で述べる"
+            f"（疑問文にしない。すでに決まったことの評価はしない。必須の末尾と同じ言い回しを繰り返さない。40字以内）。\n" if closing_mode == "gap" else "")
+           + f"必須の末尾: {TURN_ENDINGS[turn]}\n")
+        + f"事前場面: {anchor['scenarioLabel']}\n"
         f"事前の一文: {anchor['freeText']}\n"
         f"対話:\n{transcript_text(history, user_text)}"
     )
     dialogue_payload = {
-        "model": DIALOGUE_MODEL,
+        "model": dialogue_model,
         "instructions": DIALOGUE_INSTRUCTIONS,
         "input": dialogue_input,
         "reasoning": {"effort": "medium" if turn in {3, 4} else "low"},
@@ -1826,8 +2107,10 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     final_relation_inserted: list[str] = []
 
     def parse_dialogue_candidate(text: str) -> tuple[str, list[str]]:
-        normalized = ensure_exact_turn_ending(turn, drop_participant_voice(text, turn))
+        normalized = finish_ending(drop_participant_voice(text, turn))
         extra = []
+        if closing_problems(normalized):
+            extra.append("R21_PERSONAL_CLOSING" if personal_closing else "R22_GAP_CLOSING")
         if turn in {3, 4} and required_control_sentence and required_control_sentence not in normalized:
             # v2.5: 必須文がほぼそのまま書かれ、括弧などが欠けた場合は、その文を登録文に置き換える
             parts_ = re.split(r"(?<=[。！\n])", normalized)
@@ -1863,6 +2146,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
                 experiment_variant=experiment_variant,
                 scenario_id=anchor["scenarioId"],
                 required_sentence=required_control_sentence,
+                personal_closing=personal_closing,
             ),
         )
 
@@ -1875,12 +2159,13 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
                 parts = re.split(r"(?<=[。！？?\n])", text)
                 kept = [x for x in parts if not re.search(r"[？?，；]", x)
                         and not any(term in x for term in DIALOGUE_FORBIDDEN_TERMS)]
-                cleaned = ensure_exact_turn_ending(turn, "".join(kept))
+                cleaned = finish_ending("".join(kept))
                 if required_control_sentence and required_control_sentence not in cleaned:
-                    cleaned = ensure_exact_turn_ending(turn, insert_control_sentence(cleaned, required_control_sentence))
+                    cleaned = finish_ending(insert_control_sentence(cleaned, required_control_sentence))
                 left = dialogue_validation_codes(turn, cleaned, anchor["freeText"], user_text,
                                                  experiment_variant=experiment_variant, scenario_id=anchor["scenarioId"],
-                                                 required_sentence=required_control_sentence)
+                                                 required_sentence=required_control_sentence,
+                                                 personal_closing=personal_closing)
                 if not (set(left) & HARD_DIALOGUE_CODES):
                     usable.append((cleaned, raw, latency, ["SANITIZED"] + left))
             if not usable:
@@ -1889,7 +2174,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         text, raw, latency, codes = usable[0]
         note = "soft_accepted:" + "+".join(codes)
         if required_control_sentence and required_control_sentence not in text:
-            text = ensure_exact_turn_ending(turn, insert_control_sentence(text, required_control_sentence))
+            text = finish_ending(insert_control_sentence(text, required_control_sentence))
             note = "control_sentence_inserted:" + "+".join(codes)
         return text, raw, latency, note
 
@@ -1900,6 +2185,12 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         max_attempts=3,
         soft_accept=soft_accept_dialogue,
     )
+    # 個別の末尾が最後まで条件を満たさなかった場合は、従来の固定の終止文に戻す（参加者には必ず次の依頼が出る）
+    closing_fallback = False
+    if closing_problems(dialogue):
+        if personal_closing:
+            dialogue = replace_with_fixed_closing(turn, dialogue)
+        closing_fallback = True   # gap：固定の終止文はすでに付いているので、文面は変えずに記録だけ残す
 
     analysis_input = (
         f"ターン: {turn}/6\n"
@@ -1912,7 +2203,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         f"対話全文:\n{transcript_text(history, user_text, dialogue)}"
     )
     analysis_payload = {
-        "model": ANALYSIS_MODEL,
+        "model": analysis_model,
         "instructions": ANALYSIS_INSTRUCTIONS,
         "input": analysis_input,
         "reasoning": {"effort": "low"},
@@ -1925,7 +2216,9 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
                 "schema": ANALYSIS_SCHEMA,
             },
         },
-        "max_output_tokens": 1000,
+        # 1000 では、入力が最も長くなる第6回で応答が途中で切れる（status=incomplete）ことがあった
+        # （2026-11-26 TEST-01：2回とも T04_INCOMPLETE_API_RESPONSE で分析が回退）。上限だけを広げる。
+        "max_output_tokens": 2400,
         "store": False,
         "safety_identifier": safety_id,
     }
@@ -2113,8 +2406,12 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
             "ambiguityTableScenario": anchor["scenarioId"] if strong_stimulus else None,
         },
         "meta": {
-            "dialogueModel": DIALOGUE_MODEL,
-            "analysisModel": ANALYSIS_MODEL,
+            "dialogueModel": dialogue_model,
+            "analysisModel": analysis_model,
+            "modelOverride": model_override,
+            "dialogueUsage": usage_summary(dialogue_raw),
+            "analysisUsage": usage_summary(analysis_raw),
+            "droppedParams": sorted(set(dialogue_raw.get("droppedParams", [])) | set(analysis_raw.get("droppedParams", []))),
             "dialogueResponseId": dialogue_raw.get("id"),
             "analysisResponseId": analysis_raw.get("id"),
             "dialogueLatencyMs": dialogue_latency,
@@ -2137,6 +2434,8 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
             "eventCardMode": card_mode,
             "panelLock": panel_lock,
             "finalRelationInserted": bool(final_relation_inserted),
+            "closingMode": closing_mode,
+            "closingFallback": closing_fallback,
             "delegationFromText": delegation_from_text,
             "requiredControlSentence": required_control_sentence or None,
         },
@@ -2217,11 +2516,19 @@ class Handler(SimpleHTTPRequestHandler):
             return
         if app_path == "/api/health":
             offline = OFFLINE_DEFAULT or "engine=offline" in self.path
+            asked = urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query).get("model", [""])[0]
+            health_model = asked if asked in TEST_MODEL_CHOICES else ""
             self.send_json(
                 200,
                 {
                     "ok": True,
-                    "configured": True if offline else bool(os.environ.get("OPENAI_API_KEY", "").strip()),
+                    # ?model=… 付き（試験用の切り替え）のときは、そのモデルの鍵があるかで答える
+                    "configured": True if offline else (
+                        provider_key_present(health_model) if health_model
+                        else provider_key_present(DIALOGUE_MODEL) and provider_key_present(ANALYSIS_MODEL)),
+                    "providerKeys": {"openai": bool(os.environ.get("OPENAI_API_KEY", "").strip()),
+                                     "anthropic": bool(os.environ.get("ANTHROPIC_API_KEY", "").strip())},
+                    "testModels": sorted(TEST_MODEL_CHOICES),
                     "engine": "offline" if offline else "online",
                     "dialogueModel": "offline-tree" if offline else DIALOGUE_MODEL,
                     "analysisModel": "offline-tree" if offline else ANALYSIS_MODEL,

@@ -50,9 +50,17 @@ const TURN_PROMPTS = [
 const QUERY = new URLSearchParams(location.search);
 const PREVIEW_MODE = QUERY.get("preview") === "1";
 const EMBED_MODE = QUERY.get("embed") === "1" || window.self !== window.top;
+// 視線計測用の配置。指定がなければ従来の配置のまま。機能と記録内容は変えない。
+//   ?layout=side … 右側パネルを広げ、判断分担ボタンをカード本文の右に置く（文言は従来どおり）。
+//   ?layout=flow … side に加えて、画面の部品を「回答を読む → 右側を見る → 入力する」の一本の流れに並べ直す。
+//                  今回の案内を入力欄のすぐ上に移す。右側上部の説明を1行にする。優先度のタグは「高い」のカードだけに出す。
+//                  カードごとの「AIはこう受け取っています」と、例文作成後のトーストは出さない。
+const LAYOUT_VARIANT = ["side", "flow"].includes(QUERY.get("layout")) ? QUERY.get("layout") : "default";
+document.documentElement.dataset.layout = LAYOUT_VARIANT;
 // v2.8: ?engine=offline で生成AIを使わないオフライン版（登録済みの文から回答を組み立てる）
 const ENGINE = QUERY.get("engine") === "offline" ? "offline" : "online";
-const API_HEALTH_URL = new URL("../api/aitest/health" + (ENGINE === "offline" ? "?engine=offline" : ""), document.baseURI);
+const API_HEALTH_URL = new URL("../api/aitest/health" + (ENGINE === "offline" ? "?engine=offline"
+  : QUERY.get("model") ? "?model=" + encodeURIComponent(QUERY.get("model")) : ""), document.baseURI);
 const API_TURN_URL = new URL("../api/aitest/turn", document.baseURI);
 const REVIEW_TURNS = [2, 3, 4, 6];
 
@@ -139,7 +147,8 @@ function newSession(participantId, condition, experimentVariant = "standard") {
     completedAt: null,
     environment: {
       screenWidth: screen.width, screenHeight: screen.height, viewportWidth: innerWidth,
-      viewportHeight: innerHeight, pixelRatio: devicePixelRatio, userAgent: navigator.userAgent
+      viewportHeight: innerHeight, pixelRatio: devicePixelRatio, userAgent: navigator.userAgent,
+      layoutVariant: LAYOUT_VARIANT
     },
     aiModels: apiModels,
     pretest: null,
@@ -292,6 +301,8 @@ function startTask(resuming = false) {
   els.insightHelp.textContent = session.condition === "UI_B"
     ? "本文はAIの解釈、タグはAIが置いた優先度です。ボタンは例文づくりのためのもので、カードはAIの読み取りとして毎回更新されます。AIに伝わるのは、あなたが送信した文章です。"
     : "本文はAIの解釈、タグはAIが置いた優先度を表します。";
+  // flow：右側上部の説明は両 UI 共通の1行にする（ボタンと例文の説明は、課題説明と練習で伝える）
+  if (LAYOUT_VARIANT === "flow") els.insightHelp.textContent = "AIがあなたの希望をどう受け取ったかを表示します。";
   showOnly(els.appShell);
   renderAll();
   if (!resuming) logEvent("task_started", { condition: session.condition });
@@ -408,6 +419,7 @@ function renderCriteria() {
     const card = document.createElement("article");
     card.className = `criterion-card${criterion.focus ? " focus" : ""}`;
     card.dataset.key = key;
+    card.dataset.priority = criterion.priority || "";
     const heading = document.createElement("div");
     heading.className = "criterion-title";
     const h3 = document.createElement("h3");
@@ -470,7 +482,9 @@ function createDelegationControl(key, selectedValue, readOnly) {
         item.classList.toggle("selected", selected);
         item.setAttribute("aria-pressed", selected ? "true" : "false");
       });
-      showToast(`「${button.textContent}」を選びました。下の「例文を作る」で、次に伝える文に反映できます。`);
+      // 新しい配置（side / flow）では出さない：ボタンを押すたびに例文作成へ誘導する表示になり、
+      // 「ボタン → 例文 → 入力」の経路を画面側が指示してしまうため。練習での案内は残す。
+      if (LAYOUT_VARIANT === "default") showToast(`「${button.textContent}」を選びました。下の「例文を作る」で、次に伝える文に反映できます。`);
     });
     control.append(button);
   });
@@ -539,7 +553,8 @@ function createNextInputExample() {
     usedCriteria: fromButtons.used
   });
   round.exampleSource = fromButtons.text ? "buttons" : "template";
-  showToast(fromButtons.text ? "ボタンの選択から例文を作りました。必要な部分だけ使ってください。"
+  // flow：例文は右下の決まった場所に出るので、同じ内容のトーストは出さない（入力欄を隠し、視線を引くため）
+  if (LAYOUT_VARIANT !== "flow") showToast(fromButtons.text ? "ボタンの選択から例文を作りました。必要な部分だけ使ってください。"
     : "右下に短い例文の型を表示しました。必要な部分だけ使ってください。");
 }
 
@@ -582,6 +597,12 @@ async function submitTurn() {
         eventCardMode: QUERY.get("card") === "separate" ? "separate" : "merge",
         // v2.5: パネル固定は比較用の任意設定（?lock=1）。正式実験では使わない。
         panelLock: QUERY.get("lock") === "1",
+        // flow 配置：回答の末尾を、固定の終止文ではなく、参加者の言葉を入れた依頼文にする（両 UI 共通）
+        // 比較用に ?closing=fixed|personal|gap で切り替えられる（gap＝固定の終止文の前に「まだ決まっていないこと」を一文入れる）
+        closingMode: ["fixed", "personal", "gap"].includes(QUERY.get("closing")) ? QUERY.get("closing")
+          : (LAYOUT_VARIANT === "flow" ? "personal" : "fixed"),
+        // 試験用の参加者番号（TEST- など）に限り、?model=… でモデルを切り替えられる（サーバー側で確認する）
+        ...(QUERY.get("model") ? { model: QUERY.get("model") } : {}),
         turn: session.currentTurn,
         userText: text,
         history,
