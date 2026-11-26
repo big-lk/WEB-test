@@ -11,6 +11,7 @@
       OPENAI_API_KEY=...      gpt-6-luna など
       ANTHROPIC_API_KEY=...   claude-haiku-5-5
     参加者番号を TEST- で始め、URL に ?model=claude-haiku-5-5 などを付けるとモデルを切り替えられる。料金がかかる。
+    --online では、api/aitest/*.py を書き換えると自動で再起動する（指示文を直しながら実際の出力を確かめるため）。
 """
 from __future__ import annotations
 import argparse, os, sys, webbrowser
@@ -67,6 +68,28 @@ class OfflineHandler(core.Handler):
         super().do_GET()
 
 
+def watch_and_restart() -> None:
+    """サーバー側のコードが書き換わったら、同じ引数で起動し直す（--open は二度目から外す）。"""
+    import threading, time
+    files = sorted((ROOT / "api" / "aitest").glob("*.py")) + [Path(__file__).resolve()]
+    stamp = lambda: tuple((f.stat().st_mtime_ns, f.stat().st_size) for f in files if f.exists())  # noqa: E731
+    first = stamp()
+
+    def loop() -> None:
+        while True:
+            time.sleep(1.0)
+            try:
+                changed = stamp() != first
+            except OSError:
+                continue
+            if changed:
+                time.sleep(0.5)  # 書き込みの途中で読まないよう少し待つ
+                print("コードが変わったので再起動します。", flush=True)
+                os.execv(sys.executable, [sys.executable] + [x for x in sys.argv if x != "--open"])
+
+    threading.Thread(target=loop, daemon=True).start()
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--host", default="127.0.0.1")
@@ -84,6 +107,8 @@ def main() -> None:
         print(f"オンライン版サーバー：{url}（停止は Ctrl+C）\n  会話AI {core.DIALOGUE_MODEL} / 分析AI {core.ANALYSIS_MODEL}、{keys}")
     else:
         print(f"オフライン実験サーバー：{url}（停止は Ctrl+C）")
+    if ONLINE:
+        watch_and_restart()
     if a.open:
         webbrowser.open(url)
     try:
