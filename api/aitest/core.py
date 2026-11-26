@@ -472,13 +472,17 @@ def ensure_exact_turn_ending(turn: int, text: str) -> str:
     return f"{stripped}\n{required}"
 
 
-def drop_participant_voice(text: str, turn: int = 5) -> str:
+def drop_participant_voice(text: str, turn: int = 5, keep_open_statement: bool = False) -> str:
     """AI が参加者のまとめ文を先に書いてしまった文を除く。
-    「私は、…」（v1.8）と、「大切にしたい…は〜、避けたい…は〜」型の代筆（v1.9.5）。"""
+    「私は、…」（v1.8）と、「大切にしたい…は〜、避けたい…は〜」型の代筆（v1.9.5）。
+    keep_open_statement（closingMode="gap"）：「…の整理は、まだ残っています。」のように、まだ決まっていないことを述べる文は
+    代筆ではないので残す。2026-11-27 の実際の出力で、第5回のこの文が毎回ここで消され、3 回やり直した末に固定の終止文へ
+    戻っていた（3 台本とも）。"""
     parts = re.split(r"(?<=[。！\n])", text)
     kept = [x for x in parts
             if not re.match(r"^\s*(私は|わたしは|自分は)", x)
-            and not (turn == 5 and "大切にしたい" in x and "避けたい" in x)]
+            and not (turn == 5 and "大切にしたい" in x and "避けたい" in x
+                     and not (keep_open_statement and "まだ" in x))]
     return "".join(kept)
 
 
@@ -2107,7 +2111,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     final_relation_inserted: list[str] = []
 
     def parse_dialogue_candidate(text: str) -> tuple[str, list[str]]:
-        normalized = finish_ending(drop_participant_voice(text, turn))
+        normalized = finish_ending(drop_participant_voice(text, turn, closing_mode == "gap"))
         extra = []
         if closing_problems(normalized):
             extra.append("R21_PERSONAL_CLOSING" if personal_closing else "R22_GAP_CLOSING")
