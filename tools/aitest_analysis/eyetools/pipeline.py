@@ -10,7 +10,7 @@ from .aoi import layout_from_session
 from .extra_metrics import reading_extras
 from .gaze import GazeExport, load_prolab_tsv
 from .metrics import assign_aoi, toi_metrics
-from .session import Session, build_tois, load_session, parse_ts, validate
+from .session import Session, build_tois, load_session, parse_ts, session_layout, session_settings, validate
 from .sync import estimate_offset
 
 CLICK_EVENTS = ("input_first_focus", "delegation_changed", "example_generated", "pointer_down")
@@ -29,8 +29,9 @@ def web_click_times(session: Session) -> list[float]:
     return out
 
 
-def process(session: Session, gaze: GazeExport, margin: float = 0.0) -> tuple[pd.DataFrame, dict]:
-    issues = validate(session)
+def process(session: Session, gaze: GazeExport, margin: float = 0.0,
+            expected_variant: str | None = None) -> tuple[pd.DataFrame, dict]:
+    issues = validate(session, expected_variant)
     web = web_click_times(session)
     tob = list(gaze.mouse_events.t)
     prior = None
@@ -53,13 +54,16 @@ def process(session: Session, gaze: GazeExport, margin: float = 0.0) -> tuple[pd
                      **m})
     table = pd.DataFrame(rows)
     qa = {"participant": session.participant, "condition": session.condition,
-          "sync": asdict(sync), "issues": [i.as_row() for i in issues],
+          "variant": session.raw.get("experimentVariant"), "layout": session_layout(session),
+          "settings": session_settings(session),
+          "sync": asdict(sync), "gaze": gaze.info, "issues": [i.as_row() for i in issues],
           "n_reading_toi": int((table.toi == "reading").sum()) if len(table) else 0}
     return table, qa
 
 
-def process_files(session_json: str | Path, prolab_tsv: str | Path) -> tuple[pd.DataFrame, dict]:
-    return process(load_session(session_json), load_prolab_tsv(prolab_tsv))
+def process_files(session_json: str | Path, prolab_tsv: str | Path,
+                  expected_variant: str | None = None) -> tuple[pd.DataFrame, dict]:
+    return process(load_session(session_json), load_prolab_tsv(prolab_tsv), expected_variant=expected_variant)
 
 
 def participant_summary(table: pd.DataFrame, min_tracking: float = 0.7) -> dict:
