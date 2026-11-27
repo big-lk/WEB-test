@@ -32,7 +32,8 @@ CANDIDATES = {
     "date": ["Recording date", "Recording date UTC"],
     "type": ["Eye movement type"],
     "index": ["Eye movement type index"],
-    "dur": ["Gaze event duration", "Gaze event duration [ms]"],
+    # 新しい版の Pro Lab では "Eye movement event duration [ms]" という名前で出る（公開されているエクスポート例による）
+    "dur": ["Gaze event duration", "Gaze event duration [ms]", "Eye movement event duration"],
     "fx": ["Fixation point X", "Fixation point X [DACS px]"],
     "fy": ["Fixation point Y", "Fixation point Y [DACS px]"],
     "gx": ["Gaze point X", "Gaze point X [DACS px]"],

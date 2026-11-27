@@ -94,7 +94,7 @@ def test_reading_extras_present():
     assert r.gaze_sequence.astype(str).str.len().gt(0).all()
 
 
-def _rewrite_tsv(src, dst, *, unit=None, values_ms=False, encoding="utf-8", sensor=False, lower=False, comma=False):
+def _rewrite_tsv(src, dst, *, unit=None, values_ms=False, encoding="utf-8", sensor=False, lower=False, comma=False, modern=False):
     """合成 TSV を、Pro Lab の版や設定の違いで起こりうる形に書き換える。"""
     import pandas as pd
     df = pd.read_csv(src, sep="\t", low_memory=False)
@@ -110,6 +110,11 @@ def _rewrite_tsv(src, dst, *, unit=None, values_ms=False, encoding="utf-8", sens
         rename.update({"Recording timestamp": f"Recording timestamp [{unit}]", "Gaze event duration": "Gaze event duration [ms]",
                        "Fixation point X": "Fixation point X [DACS px]", "Fixation point Y": "Fixation point Y [DACS px]",
                        "Gaze point X": "Gaze point X [DACS px]", "Gaze point Y": "Gaze point Y [DACS px]"})
+    if modern:  # 新しい版の Pro Lab のエクスポート例にある列名と並び
+        rename["Gaze event duration"] = "Eye movement event duration [ms]"
+        df.insert(1, "Computer timestamp [ms]", df["Recording timestamp"])
+        df.insert(2, "Project name", "LKAItest")
+        df.insert(3, "Recording duration [ms]", 600000)
     df = df.rename(columns=rename)
     if lower:
         df.columns = [c.lower() for c in df.columns]
@@ -135,6 +140,7 @@ def test_prolab_export_variants_give_same_result():
         "bom": dict(encoding="utf-8-sig"),
         "utf16": dict(encoding="utf-16", unit="ms", values_ms=True),
         "sensor": dict(sensor=True),
+        "modern": dict(unit="ms", values_ms=True, sensor=True, modern=True),
         "lower": dict(lower=True),
         "comma": dict(comma=True),
     }
