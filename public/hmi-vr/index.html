@@ -24,7 +24,7 @@
   button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid #f2c230; outline-offset: 2px; }
   #btn-vr { background: var(--accent); color: #fff; margin-top: 20px; }
   #btn-vr:disabled { background: #9fb0b8; border-color: #9fb0b8; cursor: not-allowed; }
-  #btn-desk, #btn-dl, #btn-end { background: transparent; color: var(--accent); }
+  #btn-desk, #btn-dl, #btn-end, #btn-post { background: transparent; color: var(--accent); }
   #xr-note { color: var(--warn); font-size: 13px; margin: 8px 0 0; min-height: 1em; line-height: 1.5; }
   #status { font-size: 13px; color: var(--muted); margin: 10px 0 0; line-height: 1.5; }
   .live, .done { display: none; }
@@ -41,21 +41,21 @@
 <div id="ui">
   <div class="setup">
     <h1>驾驶 HMI 注意力实验</h1>
-    <p class="lead">L2 城市道路，约 20 分钟。记录头部朝向、注视区域和接管反应时间。</p>
+    <p class="lead">L2 城市道路，约 22 分钟，分三段：无提示 → 所选方案 → 无提示，中途不停车。记录头部朝向、是否看向线索方位和接管反应时间。</p>
     <label for="pid">被试编号</label>
     <input id="pid" value="P01" autocomplete="off">
     <div class="row">
       <div>
         <label for="cond">提示方案</label>
         <select id="cond">
-          <option value="S1">S1：HUD 方位光带</option>
-          <option value="S2">S2：AR 贴地光圈</option>
-          <option value="S3">S3：中控屏鸟瞰</option>
+          <option value="A">A：只做预防动作，不解释</option>
+          <option value="B">B：解释说明（中控屏文字，每次都解释）</option>
+          <option value="C">C：注意价值（视野内指向，先看到给对勾，学会后退场）</option>
         </select>
       </div>
       <div>
         <label for="dur">时长（分钟）</label>
-        <input id="dur" type="number" min="2" max="40" value="20">
+        <input id="dur" type="number" min="2" max="60" value="22">
       </div>
     </div>
     <button id="btn-vr">进入 VR 开始</button>
@@ -68,7 +68,8 @@
     <button id="btn-end">提前结束</button>
     <div class="done">
       <button id="btn-dl">下载本次数据</button>
-      <p class="hint">数据已尝试发送到电脑端 data 文件夹。没有连电脑时，用这个按钮下载三个文件。</p>
+      <button id="btn-post">填写结束后的问卷</button>
+      <p class="hint">数据已尝试发送到电脑端 data 文件夹。没有连电脑时，用这个按钮下载四个文件。</p>
     </div>
     <p class="hint">桌面预览：拖动鼠标转头，空格键代表扳机，R 键重新对准。</p>
   </div>

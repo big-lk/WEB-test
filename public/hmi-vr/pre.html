@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>乘车体验 · 开始前</title>
+<link rel="stylesheet" href="./survey.css">
+</head>
+<body>
+<main>
+  <h1>乘车体验 · 开始前</h1>
+  <p class="lead">先看说明，再回答几个问题，约 5 分钟。答完会自动进入体验页面。</p>
+  <label class="pidrow">编号（由实验者填写）<input id="pid" autocomplete="off"></label>
+  <div id="form"></div>
+  <p id="msg" role="status"></p>
+  <button id="submit">提交并进入体验</button>
+</main>
+<script type="module">
+import { initSurvey } from './survey.js';
+import { PRE_SECTIONS, CONSENT } from './survey-items.js';
+initSurvey({ form: 'pre', sections: PRE_SECTIONS, consent: CONSENT, onSaved: ({ pid, cond }) => {
+  // 保存后跳到 VR 页面，带上同一个编号和方案
+  setTimeout(() => { location.href = `./index.html?pid=${encodeURIComponent(pid)}${cond ? `&cond=${encodeURIComponent(cond)}` : ''}`; }, 800);
+} });
+</script>
+</body>
+</html>

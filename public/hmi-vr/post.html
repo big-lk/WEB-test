@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>乘车体验 · 结束后</title>
+<link rel="stylesheet" href="./survey.css">
+</head>
+<body>
+<main>
+  <h1>乘车体验 · 结束后</h1>
+  <p class="lead">请按刚才的感受回答，约 6 分钟。</p>
+  <label class="pidrow">编号（由实验者填写）<input id="pid" autocomplete="off"></label>
+  <div id="form"></div>
+  <p id="msg" role="status"></p>
+  <button id="submit">提交</button>
+</main>
+<script type="module">
+import { initSurvey } from './survey.js';
+import { POST_SECTIONS } from './survey-items.js';
+initSurvey({ form: 'post', sections: POST_SECTIONS, onSaved: () => {
+  document.getElementById('submit').disabled = true;
+  document.getElementById('msg').textContent += ' 谢谢，请告诉实验者你已经答完。';
+} });
+</script>
+</body>
+</html>

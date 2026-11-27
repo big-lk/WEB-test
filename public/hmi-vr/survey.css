@@ -1,0 +1,23 @@
+:root { --bg:#e9eef1; --ink:#1d2a33; --muted:#5b6b76; --line:#c3cdd3; --accent:#0f7c8a; --warn:#b4471e; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.7 "Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif; }
+main { max-width: 860px; margin: 0 auto; padding: 24px 16px 80px; }
+h1 { font-size: 24px; margin: 8px 0 4px; } h2 { font-size: 19px; margin: 0 0 8px; }
+.lead, .intro { color: var(--muted); margin: 0 0 12px; }
+.card { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 18px 18px 8px; margin: 16px 0; }
+.q { border: 1px solid transparent; border-radius: 8px; padding: 8px 10px; margin: 0 0 10px; min-width: 0; }
+.q.missing { border-color: var(--warn); background: #fdf3ee; }
+legend { padding: 0; font-weight: 600; } legend small, .idonly { color: #9aa7b0; font-weight: 400; font-size: 12px; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 6px; }
+.opt { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; min-height: 40px; }
+.opt:has(input:checked) { border-color: var(--accent); background: #e3f3f5; }
+.opt input { width: 18px; height: 18px; accent-color: var(--accent); }
+.agree { margin: 8px 0 12px; }
+.end { color: var(--muted); font-size: 14px; } .pair .end { flex: 1 1 120px; } .pair .end:last-child { text-align: right; }
+.slider input { flex: 1 1 240px; accent-color: var(--accent); } output { min-width: 4em; color: var(--muted); font-size: 14px; }
+.extra { display: block; margin-top: 8px; } .extra input, #pid { font: inherit; padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; width: 8em; }
+button { font: inherit; padding: 12px 22px; border-radius: 8px; border: 1px solid var(--accent); background: var(--accent); color: #fff; cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 3px solid #f2c230; outline-offset: 2px; }
+#msg { color: var(--warn); min-height: 1.7em; margin: 10px 0; }
+.pidrow { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 14px; }
+body:not(.show-ids) legend small, body:not(.show-ids) .idonly { display: none; }
