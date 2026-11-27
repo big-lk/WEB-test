@@ -50,7 +50,13 @@ const TURN_PROMPTS = [
 const QUERY = new URLSearchParams(location.search);
 // ?invite=rich（試作。使用者の提案 2026-11-27）：参加者が一度に多く書きやすくするための文言と入力欄。既定の文言は変えない。
 // 変えるのは「一つ」という数の指定と、入力欄の例示だけ。正式に使うには、資料 4・5 との対応を使用者が確認すること。
-const INVITE_RICH = QUERY.get("invite") === "rich";
+// ?layout=flow2（試作。2026-11-28、使用者が実験機で通しての指摘をまとめて入れた版）：flow の配置に次を加える。
+//   送信前の小さな確認／中身のない枠は短い帯にする／例文の出どころと変わった文を見分けられるようにする／
+//   事前の状態は眠気と緊張だけにする／対話の完了時に視線計測の停止を求めない／入力の案内を「多めに・二人ならではのことを」に寄せる／
+//   回答は長めで、入力の具体さに合わせる（サーバーへ dialogueStyle: "open" を送る）。
+// 既定・side・flow の動作と文言は変えない。参加者に見える新しい文言は候補であり、正式に使う前に使用者の確認が必要。
+const FLOW2 = QUERY.get("layout") === "flow2";
+const INVITE_RICH = QUERY.get("invite") === "rich" || FLOW2;
 if (INVITE_RICH) {
   document.documentElement.dataset.invite = "rich";
   const rich = [
@@ -69,6 +75,12 @@ if (INVITE_RICH) {
       placeholder: "この夕食で大切にしたいこと、避けたいことを、思いつくだけ入力してください。" }
   ];
   rich.forEach((item, index) => Object.assign(TURN_PROMPTS[index], item));
+  if (FLOW2) {
+    // 第1回の入力が、その後の回答とカードの材料になる。短い一言で終わらないよう、目安と「二人ならでは」を明示する。
+    TURN_PROMPTS[0].guide = "相手にどう感じてほしいか、夕食後に二人がどうなっていたらよいかを、3文くらいを目安に書いてください。"
+      + "相手の人柄や、お二人のいつもの様子など、お二人ならではのことを入れてください。実現方法はまだ一つに決めなくてかまいません。";
+    TURN_PROMPTS[0].placeholder = "夕食中の雰囲気や、夕食後の二人の様子を、相手の人柄やいつもの二人の様子も交えて入力してください。";
+  }
 }
 const PREVIEW_MODE = QUERY.get("preview") === "1";
 const EMBED_MODE = QUERY.get("embed") === "1" || window.self !== window.top;
@@ -77,8 +89,12 @@ const EMBED_MODE = QUERY.get("embed") === "1" || window.self !== window.top;
 //   ?layout=flow … side に加えて、画面の部品を「回答を読む → 右側を見る → 入力する」の一本の流れに並べ直す。
 //                  今回の案内を入力欄のすぐ上に移す。右側上部の説明を1行にする。優先度のタグは「高い」のカードだけに出す。
 //                  カードごとの「AIはこう受け取っています」と、例文作成後のトーストは出さない。
-const LAYOUT_VARIANT = ["side", "flow"].includes(QUERY.get("layout")) ? QUERY.get("layout") : "default";
+const LAYOUT_VARIANT = FLOW2 ? "flow" : ["side", "flow"].includes(QUERY.get("layout")) ? QUERY.get("layout") : "default";
 document.documentElement.dataset.layout = LAYOUT_VARIANT;
+if (FLOW2) document.documentElement.dataset.flow2 = "1";
+const LAYOUT_NAME = FLOW2 ? "flow2" : LAYOUT_VARIANT;  // 記録用の名前
+// 回答の書き方：flow2 は "open"（長め・入力に合わせる）。比較用に ?style=open|default で切り替えられる。
+const DIALOGUE_STYLE = ["open", "default"].includes(QUERY.get("style")) ? QUERY.get("style") : (FLOW2 ? "open" : "default");
 // v2.8: ?engine=offline で生成AIを使わないオフライン版（登録済みの文から回答を組み立てる）
 const ENGINE = QUERY.get("engine") === "offline" ? "offline" : "online";
 const API_HEALTH_URL = new URL("../api/aitest/health" + (ENGINE === "offline" ? "?engine=offline"
@@ -170,7 +186,7 @@ function newSession(participantId, condition, experimentVariant = "standard") {
     environment: {
       screenWidth: screen.width, screenHeight: screen.height, viewportWidth: innerWidth,
       viewportHeight: innerHeight, pixelRatio: devicePixelRatio, userAgent: navigator.userAgent,
-      layoutVariant: LAYOUT_VARIANT, inviteRich: INVITE_RICH
+      layoutVariant: LAYOUT_NAME, inviteRich: INVITE_RICH, dialogueStyle: DIALOGUE_STYLE
     },
     aiModels: apiModels,
     pretest: null,
@@ -390,7 +406,7 @@ function renderTurn() {
   els.promptKicker.textContent = complete ? "対話完了" : prompt.kicker;
   els.promptText.textContent = complete ? "全6回の対話が完了しました。" : prompt.title;
   els.guideText.textContent = complete
-    ? "視線計測を停止してから、振り返りへ進んでください。"
+    ? (FLOW2 ? "このまま、振り返りへ進んでください。" : "視線計測を停止してから、振り返りへ進んでください。")
     : prompt.guide;
   els.turnAnchor.classList.toggle("hidden", complete || !session.pretaskAnchor);
   if (session.pretaskAnchor) {
@@ -418,7 +434,7 @@ function renderCriteria() {
   els.createExample.disabled = !exampleAvailable;
   const savedExample = activeRound.exampleText || "";
   els.exampleGuide.classList.toggle("hidden", !exampleAvailable || !savedExample);
-  els.exampleGuideText.textContent = savedExample;
+  renderExampleText(activeRound);
   if (!source) {
     const empty = document.createElement("article");
     empty.className = "criterion-card";
@@ -427,8 +443,31 @@ function renderCriteria() {
     return;
   }
   let defaultsAdded = false;
+  const exampleKeys = new Set((activeRound.exampleUsed || []).map((item) => item.key));
   source.analysis.criteria.forEach((criterion) => {
     const key = criterion.id || criterion.title;
+    if (FLOW2 && isPlaceholderCriterion(key)) {
+      // 会話からまだ読み取れていない枠。見出しと本文とボタンのある 1 枚のカードにすると、読み取った内容のように見えるので、
+      // 見出しだけの短い帯にする（文言は従来からある見出しのまま）。ボタンは付けず、例文にも使わない。
+      const bar = document.createElement("article");
+      bar.className = "criterion-card placeholder";
+      bar.dataset.key = key;
+      bar.dataset.priority = "";
+      const heading = document.createElement("div");
+      heading.className = "criterion-title";
+      const h3 = document.createElement("h3");
+      h3.textContent = criterion.title;
+      heading.append(h3);
+      bar.append(heading);
+      if (key === "anchor-context") {
+        const note = document.createElement("span");
+        note.className = "placeholder-note";
+        note.textContent = criterion.meaning;
+        bar.append(note);
+      }
+      els.criteriaList.append(bar);
+      return;
+    }
     if (session.condition === "UI_B" && !activeRound.delegation[key]) {
       const previousRound = session.currentTurn > 1 ? session.rounds[session.currentTurn - 2] : null;
       activeRound.delegation[key] = previousRound?.delegation[key] || "consult";
@@ -439,7 +478,7 @@ function renderCriteria() {
       ? (activeRound.delegation[key] || "consult")
       : stateToControl(criterion.delegationState);
     const card = document.createElement("article");
-    card.className = `criterion-card${criterion.focus ? " focus" : ""}`;
+    card.className = `criterion-card${criterion.focus ? " focus" : ""}${FLOW2 && exampleKeys.has(key) ? " in-example" : ""}`;
     card.dataset.key = key;
     card.dataset.priority = criterion.priority || "";
     const heading = document.createElement("div");
@@ -521,11 +560,34 @@ const DELEGATION_EXAMPLE_PATTERNS = {
 };
 const DELEGATION_EXAMPLE_ORDER = { self: 0, ai: 1, consult: 2 };
 const PLACEHOLDER_CRITERION_IDS = new Set(["anchor-context", "pending-meaning"]);
+function isPlaceholderCriterion(key) { return PLACEHOLDER_CRITERION_IDS.has(key) || /^pending-meaning/.test(String(key)); }
+
+// 例文の表示。flow2 では、(1) ボタンの選択から作った文か、書き方の型かを枠の見た目で分け、(2) 文ごとに区切り、
+// (3) 同じ回で作り直したときに前回から変わった文に印を付け、(4) 文のもとになったカードのボタンに同じ色の縁を付ける。
+// 動きのある表示（点滅など）は使わない：視線を引いて、見る場所を画面側が指示することになるため。
+function splitExampleSentences(text) { return String(text || "").split(/(?<=。)/).map((x) => x.trim()).filter(Boolean); }
+function renderExampleText(round) {
+  const text = round?.exampleText || "";
+  if (!FLOW2) { els.exampleGuideText.textContent = text; return; }
+  els.exampleGuide.dataset.source = round?.exampleSource || "template";
+  const previous = new Set(round?.examplePreviousSentences || []);
+  const fromButtons = round?.exampleSource === "buttons";
+  els.exampleGuideText.replaceChildren(...splitExampleSentences(text).map((sentence, index) => {
+    const span = document.createElement("span");
+    span.className = "example-sentence";
+    span.textContent = sentence;
+    if (fromButtons && round.exampleUsed?.[index]) span.dataset.state = round.exampleUsed[index].state;
+    if (round.exampleGenerationCount > 1 && !previous.has(sentence)) span.dataset.changed = "1";
+    return span;
+  }));
+  const keys = new Set((fromButtons ? round.exampleUsed || [] : []).map((item) => item.key));
+  els.criteriaList.querySelectorAll(".criterion-card").forEach((card) => card.classList.toggle("in-example", keys.has(card.dataset.key)));
+}
 
 function buildDelegationExample(criteria, delegation, touched, maxItems = 2, maxLength = 120) {
   const picked = (criteria || [])
     .map((item, index) => ({ item, index, key: item.id || item.title }))
-    .filter(({ item, key }) => key && item.title && !PLACEHOLDER_CRITERION_IDS.has(key) && !/^turn-\d+-record$/.test(key))
+    .filter(({ item, key }) => key && item.title && !isPlaceholderCriterion(key) && !/^turn-\d+-record$/.test(key))
     .map((entry) => ({ ...entry, state: delegation?.[entry.key] || "consult" }))
     // 既定の「一緒に考える」のまま触っていないカードは例文に入れない
     .filter(({ key, state }) => state !== "consult" || touched?.[key] === true)
@@ -561,11 +623,14 @@ function createNextInputExample() {
   };
   const text = fromButtons.text || examples[turn].slice(0, 100);
   els.exampleGuide.dataset.source = fromButtons.text ? "buttons" : "template";
-  els.exampleGuideText.textContent = text;
-  els.exampleGuide.classList.remove("hidden");
+  round.examplePreviousSentences = splitExampleSentences(round.exampleText);
   round.exampleGeneratedAt = isoNow();
   round.exampleText = text;
   round.exampleGenerationCount = (round.exampleGenerationCount || 0) + 1;
+  round.exampleSource = fromButtons.text ? "buttons" : "template";
+  round.exampleUsed = fromButtons.used;
+  renderExampleText(round);
+  els.exampleGuide.classList.remove("hidden");
   logEvent("example_generated", {
     at: round.exampleGeneratedAt,
     textLength: text.length,
@@ -624,6 +689,7 @@ async function submitTurn() {
         closingMode: ["fixed", "personal", "gap", "gap2"].includes(QUERY.get("closing")) ? QUERY.get("closing")
           : (LAYOUT_VARIANT === "flow" || INVITE_RICH ? "personal" : "fixed"),
         ...(INVITE_RICH ? { inviteMode: "rich" } : {}),
+        ...(DIALOGUE_STYLE === "open" ? { dialogueStyle: "open" } : {}),
         // 試験用の参加者番号（TEST- など）に限り、?model=… でモデルを切り替えられる（サーバー側で確認する）
         ...(QUERY.get("model") ? { model: QUERY.get("model") } : {}),
         turn: session.currentTurn,
@@ -704,7 +770,10 @@ function renderCompletion() {
   if (els.chatStage.querySelector(".completion-card")) return;
   const card = document.createElement("section");
   card.className = "completion-card";
-  card.innerHTML = "<h3>6回の対話が完了しました</h3><p>視線計測を停止してから、対話後の振り返りへ進んでください。</p><button type=\"button\">振り返りへ進む</button>";
+  // flow2：ここで視線計測を止めると、参加者の前で別のソフトに切り替えることになる。止めずに振り返りへ進み、最後に実験者が止める。
+  card.innerHTML = FLOW2
+    ? "<h3>6回の対話が完了しました</h3><p>このまま、対話後の振り返りへ進んでください。</p><button type=\"button\">振り返りへ進む</button>"
+    : "<h3>6回の対話が完了しました</h3><p>視線計測を停止してから、対話後の振り返りへ進んでください。</p><button type=\"button\">振り返りへ進む</button>";
   card.querySelector("button").addEventListener("click", openReflection);
   els.chatStage.append(card);
 }
@@ -917,6 +986,15 @@ els.setupForm.addEventListener("submit", async (event) => {
   showOnly(els.prepScreen);
 });
 
+if (FLOW2) {
+  // 「考えを言葉にできそうか」は抽象的で答えにくく、「AIチャットの使い慣れ」は背景の調査にあたる（使用者の指摘）。この画面では尋ねない。
+  ["confidence", "familiarity"].forEach((name) => {
+    const input = els.prepForm.querySelector(`input[name="${name}"]`);
+    if (!input) return;
+    input.disabled = true;
+    input.closest("label").hidden = true;
+  });
+}
 els.prepForm.querySelectorAll('input[type="range"]').forEach((input) => {
   const output = $(`#${input.name}Value`);
   input.addEventListener("input", () => { if (output) output.textContent = input.value; });
@@ -928,8 +1006,9 @@ els.prepForm.addEventListener("submit", (event) => {
     completedAt: isoNow(),
     sleepiness: Number(data.get("sleepiness")),
     tension: Number(data.get("tension")),
-    confidence: Number(data.get("confidence")),
-    familiarity: Number(data.get("familiarity"))
+    // flow2 では尋ねない（null）。0 や 4 を入れると、答えた値と区別できなくなる。
+    confidence: data.has("confidence") ? Number(data.get("confidence")) : null,
+    familiarity: data.has("familiarity") ? Number(data.get("familiarity")) : null
   };
   session.status = "instructions";
   logEvent("pretest_completed");
@@ -1042,6 +1121,71 @@ document.addEventListener("keydown", (event) => {
 });
 window.addEventListener("resize", () => { if (session) logEvent("viewport_changed", { width: innerWidth, height: innerHeight }); });
 window.addEventListener("beforeunload", saveSession);
+
+// flow2：送信ボタンを押すと、ボタンのすぐ上（入力欄の上の行、字数の表示の位置）に小さな確認を出す。「送信する」を押して初めて送る。
+// 今回の案内や入力した文に重ならず、出ても画面の配置は動かない。出てから 0.4 秒は押せない（二度押しで送られないように）。
+// Enter キーは改行にする（日本語入力の確定の Enter が続けて送信になるのを防ぐ。2026-11-27 の試し録りで「友達が」だけが送られた）。
+// 確認の中では Enter で送らない。入力を続けるか Esc を押すと、確認は閉じる。
+const SEND_CONFIRM_SHORT_CHARS = 25;
+let sendConfirmed = false;
+let sendConfirmShownAt = 0;
+function sendConfirmElement() {
+  let box = $("#sendConfirm");
+  if (box) return box;
+  box = document.createElement("div");
+  box.id = "sendConfirm";
+  box.className = "send-confirm hidden";
+  box.setAttribute("role", "group");
+  box.setAttribute("aria-label", "送信の確認");
+  box.dataset.aoi = "AOI_Left_SendConfirm";
+  box.innerHTML = "<p>この内容で送信しますか。</p>"
+    + "<button type=\"button\" class=\"send-confirm-yes\">送信する</button><button type=\"button\" class=\"send-confirm-no\">書き足す</button>";
+  const note = document.createElement("small");
+  note.id = "sendConfirmNote";
+  note.className = "send-confirm-note hidden";
+  note.textContent = "まだ短めです。相手の人柄や、お二人のいつもの様子も書き足せます。";
+  els.composer.append(note, box);
+  box.querySelector(".send-confirm-yes").addEventListener("click", () => {
+    if (performance.now() - sendConfirmShownAt < 400) return;
+    closeSendConfirm(null);
+    sendConfirmed = true;
+    try { els.composer.requestSubmit(); } finally { sendConfirmed = false; }
+  });
+  box.querySelector(".send-confirm-no").addEventListener("click", () => { closeSendConfirm("button"); els.messageInput.focus(); });
+  return box;
+}
+function closeSendConfirm(via) {
+  const box = $("#sendConfirm");
+  if (!box || box.classList.contains("hidden")) return;
+  box.classList.add("hidden");
+  $("#sendConfirmNote")?.classList.add("hidden");
+  if (via && session) logEvent("send_confirm_cancelled", { via });
+}
+function openSendConfirm() {
+  const box = sendConfirmElement();
+  const length = els.messageInput.value.trim().length;
+  const short = Boolean(session) && session.status === "running" && session.currentTurn === 1 && length < SEND_CONFIRM_SHORT_CHARS;
+  $("#sendConfirmNote").classList.toggle("hidden", !short);
+  box.classList.remove("hidden");
+  sendConfirmShownAt = performance.now();
+  const b = box.getBoundingClientRect();
+  if (session) logEvent("send_confirm_shown", { length, shortNote: short,
+    rect: [Math.round(b.left), Math.round(b.top), Math.round(b.width), Math.round(b.height)] });
+}
+if (FLOW2) {
+  document.addEventListener("submit", (event) => {
+    if (event.target !== els.composer || sendConfirmed) return;
+    if (!els.messageInput.value.trim()) return;  // 空のときは、従来どおりの案内に任せる
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    openSendConfirm();
+  }, { capture: true });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") { closeSendConfirm("escape"); return; }
+    if (event.target === els.messageInput && event.key === "Enter" && !event.shiftKey) event.stopImmediatePropagation();  // 改行にする
+  }, { capture: true });
+  els.messageInput.addEventListener("input", () => closeSendConfirm("typing"));
+}
 
 // 実験者用：?condition=UI_A|UI_B と ?variant=<設定画面にある値> を付けると、設定画面の選択をあらかじめ入れておく。
 // 付けなければ従来どおり（UI A・通常のずれが選ばれた状態）。画面の文言は変えない。

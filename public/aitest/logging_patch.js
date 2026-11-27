@@ -90,8 +90,12 @@
       TEXT_1: texts[0] || null, TEXT_2: texts[1] || null, TEXT_3: texts[2] || null,
       BTN_1: buttons[0] || null, BTN_2: buttons[1] || null, BTN_3: buttons[2] || null,
       EXAMPLE: session?.condition === "UI_B" ? rect(els.exampleAssist) : null,
-      EXAMPLE_TEXT: session?.condition === "UI_B" ? rect(els.exampleGuide) : null
+      EXAMPLE_TEXT: session?.condition === "UI_B" ? rect(els.exampleGuide) : null,
+      // flow2：送信前の確認（出ているときだけ）。入力欄の矩形と重なるので、小さい方（こちら）が優先される
+      SEND_CONFIRM: rect(document.querySelector("#sendConfirm:not(.hidden)"))
     };
+    // flow2：中身のない枠（短い帯）は、本文もボタンもないので TEXT / BTN に数えない（CARD だけ残す）
+    cardEls.forEach((c, i) => { if (c.classList.contains("placeholder")) { delete rects[`TEXT_${i + 1}`]; delete rects[`BTN_${i + 1}`]; } });
     Object.keys(rects).forEach((k) => { if (!rects[k]) delete rects[k]; });
     return rects;
   }
@@ -105,7 +109,7 @@
     lastLayoutJson = json;
     pushQuiet("aoi_layout", { reason, at: isoNow(), scrollTop: Math.round(els.chatStage.scrollTop),
       fullscreen: Boolean(document.fullscreenElement), dpr: devicePixelRatio,
-      layout: document.documentElement.dataset.layout || "default",
+      layout: document.documentElement.dataset.flow2 ? "flow2" : (document.documentElement.dataset.layout || "default"),
       viewport: [innerWidth, innerHeight], rects });
   }
   const afterPaint = (fn) => requestAnimationFrame(() => requestAnimationFrame(fn));

@@ -541,3 +541,26 @@ html[data-layout="flow"] .ui-flow-lines > path:nth-of-type(1) { d: path("M315 40
 /* ?invite=rich（試作）：入力欄を 2 行から 4 行に広げる。小さい入力欄は「短く書くもの」という合図になるため。 */
 html[data-invite="rich"] .composer textarea { min-height: 116px; max-height: 190px; }
 
+/* ---- ?layout=flow2（試作、2026-11-28）。flow の配置に加える分だけを書く ---- */
+/* 中身のない枠：見出しだけの短い帯。ボタンは付かない */
+html[data-flow2] .criterion-card.placeholder { display: flex; align-items: center; gap: 14px; min-height: 0; padding: 9px 16px; border-style: dashed; border-color: #cfd6e1; background: #f6f8fb; box-shadow: none; }
+html[data-flow2] .app-shell[data-condition="UI_A"] .criterion-card.placeholder { width: calc(100% - 224px); }
+html[data-flow2] .criterion-card.placeholder .criterion-title h3 { margin: 0; color: #7a8494; font-size: 13px; font-weight: 700; white-space: nowrap; }
+html[data-flow2] .criterion-card.placeholder .placeholder-note { min-width: 0; overflow: hidden; color: #8a94a5; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+/* 例文：書き方の型（破線・灰色）と、ボタンの選択から作った文（実線・青）を見分ける */
+html[data-flow2] .example-guide[data-source="template"] { border-style: dashed; border-color: #c5cedb; box-shadow: inset 4px 0 0 #b9c3d2; }
+html[data-flow2] .example-guide[data-source="template"] > div span, html[data-flow2] .example-guide[data-source="template"] > div b { color: #5d6a80; background: transparent; }
+html[data-flow2] .example-guide[data-source="template"] > div b { background: #e9edf3; }
+html[data-flow2] .example-sentence { display: block; margin: 2px 0; padding: 2px 8px; border-left: 4px solid transparent; border-radius: 4px; }
+html[data-flow2] .example-sentence[data-state] { border-left-color: #e0a100; }
+html[data-flow2] .example-sentence[data-changed="1"] { background: #fff4d6; }
+/* 例文のもとになったカード：選んでいるボタンに、例文の文と同じ色の縁を付ける */
+html[data-flow2] .criterion-card.in-example .delegation-control button.selected { box-shadow: 0 0 0 3px #f2c14e; }
+/* 送信前の確認：入力欄の上の行（字数の表示の位置）に、送信ボタンの真上で出す。配置は動かさない */
+html[data-flow2] .composer-wrap { position: relative; }
+html[data-flow2] .send-confirm { position: absolute; top: 5px; right: 42px; z-index: 6; display: flex; align-items: center; gap: 8px; height: 42px; padding: 0 5px 0 14px; border: 1px solid #9fb8df; border-radius: 12px; background: #fff; box-shadow: 0 4px 14px rgba(31,42,61,.14); }
+html[data-flow2] .send-confirm p { margin: 0 4px 0 0; color: var(--ink); font-size: 14px; font-weight: 800; white-space: nowrap; }
+html[data-flow2] .send-confirm button { min-width: 84px; height: 32px; padding: 0 12px; border-radius: 9px; font-size: 13px; font-weight: 800; cursor: pointer; }
+html[data-flow2] .send-confirm .send-confirm-yes { border: 0; background: var(--blue); color: #fff; }
+html[data-flow2] .send-confirm .send-confirm-no { border: 1px solid #cdd6e3; background: #fff; color: #35435a; }
+html[data-flow2] .send-confirm-note { position: absolute; top: 17px; left: 46px; color: #5d6a80; font-size: 13px; font-weight: 700; }

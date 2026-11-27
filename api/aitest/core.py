@@ -186,7 +186,8 @@ NEXT_TURN_GAPS = {
 }
 
 
-def personal_closing_problems(turn: int, text: str, user_texts: list[str], invite_rich: bool = False) -> list[str]:
+def personal_closing_problems(turn: int, text: str, user_texts: list[str], invite_rich: bool = False, extra_len: int = 0,
+                              quote_optional: bool = False) -> list[str]:
     """closingMode="personal" の末尾の一文が条件を満たさない理由を返す（空なら合格）。"""
     sentences = [x.strip() for x in re.split(r"(?<=[。！？?\n])", text.rstrip()) if x.strip()]
     last = sentences[-1] if sentences else ""
@@ -195,7 +196,7 @@ def personal_closing_problems(turn: int, text: str, user_texts: list[str], invit
         problems.append("fixed_or_empty")
     if not last.endswith("ください。"):
         problems.append("not_request")
-    if len(last) > PERSONAL_CLOSING_MAX + (30 if invite_rich else 0):
+    if len(last) > PERSONAL_CLOSING_MAX + (30 if invite_rich else 0) + extra_len:
         problems.append("too_long")
     # inviteMode="rich"：一つだけでなく、いくつか具体的に書いてもらう頼み方になっているか
     if invite_rich and not re.search(r"二つ三つ|いくつか|いくつでも|思いつく|思い浮かぶ", last):
@@ -214,7 +215,9 @@ def personal_closing_problems(turn: int, text: str, user_texts: list[str], invit
     compact = re.sub(r"[\s、。「」『』（）()・]", "", last)
     shared = [compact[i:i + 4] for i in range(len(compact) - 3)
               if compact[i:i + 4] in said and re.search(r"[\u30a0-\u30ff\u4e00-\u9fff]", compact[i:i + 4])]
-    if not shared:
+    # dialogueStyle="open"：「お二人ならではの…」という頼み方が入っていれば、参加者の言葉の引用は無くてもよい。
+    # 実際の出力（2026-11-28、30 回）：頼むことが増えると引用が落ち、短い入力の台本で 4 回、固定の終止文に戻った。
+    if not shared and not (quote_optional and "ならでは" in last):
         problems.append("no_user_words")
     return problems
 
@@ -365,6 +368,30 @@ DIALOGUE_INSTRUCTIONS = """あなたは日本語だけで応答する、特別�
   それ以前の指定よりも優先してそのまま維持する。第5・6ターンで参加者が触れた場合は参加者の言葉に従う。
 """
 
+# dialogueStyle="open"（2026-11-28、使用者が実験機で通しての指摘：回答が短い／入力がほとんど無くても標準的な回答が返る／
+# 自分らしさを保つ誘導がない）。指定したときだけ効く。既定の指示文は変えない。
+_SHORT_RULES = (
+    "- 回答は短い自然な文章で1〜2段落に収める。要約の反復、長い理由説明、大量の候補列挙をしない。\n",
+    "- 料理や演出の具体例は、今回の入力に直接必要なものを一つ程度だけ示す。\n",
+)
+assert all(rule in DIALOGUE_INSTRUCTIONS for rule in _SHORT_RULES)
+DIALOGUE_INSTRUCTIONS_OPEN = (
+    DIALOGUE_INSTRUCTIONS
+    .replace(_SHORT_RULES[0], "- 回答は自然な文章で2段落にする。要約の反復、大量の候補列挙をしない。\n")
+    .replace(_SHORT_RULES[1],
+             "- 参加者が書いた言葉や場面を、当日の様子が目に浮かぶところまで具体的に広げる。料理や演出の具体例は一つか二つにとどめる。\n")
+) + """
+入力に合わせて答え方を変える（どのターンでも）：
+- 入力に、その人と相手ならではの具体（相手の人柄、二人の習慣、過去の出来事、言い回し、場面）があれば、それを回答の中心に据え、
+  参加者の言葉をそのまま使って広げる。どの二人にも当てはまる定番の案（スープとパン、照明を落とす等）に置き換えない。
+- 入力が一般的な希望だけなら、案は一つの暫定として短めに示し、決めつけない。
+- 入力が途中で切れている、または何を望むのかが読み取れない場合は、標準的な夕食案へ広げない。
+  読み取れたことだけを一文で受け、事前の一文から分かる範囲を一文で確かめ、
+  「どんな場面や様子を思い浮かべているかが分かると、案を具体的にできます。」のような陳述で、足りない点を一つ示す。
+  この場合は短くてよい（指定の長さより短くてかまわない）。疑問文にはしない。
+- 直前までの回答と同じ文を繰り返さない。入力に新しい内容がなければ、そのことを一文で受けるだけにし、前の回答の言い直しで埋めない。
+"""
+
 ANALYSIS_INSTRUCTIONS = """あなたは右側の価値状態を作る独立AIです。参加者に表示する文字は日本語だけにします。
 内部推論や思考過程ではなく、会話から確認できる簡潔な価値状態を正確なJSONで返します。
 
@@ -476,6 +503,36 @@ _V6_EXTRA = _V5_EXTRA + (
     "  そのターン以降、必ずどれかの項目のmeaningにその言葉のまま残す。ほかの項目とまとめる場合も消さない。\n"
 )
 ANALYSIS_PROMPTS["v6"] = ANALYSIS_INSTRUCTIONS.replace(_V1_COUNT_RULE, _V6_COUNT_RULE).rstrip("\n") + "\n" + _V6_EXTRA
+# v7（2026-11-28、使用者が実験機で通した記録 AI1 / AI2 を見ての指摘）：
+#   ・title と meaning が実質同じ文になる（「簡単な料理にする」｜「料理は簡単なものでいい。」）
+#   ・meaning が参加者の入力の写しで、「AIがどう受け取ったか」になっていない
+# title は「何についての項目か」を示す名詞句にし、meaning は AI の言葉で「〜と受け取っています。」と書く。
+# 新しい具体物・方法・優先は足さない（意図しないずれを増やさないため。ずれは第3・4回の登録済みの文だけにする）。
+_V7_EXTRA = (
+    _V6_EXTRA
+    .replace("  希望の内容そのものを書く（例：「料理は和食にしたい。」）。", "  AIがその希望をどう受け取ったかを書く。")
+    .replace("meaningは12〜60字の文にする（短すぎる例：「和食がいい。」→「夕食の料理は和食がいい。」）。",
+             "meaningは20〜80字にする。")
+) + (
+    "- titleは、何についての項目かを示す名詞句にする（6〜14字）。meaningの文を縮めただけのものにしない。\n"
+    "  文末を「〜したい」「〜する」「〜でいい」「〜夜」のような希望の文の形にしない。\n"
+    "  例：×「簡単な料理にする」→○「料理の手間」、×「気を遣わずくつろぐ夜」→○「相手のくつろぎ方」、×「ほっとして笑顔で帰る」→○「帰るときの気持ち」。\n"
+    "- meaningは、AIがその希望をどう受け取ったかを、AIの言葉で書く。参加者の文をそのまま写さない。\n"
+    "  1文目は「〜と受け取っています。」で終える。参加者が使った大事な語（鍋、テレビ、簡単 など）は残すが、文の形は変える。\n"
+    "  2文目は付けても付けなくてもよい。付けるなら、その項目についてまだ決まっていないことを「〜はまだ決めていません。」と書く。\n"
+    "  例：参加者「料理は簡単なものでいい」→「料理には手間をかけなくてよい、と受け取っています。何を作るかはまだ決めていません。」\n"
+    "  例：参加者「テレビを見ながらだらだら話したい」→「食事中は、テレビをつけたまま気ままに話す時間にしたい、と受け取っています。」\n"
+    "  参加者の文の後ろに「と受け取っています」を付けただけにしない。語順や言い方を変えて言い直す。\n"
+    "  例：参加者「疲れている友達が、気を遣わずにくつろげる夜にしたい」→「友達に気を遣わせず、疲れをほどいてもらう夜にしたい、と受け取っています。」\n"
+    "- meaningに、参加者が書いていない新しい具体物・方法・理由・優先順位を足さない。受け取り方を言い直すだけにする。\n"
+    "- 第3・4ターンで対話AIが決めた意味・優先を書く項目と、pending-meaning の項目は、上の書き方の対象外（システムが決まった文面にする）。\n"
+)
+_V7_COUNT_RULE = _V6_COUNT_RULE.replace(
+    "- 参加者が書いた具体的な言葉（「簡単なもの」「テレビを見ながら」「鍋」「和食」など）は、抽象的な言い換えにせず、\n"
+    "  titleかmeaningにその言葉のまま残す。\n",
+    "- 参加者が書いた具体的な語（「簡単」「テレビ」「鍋」「和食」など）は、抽象的な語に置き換えず、meaningの中に残す。\n")
+assert _V7_COUNT_RULE != _V6_COUNT_RULE and "AIがその希望をどう受け取ったか" in _V7_EXTRA and "20〜80字" in _V7_EXTRA
+ANALYSIS_PROMPTS["v7"] = ANALYSIS_INSTRUCTIONS.replace(_V1_COUNT_RULE, _V7_COUNT_RULE).rstrip("\n") + "\n" + _V7_EXTRA
 DEFAULT_ANALYSIS_PROMPT = os.environ.get("EXPERIMENT_ANALYSIS_PROMPT", "v1").strip()
 if DEFAULT_ANALYSIS_PROMPT not in ANALYSIS_PROMPTS:
     DEFAULT_ANALYSIS_PROMPT = "v1"
@@ -743,6 +800,7 @@ def dialogue_validation_codes(
     required_sentence: str = "",
     personal_closing: bool = False,
     min_chars: int | None = None,
+    max_extra: int = 0,
 ) -> list[str]:
     compact = re.sub(r"\s+", "", text)
     has_required = bool(required_sentence) and required_sentence in text
@@ -751,7 +809,7 @@ def dialogue_validation_codes(
     # Keep a lower safety floor so a concise, complete nano-model response is
     # not retried merely to add reading load to the left AOI.
     minimum = min_chars or 100
-    maximum = 480 if turn in {1, 2} else 430 if turn in {3, 4} else 280 if turn == 5 else 360
+    maximum = (480 if turn in {1, 2} else 430 if turn in {3, 4} else 280 if turn == 5 else 360) + max_extra
     if len(compact) < minimum:
         codes.append("R02_TOO_SHORT")
     if len(compact) > maximum:
@@ -2167,6 +2225,12 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     # 指定の目安（220〜360字、140〜230字）の下限に届かない。詳しさを一段上げ、目安の下限の約 9 割を最低字数にして比べる。
     length_mode = "target" if (str(session_id).upper().startswith(TEST_ID_PREFIXES) and body.get("lengthMode") == "target") else "default"
     min_chars = {1: 200, 2: 200, 3: 215, 4: 215, 5: 125, 6: 160}[turn] if length_mode == "target" else None
+    # dialogueStyle="open"：回答を長めにし、入力の具体さに合わせて答え方を変える（指示文は DIALOGUE_INSTRUCTIONS_OPEN）。
+    # 長さは目安として伝えるだけで、短いことを理由にしたやり直しはしない（lengthMode="target" はやり直しが増えた）。
+    open_style = body.get("dialogueStyle") == "open"
+    max_extra = 220 if open_style else 0
+    if open_style and min_chars is None:
+        min_chars = 60  # 入力が読み取れないときの短い回答を通す
     analysis_prompt = DEFAULT_ANALYSIS_PROMPT
     if str(session_id).upper().startswith(TEST_ID_PREFIXES) and body.get("analysisPrompt") in ANALYSIS_PROMPTS:
         analysis_prompt = body["analysisPrompt"]
@@ -2180,7 +2244,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     personal_closing = closing_mode == "personal"
     # inviteMode="rich"（?invite=rich。使用者の提案 2026-11-27：参加者が一度に多く書くよう促す）：
     # 末尾の依頼文で、一つだけでなく、思い浮かぶことを二つ三つ、場面や理由も添えて書いてもらうよう頼む。personal の末尾でだけ効く。
-    invite_rich = personal_closing and body.get("inviteMode") == "rich"
+    invite_rich = personal_closing and (body.get("inviteMode") == "rich" or open_style)
     all_user_texts = [row["content"] for row in history[0::2]] + [user_text, anchor["freeText"]]
 
     def finish_ending(text: str) -> str:
@@ -2188,7 +2252,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
 
     def closing_problems(text: str) -> list[str]:
         if closing_mode == "personal":
-            return personal_closing_problems(turn, text, all_user_texts, invite_rich)
+            return personal_closing_problems(turn, text, all_user_texts, invite_rich, 30 if open_style else 0, open_style)
         if closing_mode == "gap2":
             return gap2_closing_problems(turn, text)
         return gap_closing_problems(turn, text) if closing_mode == "gap" else []
@@ -2246,6 +2310,8 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         if turn == 5
         else "180〜300字"
     )
+    if open_style:
+        visible_length_target = {1: "320〜460字", 2: "320〜460字", 3: "340〜480字", 4: "340〜480字", 5: "240〜360字", 6: "280〜420字"}[turn]
     dialogue_input = (
         f"ターン: {turn}/6\n"
         f"固定control_event: {control_event}\n"
@@ -2265,7 +2331,10 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
            + ("この回は「自分の言葉でまとめてください。」で終える。" if turn == 5 else "")
            + ("依頼では、一つだけ書けばよいという頼み方をしない。思い浮かぶことを二つ三つ、場面や理由も添えて書いてもらうよう頼む"
               "（「…を、思い浮かぶ場面も交えて二つ三つ書いてください。」のように。「二つ三つ」「いくつか」のどちらかを必ず入れる）。" if invite_rich else "")
-           + f"{PERSONAL_CLOSING_MAX + (30 if invite_rich else 0)}字以内。\n"
+           + ("依頼には「お二人ならではの」「あなたと相手ならではの」のどちらかの言い方を入れ、その二人にしかない場面や習慣を書いてもらうよう頼む。"
+              "引用する参加者の言葉は一つだけにし、依頼の一文を長くしない（110字程度まで）。"
+              if open_style else "")
+           + f"{PERSONAL_CLOSING_MAX + (30 if invite_rich else 0) + (30 if open_style else 0)}字以内。\n"
            if personal_closing else
            (f"末尾の直前の一文: {NEXT_TURN_GAPS[turn]}ことだけを、「まだ」を使った短い陳述文で述べる"
             f"（疑問文にしない。すでに決まったことの評価はしない。必須の末尾と同じ言い回しを繰り返さない。40字以内）。\n" if closing_mode == "gap" else
@@ -2285,13 +2354,13 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     )
     dialogue_payload = {
         "model": dialogue_model,
-        "instructions": DIALOGUE_INSTRUCTIONS,
+        "instructions": DIALOGUE_INSTRUCTIONS_OPEN if open_style else DIALOGUE_INSTRUCTIONS,
         "input": dialogue_input,
         "reasoning": {"effort": "medium" if turn in {3, 4} else "low"},
-        "text": {"verbosity": "medium" if length_mode == "target" else "low"},
+        "text": {"verbosity": "medium" if (length_mode == "target" or open_style) else "low"},
         # More reasoning headroom on the two event turns avoids paying for
         # several incomplete retries; the visible length remains validator-bound.
-        "max_output_tokens": 3000 if turn == 3 else 3200 if turn == 4 else 1400,
+        "max_output_tokens": (3000 if turn == 3 else 3200 if turn == 4 else 1400) + (800 if open_style else 0),
         "store": False,
         "safety_identifier": safety_id,
     }
@@ -2345,7 +2414,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
                 normalized,
                 anchor["freeText"],
                 user_text,
-                min_chars=min_chars,
+                min_chars=min_chars, max_extra=max_extra,
                 experiment_variant=experiment_variant,
                 scenario_id=anchor["scenarioId"],
                 required_sentence=required_control_sentence,
@@ -2368,7 +2437,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
                 left = dialogue_validation_codes(turn, cleaned, anchor["freeText"], user_text,
                                                  experiment_variant=experiment_variant, scenario_id=anchor["scenarioId"],
                                                  required_sentence=required_control_sentence,
-                                                 personal_closing=personal_closing, min_chars=min_chars)
+                                                 personal_closing=personal_closing, min_chars=min_chars, max_extra=max_extra)
                 if not (set(left) & HARD_DIALOGUE_CODES):
                     usable.append((cleaned, raw, latency, ["SANITIZED"] + left))
             if not usable:
@@ -2616,6 +2685,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
             "modelOverride": model_override,
             "analysisPrompt": analysis_prompt,
             "lengthMode": length_mode,
+            "dialogueStyle": "open" if open_style else "default",
             "inviteMode": "rich" if invite_rich else "default",
             "dialogueUsage": usage_summary(dialogue_raw),
             "analysisUsage": usage_summary(analysis_raw),
