@@ -9,7 +9,7 @@
 - サーバー：`api/aitest/core.py`（オンライン版・OpenAI）、`offline_engine.py` + `offline_corpus.py`（オフライン版・生成AIなし）
 - オフライン版ローカルサーバー：`tools/offline/serve.py` → http://127.0.0.1:8765/aitest/
 - 分析：`tools/aitest_analysis/analyze.py`、視線：`tools/aitest_analysis/eyetools/`
-- テスト：`python tests/aitest/test_offline_engine.py`、`python tests/aitest/test_v17_offline.py`、`python tests/aitest/test_model_switch.py`、`node tests/aitest/example_sentence_test.mjs`
+- テスト：`python tests/aitest/test_offline_engine.py`、`python tests/aitest/test_v17_offline.py`、`python tests/aitest/test_model_switch.py`、`node tests/aitest/example_sentence_test.mjs`、`node tests/aitest/setup_preset_test.mjs`、`python tests/aitest/test_personal_closing.py`
 - 公開版：https://www.lkdesigner.top/aitest/ （オフライン版で試す：`?engine=offline`）
 - 変更を push するときは `main` と `aitest-v1.7-stability` の両方へ。
 
@@ -93,7 +93,13 @@
   読めなければ `<参加者>_qa.json` の `gaze.columns_used` と実際の列名を見比べ、`eyetools/gaze.py` の CANDIDATES に足す。
 - `check` / `batch` は各参加者の設定（刺激・配置・モデル・分析の指示文・末尾）を表示し、正式データの中で違えばエラーにする。
   刺激は `standard` と `generic_unranked` の両方を通す（未決のため）。決まったら `--variant` で固定する。
-- 参考：TEST-01（従来の配置、古いログで本文の矩形は近似）では、本文／ボタンへの注視のうち境目から 0.5° 以内が約 34%（注視時間で約 39%）。
+- 参考：TEST-01（従来の配置、古いログで本文の矩形は近似）では、本文／ボタンへの注視のうち境目から 0.5° 以内が約 34%（注視時間で約 39%）、
+  1° 以内が約 68%。小さい標的を押す直前 1 秒で最も近い注視点までの距離は、下位 25% が 0.75°、中央値が 1.10°（誤差の上限寄りの目安）。
+- 設定画面の事前選択（ブランチ aitest-layout-side、**main には未反映**）：URL に `?condition=UI_A|UI_B`、`?variant=generic_unranked` などを付けると、
+  設定画面の「画面タイプ」「解釈のずれ」があらかじめ選ばれる。付けなければ従来どおり。使った場合はログに `setup_preset` が残る。
+  正式実験では UI ごとのブックマークを作る想定（例：`…/aitest/?layout=flow&condition=UI_B&variant=generic_unranked`）。
+- 本番の事前確認（11/27 15:52〜15:55、flow の構成＝UI B・generic_unranked・末尾 personal、台本 A/B/C × 6 回）：18 回すべて成功、
+  末尾の差し戻しなし、各回 6〜13 秒、meta は gpt-6-luna / v6。台本 B の第 4 回で、その回の入力（「仕上げは二人で台所に」）がカードに入らなかった（第 6 回で入る）。
 
 ## 未決事項（使用者と相談中）
 - 正式に使う刺激（推奨：generic_unranked 単一）。例文をそのまま送った場合の H1 の数え方。H1 変更の教授確認。

@@ -907,6 +907,11 @@ els.setupForm.addEventListener("submit", async (event) => {
   session = newSession(participantId, String(data.get("condition")), experimentVariant);
   session.experimenterChecks = data.getAll("checks");
   session.events.push({ time: isoNow(), type: "experiment_variant_selected", experimentVariant });
+  if (Object.keys(setupPreset).length) {  // URL で選択を入れておいた場合は、実際に送信された値と合わせて残す
+    session.events.push({ time: isoNow(), type: "setup_preset", preset: setupPreset,
+      kept: (setupPreset.condition ?? session.condition) === session.condition
+        && (setupPreset.experimentVariant ?? experimentVariant) === experimentVariant });
+  }
   saveSession();
   if (els.fullscreenToggle.checked) await tryFullscreen();
   showOnly(els.prepScreen);
@@ -1038,8 +1043,24 @@ document.addEventListener("keydown", (event) => {
 window.addEventListener("resize", () => { if (session) logEvent("viewport_changed", { width: innerWidth, height: innerHeight }); });
 window.addEventListener("beforeunload", saveSession);
 
+// 実験者用：?condition=UI_A|UI_B と ?variant=<設定画面にある値> を付けると、設定画面の選択をあらかじめ入れておく。
+// 付けなければ従来どおり（UI A・通常のずれが選ばれた状態）。画面の文言は変えない。
+// 正式実験では UI ごとにブックマークを作っておくと、画面タイプや「解釈のずれ」の選び間違いを防げる。
+function applySetupPreset(form, get) {
+  const applied = {};
+  for (const [param, field] of [["condition", "condition"], ["variant", "experimentVariant"]]) {
+    const value = get(param);
+    if (!value || !/^[A-Za-z0-9_]+$/.test(value)) continue;
+    const input = form.querySelector(`input[name="${field}"][value="${value}"]`);
+    if (input) { input.checked = true; applied[field] = value; }
+  }
+  return applied;
+}
+let setupPreset = {};
+
 (async function init() {
   await checkAiHealth();
+  if (!PREVIEW_MODE) setupPreset = applySetupPreset(els.setupForm, (key) => QUERY.get(key));
   if (PREVIEW_MODE) {
     session = buildPreviewSession();
     if (QUERY.get("screen") === "prep") {
