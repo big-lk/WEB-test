@@ -690,6 +690,9 @@ async function submitTurn() {
           : (LAYOUT_VARIANT === "flow" || INVITE_RICH ? "personal" : "fixed"),
         ...(INVITE_RICH ? { inviteMode: "rich" } : {}),
         ...(DIALOGUE_STYLE === "open" ? { dialogueStyle: "open" } : {}),
+        // 分析AI の指示文の版。サーバーは試験用の参加者番号のときだけ受け付ける（正式な番号では環境変数 EXPERIMENT_ANALYSIS_PROMPT で決まる）。
+        // flow2 は v7（title は項目名、meaning は AI の受け取り方）を前提にしているので、試験用の番号では v7 を送る。?prompt=v1〜v7 で切り替えられる。
+        ...(/^v[1-9]$/.test(QUERY.get("prompt") || "") ? { analysisPrompt: QUERY.get("prompt") } : FLOW2 ? { analysisPrompt: "v7" } : {}),
         // 試験用の参加者番号（TEST- など）に限り、?model=… でモデルを切り替えられる（サーバー側で確認する）
         ...(QUERY.get("model") ? { model: QUERY.get("model") } : {}),
         turn: session.currentTurn,

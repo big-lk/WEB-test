@@ -512,7 +512,7 @@ _V7_EXTRA = (
     _V6_EXTRA
     .replace("  希望の内容そのものを書く（例：「料理は和食にしたい。」）。", "  AIがその希望をどう受け取ったかを書く。")
     .replace("meaningは12〜60字の文にする（短すぎる例：「和食がいい。」→「夕食の料理は和食がいい。」）。",
-             "meaningは20〜80字にする。")
+             "meaningは20〜70字にする（いくつかの希望をまとめた項目でも90字まで。100字を超えると表示できない）。")
 ) + (
     "- titleは、何についての項目かを示す名詞句にする（6〜14字）。meaningの文を縮めただけのものにしない。\n"
     "  文末を「〜したい」「〜する」「〜でいい」「〜夜」のような希望の文の形にしない。\n"
@@ -531,7 +531,7 @@ _V7_COUNT_RULE = _V6_COUNT_RULE.replace(
     "- 参加者が書いた具体的な言葉（「簡単なもの」「テレビを見ながら」「鍋」「和食」など）は、抽象的な言い換えにせず、\n"
     "  titleかmeaningにその言葉のまま残す。\n",
     "- 参加者が書いた具体的な語（「簡単」「テレビ」「鍋」「和食」など）は、抽象的な語に置き換えず、meaningの中に残す。\n")
-assert _V7_COUNT_RULE != _V6_COUNT_RULE and "AIがその希望をどう受け取ったか" in _V7_EXTRA and "20〜80字" in _V7_EXTRA
+assert _V7_COUNT_RULE != _V6_COUNT_RULE and "AIがその希望をどう受け取ったか" in _V7_EXTRA and "20〜70字" in _V7_EXTRA
 ANALYSIS_PROMPTS["v7"] = ANALYSIS_INSTRUCTIONS.replace(_V1_COUNT_RULE, _V7_COUNT_RULE).rstrip("\n") + "\n" + _V7_EXTRA
 DEFAULT_ANALYSIS_PROMPT = os.environ.get("EXPERIMENT_ANALYSIS_PROMPT", "v1").strip()
 if DEFAULT_ANALYSIS_PROMPT not in ANALYSIS_PROMPTS:
@@ -2310,8 +2310,35 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         if turn == 5
         else "180〜300字"
     )
+    # open：入力がごく短いときの答え方は、モデルの判断に任せると回によって変わった（実際の出力：「楽しく」に対して、
+    # 1 回目は 105 字で足りない点を述べ、2 回目は 233 字の標準的な夕食案を返した）。字数で段階を決めて指示する。
+    input_chars = len(re.sub(r"[\s、。，,.!！?？「」『』・…ー〜~]", "", user_text))
+    input_level = "normal"
+    thin_directive = ""
     if open_style:
         visible_length_target = {1: "320〜460字", 2: "320〜460字", 3: "340〜480字", 4: "340〜480字", 5: "240〜360字", 6: "280〜420字"}[turn]
+        # 「案を出さない」のは第1回だけにする：第2回以降の短い入力（「和食がいい」など）は、短くても具体的な希望であることが多く、
+        # 案をまったく出さないと応答していないように見えた（実際の出力、台本 C：3 回続けて「…が分かると案を具体的にできます」）。
+        if input_chars < 8 and turn == 1:
+            input_level = "very_thin"
+            visible_length_target = "120〜200字"
+            thin_directive = (
+                f"今回の入力は{input_chars}字で、具体的な内容がほとんどない。この回は、献立・演出・過ごし方の案を出さない。\n"
+                "構成：(1) 今回の入力を引用して一文で受ける（文が途中で切れているなら、そのことを言う）。"
+                "(2) 最初に書いてもらった目標から分かっていることを一文で確かめる（「事前の一文」とは言わず、「最初に書いた目標」と言う）。"
+                "(3) 何が分かると案を具体的にできるかを、疑問文にせず陳述で一つ示す。(4) 末尾の依頼文。\n")
+        elif input_chars < 8 and turn in {3, 4}:
+            input_level = "very_thin"
+            visible_length_target = "200〜300字"
+            thin_directive = (
+                f"今回の入力は{input_chars}字で、具体的な内容がほとんどない。強制文とそれに基づく具体案は指定どおりに書くが、"
+                "今回の入力から新しい意味を読み取って広げない。今回の入力は引用して一文で受けるだけにする。\n")
+        elif input_chars < 14 and turn in {1, 2, 5}:
+            input_level = "short"
+            visible_length_target = "180〜280字"
+            thin_directive = (
+                f"今回の入力は{input_chars}字と短い。案は一文だけの暫定として示し、今回の入力から読み取れる範囲を超えて広げない。"
+                "何が分かると案を具体的にできるかを、疑問文にせず陳述で一つ示す。\n")
     dialogue_input = (
         f"ターン: {turn}/6\n"
         f"固定control_event: {control_event}\n"
@@ -2321,6 +2348,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         f"{'今回の強制文（一字も変えず、可視回答に正確に含める）: ' + required_control_sentence if required_control_sentence else ''}\n"
         f"可視回答の長さ: {visible_length_target}、1〜2段落。"
         f"{' 強制文は最新入力への短い応答に続く第2文として、冒頭160字以内に置く。' if required_control_sentence else ''}\n"
+        f"{thin_directive}"
         # 「できるだけ今回の入力から選ぶ」という指定は試して外した：短い入力（「和食がいい」など）から無理に選ぼうとして、
         # 参加者の言葉と一致しない言い換えになり、やり直しが増えた（実際の出力：18 回中 4 回。指定なしでは 0〜1 回）。
         # その代わり、同じ言葉を続けて引用することがある（台本 F で 4 回連続）。これは既知の点として残す。
@@ -2686,6 +2714,8 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
             "analysisPrompt": analysis_prompt,
             "lengthMode": length_mode,
             "dialogueStyle": "open" if open_style else "default",
+            "inputChars": input_chars,
+            "inputLevel": input_level,
             "inviteMode": "rich" if invite_rich else "default",
             "dialogueUsage": usage_summary(dialogue_raw),
             "analysisUsage": usage_summary(analysis_raw),
