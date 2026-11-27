@@ -99,7 +99,7 @@ def session_layout(session: Session) -> str:
 
 # 各回の meta に残る設定。正式データでは、参加者の中でも参加者の間でも同じでなければならない。
 # （例：Vercel の環境変数 EXPERIMENT_ANALYSIS_PROMPT が外れると、分析AI の指示文が黙って v1 に戻る。ここで気づけるようにする）
-SETTING_KEYS = ("dialogueModel", "analysisModel", "analysisPrompt", "closingMode", "inviteMode", "lengthMode")
+SETTING_KEYS = ("dialogueModel", "analysisModel", "analysisPrompt", "closingMode", "inviteMode", "lengthMode", "dialogueStyle")
 
 
 def session_settings(session: Session) -> dict[str, str]:

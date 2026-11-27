@@ -63,7 +63,8 @@ def cmd_check(paths: list[str], variant: str | None = None) -> int:
 
 def _setting_label(st: dict) -> str:
     names = {"variant": "刺激", "layout": "配置", "dialogueModel": "会話AI", "analysisModel": "分析AI",
-             "analysisPrompt": "分析の指示文", "closingMode": "末尾", "inviteMode": "入力の案内", "lengthMode": "長さ"}
+             "analysisPrompt": "分析の指示文", "closingMode": "末尾", "inviteMode": "入力の案内", "lengthMode": "長さ",
+             "dialogueStyle": "回答の書き方"}
     return " / ".join(f"{names.get(k, k)}={v}" for k, v in st.items())
 
 

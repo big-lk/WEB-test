@@ -9,7 +9,7 @@
 - サーバー：`api/aitest/core.py`（オンライン版・OpenAI）、`offline_engine.py` + `offline_corpus.py`（オフライン版・生成AIなし）
 - オフライン版ローカルサーバー：`tools/offline/serve.py` → http://127.0.0.1:8765/aitest/
 - 分析：`tools/aitest_analysis/analyze.py`、視線：`tools/aitest_analysis/eyetools/`
-- テスト：`python tests/aitest/test_offline_engine.py`、`python tests/aitest/test_v17_offline.py`、`python tests/aitest/test_model_switch.py`、`node tests/aitest/example_sentence_test.mjs`、`node tests/aitest/setup_preset_test.mjs`、`python tests/aitest/test_personal_closing.py`
+- テスト：`python tests/aitest/test_offline_engine.py`、`python tests/aitest/test_v17_offline.py`、`python tests/aitest/test_model_switch.py`、`node tests/aitest/example_sentence_test.mjs`、`node tests/aitest/setup_preset_test.mjs`、`python tests/aitest/test_personal_closing.py`、`python tests/aitest/test_open_style.py`
 - 公開版：https://www.lkdesigner.top/aitest/ （オフライン版で試す：`?engine=offline`）
 - 変更を push するときは `main` と `aitest-v1.7-stability` の両方へ。
 
@@ -116,6 +116,27 @@
 - 「決めた順に見る」区間は記録の中で特定できなかった（比較は境目の割合で行った）。
 - AI1 / AI2 は番号が TEST- で始まらないので、道具は正式データとして扱う。試し録りとして手で除くこと。
 - データはリポジトリに入れていない。
+
+## ?layout=flow2（2026-11-28 追加、ブランチ aitest-layout-side。**main には未反映**）
+使用者が実験機で通して挙げた 9 点をまとめて入れた試作。既定・side・flow の動作と文言は変えていない。詳しくはプロジェクト文書「第二実験_早報_2026-11-28」。
+- 画面（`public/aitest/app.js` の `FLOW2`、`styles.css` の `html[data-flow2]`）：
+  送信ボタンを押すと入力欄の上の行に確認（「この内容で送信しますか。」「送信する」「書き足す」）。Enter は改行。
+  中身のない枠（pending-meaning、anchor-context）は見出しだけの短い帯（ボタンなし）。
+  例文は、書き方の型（破線）とボタンの選択から作った文（実線）を見分け、作り直しで変わった文に色、もとになったボタンに同じ色の縁。
+  事前の状態は眠気と緊張だけ（confidence / familiarity は null）。完了時に視線計測の停止を求めない。
+  入力の案内は ?invite=rich の文言＋第1回に「3文くらいを目安に」「お二人ならではのこと」。
+- サーバー：`dialogueStyle: "open"`（flow2 が送る。`?style=open|default`）＝回答を長めにし、入力の具体さに合わせる。
+  第1回の入力が 8 字未満なら案を出さず、受け取った範囲と足りない点を述べる（`meta.inputLevel`）。末尾は「お二人ならではの…を二つ三つ」。
+  分析AI の指示文 v7（title＝項目名の名詞句、meaning＝AI の言葉で「〜と受け取っています。」）。試験用の番号では flow2 が v7 を送る（`?prompt=v1〜v7`）。
+  **正式な番号では環境変数 `EXPERIMENT_ANALYSIS_PROMPT=v7` が必要**（いまの本番は v6）。v7 では「中心」を第4回の優先の項目だけに限る。
+- ログ：`layout: "flow2"`、`SEND_CONFIRM`、空の帯は `EMPTY_n`（eyetools では PANEL に数えない）、`send_confirm_shown / cancelled`。
+- 実際の出力（gpt-6-luna、使用者の Mac の手元サーバー、台本 6 本×6 回を 4 巡＋調整に使っていない台本 3 本）：
+  カードの本文が入力の写しだった割合 27/88 → 0/83、title が本文の縮約だった割合 38/88 → 8/83。回答の長さは通常の入力で約 4 割増。
+  末尾が固定の終止文に戻った回 2/30 → 0/30。やり直しは増えていない（4/36 → 5/36）。画面を通した実際の 6 回も確認済み。
+- **未確認**：実験機（Windows）での見え方、人の参加者、所要時間（回答と入力が長くなる分）。
+- **参加者に見える新しい文言は候補**。資料 4・5 との対応と、事前の状態を 4 項目から 2 項目にすることは、使用者と指導教員の確認が要る。
+- 検証：`python tests/aitest/test_open_style.py`（偽の応答。組み立てと基準だけ）。
+- 手元で試す：`python tools/offline/serve.py --online` → `http://127.0.0.1:8765/aitest/?layout=flow2&condition=UI_B&variant=generic_unranked`（番号は TEST- で始める）。
 
 ## 未決事項（使用者と相談中）
 - 正式に使う刺激（推奨：generic_unranked 単一）。例文をそのまま送った場合の H1 の数え方。H1 変更の教授確認。
