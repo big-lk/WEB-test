@@ -217,7 +217,9 @@ def personal_closing_problems(turn: int, text: str, user_texts: list[str], invit
               if compact[i:i + 4] in said and re.search(r"[\u30a0-\u30ff\u4e00-\u9fff]", compact[i:i + 4])]
     # dialogueStyle="open"：「お二人ならではの…」という頼み方が入っていれば、参加者の言葉の引用は無くてもよい。
     # 実際の出力（2026-11-28、30 回）：頼むことが増えると引用が落ち、短い入力の台本で 4 回、固定の終止文に戻った。
-    if not shared and not (quote_optional and "ならでは" in last):
+    # 「ならでは」と書かず、「お二人のいつもの過ごし方や口ぐせも交えて」のように頼む形も同じ働きをする（実際の出力で、この形が
+    # 引用なしとして 11 回やり直しになった）。
+    if not shared and not (quote_optional and re.search(r"ならでは|習慣|口ぐせ|思い出|いつもの", last)):
         problems.append("no_user_words")
     return problems
 
@@ -2324,7 +2326,8 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
             visible_length_target = "120〜200字"
             thin_directive = (
                 f"今回の入力は{input_chars}字で、具体的な内容がほとんどない。この回は、献立・演出・過ごし方の案を出さない。\n"
-                "構成：(1) 今回の入力を引用して一文で受ける（文が途中で切れているなら、そのことを言う）。"
+                "構成：(1) 今回の入力を引用して一文で受ける（「『…』と受け取りました。」の形。「書いてくれました」とは言わない。"
+                "文が途中で切れているなら、そのことを言う）。"
                 "(2) 最初に書いてもらった目標から分かっていることを一文で確かめる（「事前の一文」とは言わず、「最初に書いた目標」と言う）。"
                 "(3) 何が分かると案を具体的にできるかを、疑問文にせず陳述で一つ示す。(4) 末尾の依頼文。\n")
         elif input_chars < 8 and turn in {3, 4}:
@@ -2339,12 +2342,23 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
             thin_directive = (
                 f"今回の入力は{input_chars}字と短い。案は一文だけの暫定として示し、今回の入力から読み取れる範囲を超えて広げない。"
                 "何が分かると案を具体的にできるかを、疑問文にせず陳述で一つ示す。\n")
+    turn_directive = ((EMBEDDED_TURN_DIRECTIVES if is_embedded_turn(experiment_variant, turn) else GENERIC_TURN_DIRECTIVES)[turn]
+                      if generic_dialogue else TURN_DIRECTIVES[turn]).strip()
+    if open_style and turn == 5 and input_level == "normal":
+        # open：第5回の本文が一文だけになることがあった（実際の出力：「相手を休ませることを優先する形にはせず、いつも通り食べて
+        # 食後にお茶を飲む流れにします。」で終わり）。修正を受けたあと、参加者がいま書いた内容を具体的に描く。
+        short_rule = "最新の修正または追加へ最初に答え、変わった点を一つだけ短く示す。"
+        assert short_rule in turn_directive
+        turn_directive = turn_directive.replace(
+            short_rule,
+            "最新の修正または追加へ最初に答え、変わった点を一文で示す。続けて、参加者がいま書いた内容（食べ方、流れ、食後の過ごし方など）を、"
+            "当日の様子が目に浮かぶように二〜三文で具体的に描く。新しい価値・優先・演出は足さない。")
     dialogue_input = (
         f"ターン: {turn}/6\n"
         f"固定control_event: {control_event}\n"
         f"実験バリアント: {experiment_variant}\n"
         f"バリアント規則: {variant_directive}\n"
-        f"このターンの実現規則:\n{((EMBEDDED_TURN_DIRECTIVES if is_embedded_turn(experiment_variant, turn) else GENERIC_TURN_DIRECTIVES)[turn] if generic_dialogue else TURN_DIRECTIVES[turn]).strip()}\n"
+        f"このターンの実現規則:\n{turn_directive}\n"
         f"{'今回の強制文（一字も変えず、可視回答に正確に含める）: ' + required_control_sentence if required_control_sentence else ''}\n"
         f"可視回答の長さ: {visible_length_target}、1〜2段落。"
         f"{' 強制文は最新入力への短い応答に続く第2文として、冒頭160字以内に置く。' if required_control_sentence else ''}\n"
@@ -2352,17 +2366,24 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         # 「できるだけ今回の入力から選ぶ」という指定は試して外した：短い入力（「和食がいい」など）から無理に選ぼうとして、
         # 参加者の言葉と一致しない言い換えになり、やり直しが増えた（実際の出力：18 回中 4 回。指定なしでは 0〜1 回）。
         # その代わり、同じ言葉を続けて引用することがある（台本 F で 4 回連続）。これは既知の点として残す。
-        + (f"末尾の一文: 次の回の主題「{NEXT_TURN_THEMES[turn]}」について書いてもらう依頼の一文で終える。"
+        # open：依頼の一文に「主題・引用・お二人ならでは・二つ三つ」を全部入れさせると、文が込み入って主題がぼやけた
+        # （実際の出力：「次は『いつもの調子でふざけ合って』を含む、お二人ならではの習慣や場面と同時に大切にしたい雰囲気を…」）。
+        # 形を決め、引用は任意にする。回答の本文が参加者の言葉を使っているので、末尾で引用しなくても個別の応答になる。
+        + ((f"末尾の一文: 「次は、<主題>を、お二人ならではの<例>も交えて二つ三つ書いてください。」の形にする。"
+            f"<主題>は「{NEXT_TURN_THEMES[turn]}」（言い回しは少し変えてよいが、何について書くのかがはっきり分かるようにする）。"
+            "<例>は「場面」「習慣」「口ぐせ」「思い出」「いつもの過ごし方」から一つか二つ選び、前の回と違うものにする。"
+            "参加者の言葉の引用は入れなくてよい（入れるなら10字以内の語句を一つだけ）。疑問文にしない。参加者の言葉の意味や優先順位は尋ねない。"
+            + ("この回は「…を、お二人ならではの<例>も交えて二つ三つ、自分の言葉でまとめてください。」で終える。" if turn == 5 else "")
+            + "90字以内。\n")
+           if (personal_closing and open_style) else (
+            f"末尾の一文: 次の回の主題「{NEXT_TURN_THEMES[turn]}」について書いてもらう依頼の一文で終える。"
            f"その一文には、参加者がこれまでに書いた具体的な言葉を一つそのまま入れる。疑問文にしない（「〜を書いてください。」で終える）。"
            f"参加者の言葉の意味や優先順位は尋ねない。その言葉を次の入力に書くよう求めない"
            f"（「…という言葉も添えて／入れて書いてください」は不可。「…という希望もふまえて」「…も含めて」のようにつなぐ）。"
            + ("この回は「自分の言葉でまとめてください。」で終える。" if turn == 5 else "")
            + ("依頼では、一つだけ書けばよいという頼み方をしない。思い浮かぶことを二つ三つ、場面や理由も添えて書いてもらうよう頼む"
               "（「…を、思い浮かぶ場面も交えて二つ三つ書いてください。」のように。「二つ三つ」「いくつか」のどちらかを必ず入れる）。" if invite_rich else "")
-           + ("依頼には「お二人ならではの」「あなたと相手ならではの」のどちらかの言い方を入れ、その二人にしかない場面や習慣を書いてもらうよう頼む。"
-              "引用する参加者の言葉は一つだけにし、依頼の一文を長くしない（110字程度まで）。"
-              if open_style else "")
-           + f"{PERSONAL_CLOSING_MAX + (30 if invite_rich else 0) + (30 if open_style else 0)}字以内。\n"
+           + f"{PERSONAL_CLOSING_MAX + (30 if invite_rich else 0)}字以内。\n"
            if personal_closing else
            (f"末尾の直前の一文: {NEXT_TURN_GAPS[turn]}ことだけを、「まだ」を使った短い陳述文で述べる"
             f"（疑問文にしない。すでに決まったことの評価はしない。必須の末尾と同じ言い回しを繰り返さない。40字以内）。\n" if closing_mode == "gap" else
@@ -2375,7 +2396,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
             f"（次の主題が食事中の過ごし方なら「鍋を囲んでいるあいだの過ごし方は、まだ決まっていません。」のように）。"
             f"味つけや器のような、次の主題と関係のない細部は挙げない。必須の末尾と同じ言い回しを長く繰り返さない。"
             f"疑問文にしない。すでに決まったことの評価はしない。40字以内。\n" if closing_mode == "gap2" else "")
-           + f"必須の末尾: {TURN_ENDINGS[turn]}\n")
+           + f"必須の末尾: {TURN_ENDINGS[turn]}\n"))
         + f"事前場面: {anchor['scenarioLabel']}\n"
         f"事前の一文: {anchor['freeText']}\n"
         f"対話:\n{transcript_text(history, user_text)}"

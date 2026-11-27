@@ -92,6 +92,14 @@ check("open: a 600-character reply is accepted; without open it is too long",
       run(USER, long_reply, dialogueStyle="open")[0]["meta"]["validationStatus"] == "passed"
       and "R03_TOO_LONG" in json.dumps(run(USER, long_reply.replace(CLOSE_NARADE, "次は、「笑って帰れる夜」と同時に大切にしたい別の気持ちや雰囲気を書いてください。"))[0]["meta"]["dialogueAttempts"]))
 
+alt_close = "次は、この目標と同時に大切にしたい別の気持ちや雰囲気を、お二人のいつもの過ごし方や口ぐせも交えて二つ三つ書いてください。"
+out, d, a = run(USER, REPLY.replace(CLOSE_NARADE, alt_close), dialogueStyle="open")
+check("open: a closing asking for habits / usual ways (without the word ならでは) also passes", out["meta"]["closingFallback"] is False
+      and out["meta"]["validationStatus"] == "passed", json.dumps(out["meta"]["dialogueAttempts"], ensure_ascii=False)[:200])
+plain_close = "次は、この目標と同時に大切にしたい別の気持ちや雰囲気を、二つ三つ書いてください。"
+check("open: a closing with neither a quote nor a request for personal detail is still rejected",
+      run(USER, REPLY.replace(CLOSE_NARADE, plain_close), dialogueStyle="open")[0]["meta"]["closingFallback"] is True)
+
 # 3) open：入力がごく短いとき
 thin_reply = "「友達が」というところまで受け取りました。最初に書いた目標からは、疲れている友達がくつろげる夜にしたいと分かります。どんな場面を思い浮かべているかが分かると、案を具体的にできます。" + CLOSE_NARADE
 out, d, a = run("友達が", thin_reply, dialogueStyle="open")
