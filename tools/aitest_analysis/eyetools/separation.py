@@ -160,6 +160,39 @@ def scripted_alignment(fix_aoi: pd.DataFrame, start: float, end: float, script: 
             "miss_share": (miss / (match + miss)) if (match + miss) else None, "confusions": confusions}
 
 
+def click_gaze_offset(session, fixations: pd.DataFrame, to_tobii, ppd: float, before_s: float = 1.0, after_s: float = 0.1) -> dict:
+    """小さい標的（ボタンなど）を押す直前 before_s 秒の注視のうち、押した位置に最も近いものまでの距離。
+
+    その記録での視線の誤差の**上限寄りの目安**にすぎない：押す前に標的を見ないこともあり、押す位置はポインタの先で、
+    見ているのは標的の中央であることが多い。TEST-01 の実データでは、入力欄（広い標的）を押すときは別の場所を見ていることが
+    多かったので、入力欄のクリックは除く。値のそろった偏り（dx, dy）が大きければ、校正が全体にずれている疑いがある。
+    """
+    from .session import parse_ts
+    f = fixations.dropna(subset=["x", "y"])
+    dist, dxs, dys = [], [], []
+    for e in session.events_of("pointer_down"):
+        if e.get("x") is None or e.get("y") is None or str(e.get("target", "")).startswith("AOI_Left_Input"):
+            continue
+        ts = parse_ts(e.get("at") or e.get("time"))
+        if ts is None:
+            continue
+        t = to_tobii(ts)
+        w = f[(f.end >= t - before_s) & (f.start <= t + after_s)]
+        if not len(w):
+            continue
+        d = ((w.x - float(e["x"])) ** 2 + (w.y - float(e["y"])) ** 2) ** 0.5
+        i = d.idxmin()
+        dist.append(float(d[i])); dxs.append(float(w.x[i]) - float(e["x"])); dys.append(float(w.y[i]) - float(e["y"]))
+    if not dist:
+        return {"click_n": 0}
+    d = pd.Series(dist)
+    close = d <= 2 * ppd  # 標的を見てから押したとみなせる分だけで偏りを見る
+    return {"click_n": len(dist), "click_p25_deg": float(d.quantile(0.25) / ppd), "click_median_deg": float(d.median() / ppd),
+            "click_within_1deg": float((d <= ppd).mean()), "click_n_close": int(close.sum()),
+            "click_bias_dx_px": float(pd.Series(dxs)[close.values].median()) if close.any() else None,
+            "click_bias_dy_px": float(pd.Series(dys)[close.values].median()) if close.any() else None}
+
+
 def analyse(session, gaze, script_turn: int | None = None, radius_deg: float = 0.5, px_per_deg: float | None = None,
             script: list[str] | None = None) -> dict:
     """1 回の記録（ログ＋視線）について、上の 3 つをまとめる。"""
@@ -181,7 +214,10 @@ def analyse(session, gaze, script_turn: int | None = None, radius_deg: float = 0
     windows = [(to_tobii(t.start), to_tobii(t.end)) for t in tois]
     res = {"participant": session.participant, "condition": session.condition, "layout": session_layout(session),
            "sync_ok": sync.ok, "sync_matches": sync.n_matched, "radius_deg": radius_deg, "radius_px": round(radius_deg * ppd, 1),
-           **geometry(timeline), **boundary_risk(fix, timeline, windows, radius_deg * ppd)}
+           **geometry(timeline), **boundary_risk(fix, timeline, windows, radius_deg * ppd),
+           **click_gaze_offset(session, gaze.fixations, to_tobii, ppd)}
+    wide = boundary_risk(fix, timeline, windows, 2 * radius_deg * ppd)  # 誤差が公称より大きい場合の見積もり
+    res.update({"near2_share_fix": wide["near_share_fix"], "near2_share_dwell": wide["near_share_dwell"]})
     if script_turn:
         toi = next((t for t in tois if t.kind == "reading" and t.turn == script_turn), None)
         if toi is None:
@@ -206,6 +242,15 @@ def report(rows: list[dict]) -> str:
     add("ボタンへの注視（回 / 秒）", lambda r: f"{r['btn_fix']} / {r['btn_dwell_s']:.1f}")
     add(f"境目から {rows[0]['radius_deg']}°（{rows[0]['radius_px']} px）以内の注視：回数の割合", lambda r: pct(r.get("near_share_fix")))
     add("同：注視時間の割合", lambda r: pct(r.get("near_share_dwell")))
+    add(f"境目から {2 * rows[0]['radius_deg']}° 以内の注視：回数の割合 / 注視時間の割合",
+        lambda r: f"{pct(r.get('near2_share_fix'))} / {pct(r.get('near2_share_dwell'))}")
+    if any(r.get("click_n") for r in rows):
+        deg = lambda v: "—" if v is None else f"{v:.2f}°"  # noqa: E731
+        add("小さい標的を押す直前 1 秒で最も近い注視点までの距離：下位 25% / 中央値（誤差の上限寄りの目安）",
+            lambda r: f"{deg(r.get('click_p25_deg'))} / {deg(r.get('click_median_deg'))}（{r.get('click_n', 0)} 回）")
+        add("同：1° 以内の割合", lambda r: pct(r.get("click_within_1deg")))
+        add("同：2° 以内のクリックでの偏り（中央値、右が＋・下が＋、px）",
+            lambda r: f"{num(r.get('click_bias_dx_px'), '{:+.0f}')} , {num(r.get('click_bias_dy_px'), '{:+.0f}')}（{r.get('click_n_close', 0)} 回）")
     if any("script_script" in r for r in rows):
         add("決めた順", lambda r: r.get("script_script", "—"))
         add("実際の並び", lambda r: r.get("script_observed", r.get("script_note", "—")) or "（パネルへの注視なし）")
