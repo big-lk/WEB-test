@@ -122,8 +122,10 @@ def cmd_separation(files: list[str], out: str, script_turn: int | None, radius_d
     if len(files) % 2:
         print("ログ（.json）と視線（.tsv）を 2 つずつ並べてください。")
         return 2
-    rows = [analyse(load_session(j), load_prolab_tsv(t), script_turn=script_turn, radius_deg=radius_deg)
-            for j, t in zip(files[0::2], files[1::2])]
+    rows = []
+    for j, t in zip(files[0::2], files[1::2]):
+        sess = load_session(j)
+        rows.append(analyse(sess, load_prolab_tsv(t, recording=sess.participant), script_turn=script_turn, radius_deg=radius_deg))
     text = report(rows)
     o = Path(out)
     o.mkdir(parents=True, exist_ok=True)

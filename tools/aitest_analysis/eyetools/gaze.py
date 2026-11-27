@@ -116,8 +116,16 @@ class GazeExport:
     info: dict = field(default_factory=dict)  # 読み取りに使った列・単位・文字コード（品質 JSON に出す）
 
 
-def load_prolab_tsv(path: str | Path) -> GazeExport:
+def load_prolab_tsv(path: str | Path, recording: str | None = None) -> GazeExport:
+    """recording：1 つのファイルに複数の記録が入っている場合に、使う記録の名前（Recording name。大文字・小文字は無視）。"""
     df, encoding = _read_table(path)
+    rec_col = next((c for c in df.columns if _norm(c) == "recording name"), None)
+    recordings = [str(x) for x in df[rec_col].dropna().unique()] if rec_col else []
+    if len(recordings) > 1:
+        want = [r for r in recordings if recording and r.strip().lower() == str(recording).strip().lower()]
+        if not want:
+            raise ValueError(f"{path} には複数の記録が入っています：{recordings}。使う記録を指定してください（指定：{recording!r}）。")
+        df = df[df[rec_col].astype(str) == want[0]].reset_index(drop=True)
     rec = _pick(df, "rec_ts")
     sensor = next((c for c in df.columns if _norm(c) == "sensor"), None)
     eye_rows = pd.Series(True, index=df.index)
@@ -154,11 +162,18 @@ def load_prolab_tsv(path: str | Path) -> GazeExport:
                 m = m[down]
         mouse = pd.DataFrame({"t": t[m.index], "value": m[evv] if evv else m[ev]})
 
-    info = {"encoding": encoding, "timestamp_column": rec, "timestamp_unit": unit, "timestamp_unit_from": unit_source,
+    info = {"recordings_in_file": recordings, "recording_used": (str(df[rec_col].iloc[0]) if rec_col and len(df) else None),
+            "encoding": encoding, "timestamp_column": rec, "timestamp_unit": unit, "timestamp_unit_from": unit_source,
             "sensor_column": sensor, "n_rows": int(len(df)), "n_samples": int(len(samples)),
             "n_fixations": int(len(fixations)), "n_mouse_down": int(len(mouse)),
             "columns_used": {k: _pick(df, k, False) for k in CANDIDATES},
             "columns_missing": [k for k in CANDIDATES if _pick(df, k, False) is None]}
+    for key, col in (("validation_accuracy_deg", "average validation accuracy (degrees)"),
+                     ("validation_precision_sd_deg", "average validation precision sd (degrees)"),
+                     ("calibration_accuracy_deg", "average calibration accuracy (degrees)")):
+        c = next((x for x in df.columns if str(x).strip().lower() == col), None)
+        v = _num(df[c]).dropna() if c else []
+        info[key] = float(v.iloc[0]) if len(v) else None
     start_wall = None
     # UTC の列があればそれを優先する（解析する PC の時差設定に左右されない）
     by_norm = {_norm(c): c for c in df.columns}

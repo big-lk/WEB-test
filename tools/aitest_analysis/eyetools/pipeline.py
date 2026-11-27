@@ -63,7 +63,8 @@ def process(session: Session, gaze: GazeExport, margin: float = 0.0,
 
 def process_files(session_json: str | Path, prolab_tsv: str | Path,
                   expected_variant: str | None = None) -> tuple[pd.DataFrame, dict]:
-    return process(load_session(session_json), load_prolab_tsv(prolab_tsv), expected_variant=expected_variant)
+    session = load_session(session_json)
+    return process(session, load_prolab_tsv(prolab_tsv, recording=session.participant), expected_variant=expected_variant)
 
 
 def participant_summary(table: pd.DataFrame, min_tracking: float = 0.7) -> dict:
