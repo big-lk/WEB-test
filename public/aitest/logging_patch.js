@@ -94,8 +94,13 @@
       // flow2：送信前の確認（出ているときだけ）。入力欄の矩形と重なるので、小さい方（こちら）が優先される
       SEND_CONFIRM: rect(document.querySelector("#sendConfirm:not(.hidden)"))
     };
-    // flow2：中身のない枠（短い帯）は、本文もボタンもないので TEXT / BTN に数えない（CARD だけ残す）
-    cardEls.forEach((c, i) => { if (c.classList.contains("placeholder")) { delete rects[`TEXT_${i + 1}`]; delete rects[`BTN_${i + 1}`]; } });
+    // flow2：中身のない枠（短い帯）は、読み取った内容のカードとは別の名前（EMPTY_n）で残す。
+    // カード本文への注視（H3）に、空の帯への注視が混ざらないようにするため。
+    cardEls.forEach((c, i) => {
+      if (!c.classList.contains("placeholder")) return;
+      delete rects[`TEXT_${i + 1}`]; delete rects[`BTN_${i + 1}`];
+      if (rects[`CARD_${i + 1}`]) { rects[`EMPTY_${i + 1}`] = rects[`CARD_${i + 1}`]; delete rects[`CARD_${i + 1}`]; }
+    });
     Object.keys(rects).forEach((k) => { if (!rects[k]) delete rects[k]; });
     return rects;
   }

@@ -40,18 +40,18 @@ CLOSE_NARADE = "次は、この目標と同時に大切にしたい別の気持�
 SEEN = []
 
 
-def fake(dialogue_text):
+def fake(dialogue_text, analysis_text):
     def call(payload):
         SEEN.append(payload)
         if payload["instructions"].startswith(core.DIALOGUE_INSTRUCTIONS[:40]):
             return dialogue_text, {"id": "d"}, 10.0
-        return ANALYSIS, {"id": "a"}, 10.0
+        return analysis_text, {"id": "a"}, 10.0
     return call
 
 
-def run(user_text, dialogue_text, turn=1, session="SIMTEST-open", **extra):
+def run(user_text, dialogue_text, turn=1, session="SIMTEST-open", analysis_text=None, **extra):
     SEEN.clear()
-    core.call_openai = fake(dialogue_text)
+    core.call_openai = fake(dialogue_text, analysis_text or ANALYSIS)
     rows = []
     for _ in range(1, turn):
         rows += [{"role": "user", "content": "友達がほっとして、笑って帰れる夜にしたい"}, {"role": "assistant", "content": "ほっとできる夜にします。"}]
@@ -105,6 +105,14 @@ out, d, a = run("あと、料理は簡単なものでいい", REPLY, turn=2, dia
 check("open, turn 2, 13 characters: short", out["meta"]["inputLevel"] == "short" and out["meta"]["inputChars"] == 13)
 out, d, a = run("友達が", thin_reply)
 check("default: thin input adds no directive", out["meta"]["inputLevel"] == "normal" and "案を出さない" not in d["input"])
+
+# 3b) v7：「中心」（画面の「AIの優先度：高い」）は、第4回に AI が決めた優先の項目だけ
+central = json.dumps({"summary": "夕食の方針。", "criteria": [dict(CARDS[0], priority="中心"), CARDS[1], CARDS[2]]}, ensure_ascii=False)
+out, d, a = run(USER, REPLY, analysis_text=central, dialogueStyle="open", analysisPrompt="v7")
+check("v7: an ordinary card marked 中心 at turn 1 is reset to 維持", out["analysis"]["criteria"][0]["priority"] == "維持"
+      and any(x.startswith("priority_reset:") for x in out["meta"]["analysisRepairs"]), json.dumps(out["meta"]["analysisRepairs"]))
+out, d, a = run(USER, REPLY, analysis_text=central, dialogueStyle="open", analysisPrompt="v6")
+check("v6: priority is left as the model returned it", out["analysis"]["criteria"][0]["priority"] == "中心")
 
 # 4) v7 は試験用の番号でなければリクエストからは選べない（正式な番号は環境変数で決める）
 out, d, a = run(USER, REPLY, session="P001", dialogueStyle="open", analysisPrompt="v7")

@@ -28,6 +28,10 @@ GROUP = {
     # 本文かボタンの近い方に割り当てるので、v3 のログでは PANEL＝本文（TEXT_n）になる。
     "TEXT_1": "PANEL", "TEXT_2": "PANEL", "TEXT_3": "PANEL",
     "EXAMPLE_TEXT": "EXAMPLE_B",
+    # ?layout=flow2（2026-11-28）：中身のない枠（短い帯）と、送信前の確認。
+    # 空の帯は PANEL（カード本文）に数えない。確認は入力欄の上に出るので、入力の領域として数える。
+    "EMPTY_1": "PANEL_EMPTY", "EMPTY_2": "PANEL_EMPTY", "EMPTY_3": "PANEL_EMPTY",
+    "SEND_CONFIRM": "INPUT",
 }
 
 STATIC = {

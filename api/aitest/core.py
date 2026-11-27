@@ -2601,6 +2601,18 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
                     locked_ids.add(hit["id"])
         enforce_generic_panel(turn, analysis["criteria"], generic_info["parts"], analysis_repairs, card_mode, locked_ids,
                               force_registered=analysis_prompt != "v1")
+    # v7 以降：「中心」（画面では「AIの優先度：高い」）を付けてよいのは、第4回に AI が決めた優先を書く項目だけにする。
+    # 実際の出力（2026-11-28）：第1回から、ふつうの項目に「中心」が付くことがあった。参加者には、登録していない
+    # 「AI が優先を決めた」という表示になり、意図しないずれが増える。優先のずれは第4回の登録済みの文だけにする。
+    if analysis_prompt not in {"v1", "v2", "v3", "v4", "v5", "v6"} and experiment_variant in GENERIC_VARIANTS and not analysis_fallback:
+        for card in analysis["criteria"]:
+            if card.get("priority") != "中心":
+                continue
+            is_event = (turn == 4 and card.get("focus") and card.get("source") == "AI_INFERENCE") or (
+                turn >= 5 and GENERIC_RELATION_RE.match(str(card.get("meaning", ""))))
+            if not is_event:
+                card["priority"] = "維持"
+                analysis_repairs.append(f"priority_reset:{card.get('id')}")
     delegation_from_text: list[str] = []
     if not analysis_fallback:
         for quoted, state in delegation_requests(user_text):
