@@ -2737,6 +2737,7 @@ class Handler(SimpleHTTPRequestHandler):
                     "providerKeys": {"openai": bool(os.environ.get("OPENAI_API_KEY", "").strip()),
                                      "anthropic": bool(os.environ.get("ANTHROPIC_API_KEY", "").strip())},
                     "testModels": sorted(TEST_MODEL_CHOICES),
+                    "analysisPrompt": DEFAULT_ANALYSIS_PROMPT,
                     "engine": "offline" if offline else "online",
                     "dialogueModel": "offline-tree" if offline else DIALOGUE_MODEL,
                     "analysisModel": "offline-tree" if offline else ANALYSIS_MODEL,
