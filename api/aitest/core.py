@@ -186,7 +186,7 @@ NEXT_TURN_GAPS = {
 }
 
 
-def personal_closing_problems(turn: int, text: str, user_texts: list[str]) -> list[str]:
+def personal_closing_problems(turn: int, text: str, user_texts: list[str], invite_rich: bool = False) -> list[str]:
     """closingMode="personal" の末尾の一文が条件を満たさない理由を返す（空なら合格）。"""
     sentences = [x.strip() for x in re.split(r"(?<=[。！？?\n])", text.rstrip()) if x.strip()]
     last = sentences[-1] if sentences else ""
@@ -195,12 +195,21 @@ def personal_closing_problems(turn: int, text: str, user_texts: list[str]) -> li
         problems.append("fixed_or_empty")
     if not last.endswith("ください。"):
         problems.append("not_request")
-    if len(last) > PERSONAL_CLOSING_MAX:
+    if len(last) > PERSONAL_CLOSING_MAX + (30 if invite_rich else 0):
         problems.append("too_long")
+    # inviteMode="rich"：一つだけでなく、いくつか具体的に書いてもらう頼み方になっているか
+    if invite_rich and not re.search(r"二つ三つ|いくつか|いくつでも|思いつく|思い浮かぶ", last):
+        problems.append("no_invitation")
     if re.search(r"[？?]|それとも|どちら|どっち|とは、?(何|どういう|どんな)|意味|一番大切|最も大切|優先", last):
         problems.append("probing")
     if not any(word in last for word in NEXT_TURN_THEME_WORDS[turn]):
         problems.append("off_theme")
+    # 実際の出力で多かった形：「…という言葉も添えて／入れて書いてください」。参加者に、その言葉を書くよう求めることになる
+    if re.search(r"(言葉|一言)[もを]?(添えて|入れて|使って)|」を添えて|手がかりに", last):
+        problems.append("asks_to_copy")
+    # 第5回の依頼は、次の回（まとめ）の指示を兼ねる：「自分の言葉でまとめてください」を落とさない
+    if turn == 5 and "まとめ" not in last:
+        problems.append("not_summary_request")
     said = "\n".join(user_texts)
     compact = re.sub(r"[\s、。「」『』（）()・]", "", last)
     shared = [compact[i:i + 4] for i in range(len(compact) - 3)
@@ -220,6 +229,39 @@ def gap_closing_problems(turn: int, text: str) -> list[str]:
     problems: list[str] = []
     if "まだ" not in before:
         problems.append("no_gap_statement")
+    if not any(word in before for word in NEXT_TURN_THEME_WORDS[turn]):
+        problems.append("gap_off_theme")
+    if len(before) > PERSONAL_CLOSING_MAX:
+        problems.append("too_long")
+    if re.search(r"[？?]", before):
+        problems.append("question")
+    return problems
+
+
+def common_run(a: str, b: str) -> int:
+    """二つの文に共通して現れる、いちばん長い連続部分の字数。"""
+    best = 0
+    for i in range(len(a)):
+        for j in range(i + best + 1, len(a) + 1):
+            if a[i:j] in b:
+                best = j - i
+            else:
+                break
+    return best
+
+
+def gap2_closing_problems(turn: int, text: str) -> list[str]:
+    """closingMode="gap2"：固定の終止文の直前の一文が、「まだ」を含む陳述文で、終止文の言い回しを繰り返していないかを見る。"""
+    stripped = text.rstrip()
+    if not stripped.endswith(TURN_ENDINGS[turn]):
+        return ["no_fixed_ending"]
+    sentences = [x.strip() for x in re.split(r"(?<=[。！？?\n])", stripped[: -len(TURN_ENDINGS[turn])]) if x.strip()]
+    before = sentences[-1] if sentences else ""
+    problems: list[str] = []
+    if "まだ" not in before:
+        problems.append("no_gap_statement")
+    if common_run(before, TURN_ENDINGS[turn]) >= 8:
+        problems.append("repeats_ending")
     if not any(word in before for word in NEXT_TURN_THEME_WORDS[turn]):
         problems.append("gap_off_theme")
     if len(before) > PERSONAL_CLOSING_MAX:
@@ -352,6 +394,92 @@ ANALYSIS_INSTRUCTIONS = """あなたは右側の価値状態を作る独立AIで
 - 実験目的、操作、誤り検出、思考過程、個人情報、助言を表示しない。
 """
 
+# 分析AI の指示文の版（2026-11-27）。v1＝従来（gpt-5.4-nano に合わせて調整したもの）。
+# 公開版の gpt-6-luna で v1 を使うと、3 枚が事前の一文の言い換えのまま動かず、その回の参加者の入力（「料理は簡単なもの」
+# 「テレビを見ながら」など）がカードに入らなかった（実際の出力 18 回で確認）。v2 はその点だけを直す。
+# 既定は環境変数 EXPERIMENT_ANALYSIS_PROMPT（未設定なら v1）。試験用の参加者番号はリクエストの analysisPrompt で選べる。
+_V1_COUNT_RULE = "- 互いに異なる価値を正確に3件出す。titleは8〜14字程度、meaningは一〜二行の短い日本語。\n"
+_V2_COUNT_RULE = (
+    "- 項目は正確に3件出す。titleは8〜14字程度、meaningは一〜二行の短い日本語。\n"
+    "- 3件の決め方：\n"
+    "  (a) このターンの参加者発話に、まだどの項目にも入っていない希望（料理の手間、食事中の過ごし方、飲み物、流れ、避けたいことなど）が\n"
+    "      あれば、必ずいずれかの項目に入れる。最も近い項目のmeaningに書き足すか、新しい項目にする。\n"
+    "  (b) 新しい項目にするとき枠が足りなければ、意味が近い2件（例：「気を使わずくつろぐ」と「ほっとできる」）を1件にまとめて枠を空ける。\n"
+    "      まとめた項目には、前ターンからある方のidを使う。\n"
+    "  (c) 事前アンカーの一文を言い換えただけの項目を2件以上に分けない。同じことを別の言葉で言った項目を並べない。\n"
+    "  (d) 参加者の発話と事前アンカーから読み取れる、互いに異なる価値が3件に満たないときは、無理に作らず、足りない分を\n"
+    "      id=\"pending-meaning\" の項目にする（title・meaningは何を書いてもシステムが決まった文面に置き換える。priority=未確定、focus=false）。\n"
+    "- 参加者が書いた具体的な言葉（「簡単なもの」「テレビを見ながら」「鍋」「和食」など）は、抽象的な言い換えにせず、\n"
+    "  titleかmeaningにその言葉のまま残す。\n"
+)
+assert _V1_COUNT_RULE in ANALYSIS_INSTRUCTIONS
+# v3＝v2 ＋ 実際の出力（claude-haiku-5-5、18 回）で見えた 2 点：
+#   ・meaning に「参加者が書いた『和食がいい』という料理の希望。」のような、本人に見せる表示として不自然な言い方が出る
+#   ・第5・6回で、対話AIだけが出した具体物（「汁物や煮物」「母の体調」など）が meaning に入る
+_V3_EXTRA = (
+    "- title・meaningは参加者本人が画面で読む表示である。「参加者が」「参加者の」「事前の希望」「対話で」のような外から見た言い方をせず、\n"
+    "  希望の内容そのものを書く（例：「料理は和食にしたい。」）。meaningは60字以内。\n"
+    "- 対話AIだけが提案した具体物（料理名、品目、飲み物、照明、進行、相手の体調への配慮など）は、どのターンでもtitle・meaningへ入れない。\n"
+    "  入れてよいのは、参加者が書いたことと、第3・4ターンで対話AIが決めた意味・優先だけ。\n"
+)
+# v3 では、v2 を gpt-6-luna で走らせて見えた 3 点も直す（実際の出力 18 回）：
+#   ・(b) の例に引きずられて、事前の一文と第1回の発話を 1 件にまとめすぎ、「まだ決めていないこと」が 2 枚並んだ
+#   ・第4回で、優先を示すカードの文面を言い換え、「カードは使わず」のような付け足しをした（刺激の見え方が参加者ごとに変わる）
+_V3_COUNT_RULE = (
+    _V2_COUNT_RULE
+    .replace("意味が近い2件（例：「気を使わずくつろぐ」と「ほっとできる」）を1件にまとめて枠を空ける。",
+             "ほぼ同じことを言っている2件を1件にまとめて枠を空ける。")
+    .replace("      id=\"pending-meaning\" の項目にする（",
+             "      id=\"pending-meaning\" の項目にする。pending-meaning は多くても1件にとどめ、事前アンカーと参加者の発話が別のことを\n"
+             "      言っていれば別々の項目にする（")
+)
+assert _V3_COUNT_RULE != _V2_COUNT_RULE and "多くても1件" in _V3_COUNT_RULE and "ほぼ同じこと" in _V3_COUNT_RULE
+_V3_EXTRA += (
+    "- 第3・4ターンで対話AIが決めた意味・優先を書く項目は、対話AIのその一文をそのまま使う。言い換えたり、\n"
+    "  ほかの内容（やらないこと、手段の変更など）を付け足したりしない。\n"
+)
+_V2_TEXT = ANALYSIS_INSTRUCTIONS.replace(_V1_COUNT_RULE, _V2_COUNT_RULE)
+ANALYSIS_PROMPTS = {"v1": ANALYSIS_INSTRUCTIONS, "v2": _V2_TEXT,
+                    "v3": ANALYSIS_INSTRUCTIONS.replace(_V1_COUNT_RULE, _V3_COUNT_RULE).rstrip("\n") + "\n" + _V3_EXTRA}
+# v4：v3 を gpt-6-luna で走らせて見えた点（実際の出力 18 回）：
+#   ・「60字以内」に引かれて meaning が「和食がいい。」のように短くなりすぎ、長さの検査（8字以上・かな6字以上）に 2 回落ちて、
+#     パネル全体が予備の表示に置き換わった（台本 C の第2・3回）→ 下限を明記する
+#   ・枠が余っているのに 2 件をまとめて pending-meaning を作った（台本 B の第2回）→ まとめるのは枠が足りないときだけ
+#   ・第3・4ターンの文面は、v2 以降はシステムが登録済みの文面に必ず置き換える（下の force_registered）ので、指示からは外す
+_V4_COUNT_RULE = _V3_COUNT_RULE.replace(
+    "ほぼ同じことを言っている2件を1件にまとめて枠を空ける。",
+    "ほぼ同じことを言っている2件を1件にまとめて枠を空ける。枠が余っているときは、まとめない。")
+_V4_EXTRA = _V3_EXTRA.replace("meaningは60字以内。", "meaningは12〜60字の文にする（短すぎる例：「和食がいい。」→「夕食の料理は和食がいい。」）。")
+_V4_EXTRA = _V4_EXTRA[: _V4_EXTRA.index("- 第3・4ターンで対話AIが決めた意味・優先を書く項目は")]
+assert "枠が余っているときは" in _V4_COUNT_RULE and "12〜60字" in _V4_EXTRA and "そのまま使う" not in _V4_EXTRA
+ANALYSIS_PROMPTS["v4"] = ANALYSIS_INSTRUCTIONS.replace(_V1_COUNT_RULE, _V4_COUNT_RULE).rstrip("\n") + "\n" + _V4_EXTRA
+# v5：v4 を gpt-6-luna で走らせて残った 3 点（実際の出力 18 回、新しい入力がカードに入ったのは 13/17）：
+#   ・第3回は事象の項目が 1 枠を使うので、その回の参加者の発話（「テレビを見ながら」「写真と失敗談」）が入らなかった
+#   ・参加者が最後に「大切にしたい」と書いたこと（「遠慮しないこと」）が、途中で消えたまま戻らなかった
+#   ・対話AIが決めた扱い（「準備と片付けはすべてこちらで」）が別の項目の meaning にも入り、参加者が断った後も残った
+_V5_EXTRA = _V4_EXTRA + (
+    "- 第3・4ターンでも、そのターンの参加者発話は、対話AIが決めた意味・優先を書く項目とは別の項目に必ず入れる。\n"
+    "  枠が足りなければ、料理・飲み物・進め方のような具体的な希望どうしを1件にまとめて枠を空ける。「入れない」という選択はしない。\n"
+    "- 参加者が「大切にしたい」「大事なのは」「避けたい」「やめたい」と書いたことは、そのターン以降、必ずどれかの項目のtitleかmeaningに残す。\n"
+    "- 対話AIが決めた意味・優先は、該当する1件だけに書く。ほかの項目のmeaningには書かない。\n"
+    "  参加者がそれを否定・修正したら、どの項目からも取り除き、参加者の言ったとおりに直す。\n"
+)
+ANALYSIS_PROMPTS["v5"] = ANALYSIS_INSTRUCTIONS.replace(_V1_COUNT_RULE, _V4_COUNT_RULE).rstrip("\n") + "\n" + _V5_EXTRA
+# v6：調整に使っていない台本（D/E/F）で v5 を走らせて見えた点（実際の出力）：
+#   ・参加者が「ケーキは自分で選びたい」「献立は案を出してほしい」と書いた項目が、後の回でまとめられて消えた。
+#     判断の分担についての指定は、この研究で見たいものなので、最後まで残す。
+#   ・pending-meaning は 2 件まで認める（3 件のうち中身が 1 件しかない場合。文面はシステムが登録済みのものに置き換える）。
+_V6_COUNT_RULE = _V4_COUNT_RULE.replace("pending-meaning は多くても1件にとどめ、", "pending-meaning は多くても2件にとどめ（2件目のidは \"pending-meaning-2\"）、")
+assert _V6_COUNT_RULE != _V4_COUNT_RULE
+_V6_EXTRA = _V5_EXTRA + (
+    "- 参加者が「自分で決めたい」「自分で選びたい」「案を出してほしい」「任せます」のように、だれが決めるかを書いた対象は、\n"
+    "  そのターン以降、必ずどれかの項目のmeaningにその言葉のまま残す。ほかの項目とまとめる場合も消さない。\n"
+)
+ANALYSIS_PROMPTS["v6"] = ANALYSIS_INSTRUCTIONS.replace(_V1_COUNT_RULE, _V6_COUNT_RULE).rstrip("\n") + "\n" + _V6_EXTRA
+DEFAULT_ANALYSIS_PROMPT = os.environ.get("EXPERIMENT_ANALYSIS_PROMPT", "v1").strip()
+if DEFAULT_ANALYSIS_PROMPT not in ANALYSIS_PROMPTS:
+    DEFAULT_ANALYSIS_PROMPT = "v1"
+
 ANALYSIS_SCHEMA = {
     "type": "object",
     "properties": {
@@ -472,13 +600,19 @@ def ensure_exact_turn_ending(turn: int, text: str) -> str:
     return f"{stripped}\n{required}"
 
 
-def drop_participant_voice(text: str, turn: int = 5) -> str:
+def drop_participant_voice(text: str, turn: int = 5, keep_open_statement: bool = False, keep_request: bool = False) -> str:
     """AI が参加者のまとめ文を先に書いてしまった文を除く。
-    「私は、…」（v1.8）と、「大切にしたい…は〜、避けたい…は〜」型の代筆（v1.9.5）。"""
+    「私は、…」（v1.8）と、「大切にしたい…は〜、避けたい…は〜」型の代筆（v1.9.5）。
+    keep_open_statement（closingMode="gap"）：「…の整理は、まだ残っています。」のように、まだ決まっていないことを述べる文は
+    代筆ではないので残す。2026-11-27 の実際の出力で、第5回のこの文が毎回ここで消され、3 回やり直した末に固定の終止文へ
+    戻っていた（3 台本とも）。"""
     parts = re.split(r"(?<=[。！\n])", text)
     kept = [x for x in parts
             if not re.match(r"^\s*(私は|わたしは|自分は)", x)
-            and not (turn == 5 and "大切にしたい" in x and "避けたい" in x)]
+            and not (turn == 5 and "大切にしたい" in x and "避けたい" in x
+                     and not (keep_open_statement and "まだ" in x)
+                     # closingMode="personal"：「…を、自分の言葉でまとめてください。」は依頼であって代筆ではない（実際の出力で 3/3 消されていた）
+                     and not (keep_request and x.strip().endswith("ください。")))]
     return "".join(kept)
 
 
@@ -608,6 +742,7 @@ def dialogue_validation_codes(
     scenario_id: str = "",
     required_sentence: str = "",
     personal_closing: bool = False,
+    min_chars: int | None = None,
 ) -> list[str]:
     compact = re.sub(r"\s+", "", text)
     has_required = bool(required_sentence) and required_sentence in text
@@ -615,7 +750,7 @@ def dialogue_validation_codes(
     # The backboard gives target ranges, not a hard rejection boundary.
     # Keep a lower safety floor so a concise, complete nano-model response is
     # not retried merely to add reading load to the left AOI.
-    minimum = 100
+    minimum = min_chars or 100
     maximum = 480 if turn in {1, 2} else 430 if turn in {3, 4} else 280 if turn == 5 else 360
     if len(compact) < minimum:
         codes.append("R02_TOO_SHORT")
@@ -842,7 +977,8 @@ VALIDATION_GUIDANCE = {
     "R07_TARGET_EXPOSURE": "研究目的や修正を直接求める表現を削除してください",
     "R08_JAPANESE_ENDING": "指定された日本語の終止文を一字も変えず末尾に置いてください",
     "R22_GAP_CLOSING": "指定された終止文の直前に、次の回の主題がまだ決まっていないことを「まだ」を使った陳述文で一文入れてください。疑問文にはしないでください",
-    "R21_PERSONAL_CLOSING": "末尾の一文を、次の回の主題についての依頼文（「〜を書いてください。」で終える）にし、参加者が書いた言葉を一つそのまま入れてください。疑問文にせず、言葉の意味や優先順位は尋ねないでください",
+    "R23_GAP2_CLOSING": "指定された終止文の直前の一文を、この回答で決めた具体的なものと次の回の主題をつなげて、その主題がまだ決まっていないことを「まだ」を使った陳述文で述べてください。終止文と同じ言い回しを長く繰り返さず、疑問文にもしないでください",
+    "R21_PERSONAL_CLOSING": "末尾の一文を、次の回の主題についての依頼文（「〜を書いてください。」、第5回は「自分の言葉でまとめてください。」で終える）にし、参加者が書いた言葉を一つそのまま入れてください。疑問文にせず、言葉の意味や優先順位は尋ねず、その言葉を書くよう求める言い方（「…という言葉も添えて」など）も避けてください",
     "R09_DINNER_CONTEXT": "料理または食事中の過ごし方へ明確につないでください",
     "R10_FIXATION_MISSING": "一つの多義的価値を、合理的だが狭い一つの意味として確定口調で具体化してください",
     "R11_PRIORITY_PROXY_MISSING": "二つの既存価値に優先関係を置き、一方が具体案で弱まることを示してください",
@@ -1149,6 +1285,39 @@ def run_validated_stage(
         stage=stage,
         attempts=attempts,
     )
+
+
+EMPTY_CARD_WORDS = {"", "未確定", "未定", "なし", "未決定", "まだ決めていないこと"}
+
+
+def normalize_pending_cards(text: str, anchor: dict[str, str] | None = None) -> str:
+    """分析AI が「まだ出ていない枠」を返したとき、参加者に見える文面を登録済みのものに揃える。
+    1 枠目は「まだ決めていないこと」（id=pending-meaning）、2 枠目は「最初に選んだ場面」（id=anchor-context）。どちらも従来からある文面。
+    2026-11-27 の実際の出力：事前の一文と第1回の発話がほぼ同じ内容だった台本で、分析AI が 2 枠を title・meaning とも「未確定」で返し、
+    長さの検査に 2 回落ちてパネル全体が予備の表示に置き換わった。"""
+    try:
+        value = json.loads(text)
+    except (json.JSONDecodeError, TypeError):
+        return text
+    items = value.get("criteria") if isinstance(value, dict) else None
+    if not isinstance(items, list):
+        return text
+    empty = [x for x in items if isinstance(x, dict) and (
+        str(x.get("id", "")).startswith("pending") or str(x.get("id", "")) == "anchor-context"
+        or (str(x.get("title", "")).strip() in EMPTY_CARD_WORDS and str(x.get("meaning", "")).strip().rstrip("。") in EMPTY_CARD_WORDS))]
+    if not empty or len(empty) > 2:
+        return text
+    registered = fallback_analysis(0, anchor or {"scenarioLabel": ""})["criteria"]
+    for item, source in zip(empty, [registered[2], registered[0]]):
+        if source["id"] == "anchor-context" and not (anchor or {}).get("scenarioLabel"):
+            continue
+        item.update(id=source["id"], title=source["title"], meaning=source["meaning"], priority="未確定", focus=False,
+                    source=source["source"])
+    if not any(isinstance(x, dict) and x.get("focus") for x in items):  # 焦点が空の枠に付いていた場合は、中身のある項目へ移す
+        real = [x for x in items if isinstance(x, dict) and x not in empty]
+        if real:
+            real[0]["focus"] = True
+    return json.dumps(value, ensure_ascii=False)
 
 
 def fallback_analysis(turn: int, anchor: dict[str, str]) -> dict[str, Any]:
@@ -1870,7 +2039,8 @@ def generic_event_title(turn: int, parts: dict[str, str]) -> str:
 
 
 def enforce_generic_panel(turn: int, criteria: list[dict[str, Any]], parts: dict[str, str], repairs: list[str],
-                          card_mode: str = "merge", locked_ids: set[str] | None = None) -> None:
+                          card_mode: str = "merge", locked_ids: set[str] | None = None,
+                          force_registered: bool = False) -> None:
     """一般的解釈の事象カードを右側に読める形で置く（第3回：語句と一般的意味、第4回：優先関係）。
     card_mode="separate"（v2.2）：既存のカード（参加者が固定したカードを含む）を書き換えず、
     最も優先度の低いカードの位置に新しい事象カードを置く。"""
@@ -1934,7 +2104,9 @@ def enforce_generic_panel(turn: int, criteria: list[dict[str, Any]], parts: dict
             and not any(n in str(c.get("meaning", "")) for n in PRIORITY_NEGATIONS)
         title = f"{preferred.removesuffix('こと')}を優先"[:18]
     target = max(criteria, key=score)
-    if not ok(target):
+    # force_registered：分析AI の書き方がたまたま条件を満たしていても、事象カードの文面は登録済みのものに揃える。
+    # （v2 の実際の出力で、第4回のカードに「カードは使わず」という付け足しが入ったまま通った。刺激の見え方を参加者間で揃えるため）
+    if force_registered or not ok(target):
         target["meaning"] = meaning
         repairs.append(f"generic_meaning:{target.get('id')}")
         if turn == 4 or phrase not in str(target.get("title", "")):
@@ -1991,14 +2163,24 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     ) = validate_request_body(body)
     safety_id = hashlib.sha256(session_id.encode("utf-8")).hexdigest()[:32]
     dialogue_model, analysis_model, model_override = resolve_models(body, session_id)
+    # lengthMode="target"（試験用の番号だけ）：gpt-6-luna の実際の出力は、verbosity=low のとき第1回 150〜210字・第5回 113〜145字で、
+    # 指定の目安（220〜360字、140〜230字）の下限に届かない。詳しさを一段上げ、目安の下限の約 9 割を最低字数にして比べる。
+    length_mode = "target" if (str(session_id).upper().startswith(TEST_ID_PREFIXES) and body.get("lengthMode") == "target") else "default"
+    min_chars = {1: 200, 2: 200, 3: 215, 4: 215, 5: 125, 6: 160}[turn] if length_mode == "target" else None
+    analysis_prompt = DEFAULT_ANALYSIS_PROMPT
+    if str(session_id).upper().startswith(TEST_ID_PREFIXES) and body.get("analysisPrompt") in ANALYSIS_PROMPTS:
+        analysis_prompt = body["analysisPrompt"]
     control_event = CONTROL_EVENTS[turn]
     card_mode = "separate" if body.get("eventCardMode") == "separate" else "merge"
     # v2.5: パネル固定（v2.3 のボタン由来の除外・v2.4 の固定維持）は比較用の任意設定。既定は無効。
     # 正式実験では右側パネルは常に「AIの読み取り内容」であり、UI B のボタンはパネルにも AI にも作用しない。
     panel_lock = body.get("panelLock") is True
     # flow 配置：回答の末尾を、参加者の言葉を入れた依頼文にする（第6回の終止文は従来どおり）
-    closing_mode = body.get("closingMode") if body.get("closingMode") in {"personal", "gap"} and turn <= 5 else "fixed"
+    closing_mode = body.get("closingMode") if body.get("closingMode") in {"personal", "gap", "gap2"} and turn <= 5 else "fixed"
     personal_closing = closing_mode == "personal"
+    # inviteMode="rich"（?invite=rich。使用者の提案 2026-11-27：参加者が一度に多く書くよう促す）：
+    # 末尾の依頼文で、一つだけでなく、思い浮かぶことを二つ三つ、場面や理由も添えて書いてもらうよう頼む。personal の末尾でだけ効く。
+    invite_rich = personal_closing and body.get("inviteMode") == "rich"
     all_user_texts = [row["content"] for row in history[0::2]] + [user_text, anchor["freeText"]]
 
     def finish_ending(text: str) -> str:
@@ -2006,7 +2188,9 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
 
     def closing_problems(text: str) -> list[str]:
         if closing_mode == "personal":
-            return personal_closing_problems(turn, text, all_user_texts)
+            return personal_closing_problems(turn, text, all_user_texts, invite_rich)
+        if closing_mode == "gap2":
+            return gap2_closing_problems(turn, text)
         return gap_closing_problems(turn, text) if closing_mode == "gap" else []
     previous_raw = body.get("previousCriteria", [])
     previous_criteria: list[dict[str, str]] = []
@@ -2071,12 +2255,29 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         f"{'今回の強制文（一字も変えず、可視回答に正確に含める）: ' + required_control_sentence if required_control_sentence else ''}\n"
         f"可視回答の長さ: {visible_length_target}、1〜2段落。"
         f"{' 強制文は最新入力への短い応答に続く第2文として、冒頭160字以内に置く。' if required_control_sentence else ''}\n"
+        # 「できるだけ今回の入力から選ぶ」という指定は試して外した：短い入力（「和食がいい」など）から無理に選ぼうとして、
+        # 参加者の言葉と一致しない言い換えになり、やり直しが増えた（実際の出力：18 回中 4 回。指定なしでは 0〜1 回）。
+        # その代わり、同じ言葉を続けて引用することがある（台本 F で 4 回連続）。これは既知の点として残す。
         + (f"末尾の一文: 次の回の主題「{NEXT_TURN_THEMES[turn]}」について書いてもらう依頼の一文で終える。"
            f"その一文には、参加者がこれまでに書いた具体的な言葉を一つそのまま入れる。疑問文にしない（「〜を書いてください。」で終える）。"
-           f"参加者の言葉の意味や優先順位は尋ねない。{PERSONAL_CLOSING_MAX}字以内。\n"
+           f"参加者の言葉の意味や優先順位は尋ねない。その言葉を次の入力に書くよう求めない"
+           f"（「…という言葉も添えて／入れて書いてください」は不可。「…という希望もふまえて」「…も含めて」のようにつなぐ）。"
+           + ("この回は「自分の言葉でまとめてください。」で終える。" if turn == 5 else "")
+           + ("依頼では、一つだけ書けばよいという頼み方をしない。思い浮かぶことを二つ三つ、場面や理由も添えて書いてもらうよう頼む"
+              "（「…を、思い浮かぶ場面も交えて二つ三つ書いてください。」のように。「二つ三つ」「いくつか」のどちらかを必ず入れる）。" if invite_rich else "")
+           + f"{PERSONAL_CLOSING_MAX + (30 if invite_rich else 0)}字以内。\n"
            if personal_closing else
            (f"末尾の直前の一文: {NEXT_TURN_GAPS[turn]}ことだけを、「まだ」を使った短い陳述文で述べる"
-            f"（疑問文にしない。すでに決まったことの評価はしない。必須の末尾と同じ言い回しを繰り返さない。40字以内）。\n" if closing_mode == "gap" else "")
+            f"（疑問文にしない。すでに決まったことの評価はしない。必須の末尾と同じ言い回しを繰り返さない。40字以内）。\n" if closing_mode == "gap" else
+            # gap2：実際の出力で、gap の一文が必須の末尾とほぼ同じ内容の繰り返しになった（「食事中の会話や距離感は、まだ決まっていません。
+            # 次は、食事中の会話や距離感など…」）。この回答で決めた具体的なものに結びつけて、何がまだ空いているかを言う。
+            # 一度目の試作では「鍋の味つけは、まだ決まっていません。」のように、次の主題と関係のない細部を挙げてしまった（実際の出力 15/15）。
+            # 次の主題につなげることを明示する。
+            f"末尾の直前の一文: この回答の中で決めた具体的なもの（料理や過ごし方など、この回答に出てきた語）を一つ挙げ、"
+            f"それと次の回の主題（{NEXT_TURN_THEMES[turn]}）をつなげて、その主題がまだ決まっていないことを、「まだ」を使った短い陳述文で述べる"
+            f"（次の主題が食事中の過ごし方なら「鍋を囲んでいるあいだの過ごし方は、まだ決まっていません。」のように）。"
+            f"味つけや器のような、次の主題と関係のない細部は挙げない。必須の末尾と同じ言い回しを長く繰り返さない。"
+            f"疑問文にしない。すでに決まったことの評価はしない。40字以内。\n" if closing_mode == "gap2" else "")
            + f"必須の末尾: {TURN_ENDINGS[turn]}\n")
         + f"事前場面: {anchor['scenarioLabel']}\n"
         f"事前の一文: {anchor['freeText']}\n"
@@ -2087,7 +2288,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         "instructions": DIALOGUE_INSTRUCTIONS,
         "input": dialogue_input,
         "reasoning": {"effort": "medium" if turn in {3, 4} else "low"},
-        "text": {"verbosity": "low"},
+        "text": {"verbosity": "medium" if length_mode == "target" else "low"},
         # More reasoning headroom on the two event turns avoids paying for
         # several incomplete retries; the visible length remains validator-bound.
         "max_output_tokens": 3000 if turn == 3 else 3200 if turn == 4 else 1400,
@@ -2107,10 +2308,11 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     final_relation_inserted: list[str] = []
 
     def parse_dialogue_candidate(text: str) -> tuple[str, list[str]]:
-        normalized = finish_ending(drop_participant_voice(text, turn))
+        normalized = finish_ending(drop_participant_voice(text, turn, closing_mode in {"gap", "gap2"}, personal_closing))
         extra = []
         if closing_problems(normalized):
-            extra.append("R21_PERSONAL_CLOSING" if personal_closing else "R22_GAP_CLOSING")
+            extra.append("R21_PERSONAL_CLOSING" if personal_closing else
+                         "R23_GAP2_CLOSING" if closing_mode == "gap2" else "R22_GAP_CLOSING")
         if turn in {3, 4} and required_control_sentence and required_control_sentence not in normalized:
             # v2.5: 必須文がほぼそのまま書かれ、括弧などが欠けた場合は、その文を登録文に置き換える
             parts_ = re.split(r"(?<=[。！\n])", normalized)
@@ -2143,6 +2345,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
                 normalized,
                 anchor["freeText"],
                 user_text,
+                min_chars=min_chars,
                 experiment_variant=experiment_variant,
                 scenario_id=anchor["scenarioId"],
                 required_sentence=required_control_sentence,
@@ -2165,7 +2368,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
                 left = dialogue_validation_codes(turn, cleaned, anchor["freeText"], user_text,
                                                  experiment_variant=experiment_variant, scenario_id=anchor["scenarioId"],
                                                  required_sentence=required_control_sentence,
-                                                 personal_closing=personal_closing)
+                                                 personal_closing=personal_closing, min_chars=min_chars)
                 if not (set(left) & HARD_DIALOGUE_CODES):
                     usable.append((cleaned, raw, latency, ["SANITIZED"] + left))
             if not usable:
@@ -2204,7 +2407,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     )
     analysis_payload = {
         "model": analysis_model,
-        "instructions": ANALYSIS_INSTRUCTIONS,
+        "instructions": ANALYSIS_PROMPTS[analysis_prompt],
         "input": analysis_input,
         "reasoning": {"effort": "low"},
         "text": {
@@ -2241,6 +2444,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     panel_sentence = "" if generic_mode else required_control_sentence
 
     def parse_and_repair(text: str) -> tuple[Any, list[str]]:
+        text = normalize_pending_cards(text, anchor)
         value, codes = parse_analysis(text, turn, panel_scenario)
         if generic_mode and turn in {3, 4}:
             # 事象カードの焦点・出どころ・優先度は enforce_generic_panel が後で決める
@@ -2298,7 +2502,8 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
                 hit = max(previous_criteria, key=lambda c: text_similarity(quoted, c.get("title", "")), default=None)
                 if hit and text_similarity(quoted, hit.get("title", "")) >= 0.5:
                     locked_ids.add(hit["id"])
-        enforce_generic_panel(turn, analysis["criteria"], generic_info["parts"], analysis_repairs, card_mode, locked_ids)
+        enforce_generic_panel(turn, analysis["criteria"], generic_info["parts"], analysis_repairs, card_mode, locked_ids,
+                              force_registered=analysis_prompt != "v1")
     delegation_from_text: list[str] = []
     if not analysis_fallback:
         for quoted, state in delegation_requests(user_text):
@@ -2409,6 +2614,9 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
             "dialogueModel": dialogue_model,
             "analysisModel": analysis_model,
             "modelOverride": model_override,
+            "analysisPrompt": analysis_prompt,
+            "lengthMode": length_mode,
+            "inviteMode": "rich" if invite_rich else "default",
             "dialogueUsage": usage_summary(dialogue_raw),
             "analysisUsage": usage_summary(analysis_raw),
             "droppedParams": sorted(set(dialogue_raw.get("droppedParams", [])) | set(analysis_raw.get("droppedParams", []))),

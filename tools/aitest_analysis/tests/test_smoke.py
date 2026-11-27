@@ -45,3 +45,50 @@ def test_buttons_are_not_panel_text():
     rects = STATIC["UI_B"]
     assert GROUP[hit(1500, 200, rects)] == "PANEL"           # カード1 の本文
     assert GROUP[hit(1500, 320, rects)] == "PANEL_BUTTONS"   # カード1 のボタン行
+
+
+def test_prolab_raw_convert_roundtrip():
+    """生の記録の形式で書いた合成データ：2 か所を順に見る＋クリック 2 回 → TSV → 読み込み。"""
+    import numpy as np
+    from pathlib import Path
+    from eyetools import prolab_raw
+    from eyetools.gaze import load_prolab_tsv
+    d = Path(tempfile.mkdtemp()) / "REC1"
+    d.mkdir()
+    n, t0 = 240, 5_000_000
+    g = np.zeros(n, dtype=prolab_raw.GAZE_DTYPE)
+    g["ts"] = t0 + (np.arange(n) * 16667)
+    target = np.where(np.arange(n) < 120, 0.25, 0.75)           # 前半は画面の左、後半は右
+    for eye, dx in (("L", -30.0), ("R", 30.0)):
+        g[eye][:, 0] = (target - 0.5) * 380.7                   # 注視点 3D（mm）
+        g[eye][:, 3], g[eye][:, 5] = dx, 600.0                  # 目の位置：画面から 60 cm
+        g[eye][:, 7], g[eye][:, 8] = target, 0.5                # 注視点 2D（割合）
+    g["vl"][60:63] = 4                                           # 片目だけの短い欠損
+    g["vl"][200:230] = g["vr"][200:230] = 4                      # 両目の長い欠損
+    g.tofile(d / "Eyetracker.data")
+    m = np.zeros(4, dtype=prolab_raw.MOUSE_DTYPE)
+    m["ts"] = t0 + np.array([1_000_000, 1_080_000, 3_000_000, 3_090_000])
+    m["event"] = [1, 2, 1, 2]
+    m["x"], m["y"] = [480, 480, 1440, 1440], 540
+    m.tofile(d / "Mouse.data")
+    (d.parent / "REC1.rec").write_text(
+        "<R><StartDateTimeUtcInTicks>639312782504409237</StartDateTimeUtcInTicks></R>", encoding="utf-8")
+    info = prolab_raw.convert(d, d.parent / "out.tsv")
+    assert info["mouse_downs"] == 2 and info["start_utc"].startswith("2026-11-26T08:24:10"), info
+    gaze = load_prolab_tsv(d.parent / "out.tsv")
+    fx = gaze.fixations
+    # 左（片目の短い欠損では切れない）→ 右 → 両目の長い欠損のあと、同じ場所でもう一度
+    assert len(fx) == 3, fx
+    assert abs(fx.x.iloc[0] - 480) <= 2 and abs(fx.x.iloc[1] - 1440) <= 2 and abs(fx.x.iloc[2] - 1440) <= 2, fx
+    assert fx.end.iloc[0] - fx.start.iloc[0] > 1.9, fx
+    assert list(gaze.mouse_events.t.round(2)) == [1.0, 3.0], gaze.mouse_events         # 押した時刻だけ
+    assert abs(gaze.recording_start_wall - 1795681450.44) < 0.01, gaze.recording_start_wall  # UTC として読む
+    assert 0.85 < gaze.samples.valid.mean() < 0.9
+
+
+def test_reading_extras_present():
+    """追加の指標：読解区間の行に、焦点のカードへの注視と注視の並びが入る。"""
+    info, table, qa = run("UI_B")
+    r = table[table.toi == "reading"]
+    assert {"target_card", "gaze_sequence", "card_dwell_1"} <= set(r.columns), list(r.columns)
+    assert r.gaze_sequence.astype(str).str.len().gt(0).all()

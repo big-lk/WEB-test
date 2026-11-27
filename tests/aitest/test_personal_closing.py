@@ -135,6 +135,32 @@ check("gap statement missing -> fixed ending kept, fallback recorded", r["dialog
 from api.aitest import offline_engine  # noqa: E402
 INPUTS = ["友達がほっとして、笑って帰れる夜にしたい", "あと、料理は簡単なものでいい", "食事中はテレビをみながらだらだら話したい",
           "ちょっと違います。鍋をつつきながら笑っている感じです", "それは優先しなくていいです。普通に食べて、食後はお茶で"]
+# 12b) gap・第5回：2026-11-27 に公開版（gpt-6-luna）で実際に出た出力。以前は「まだ残っています」の文が代筆扱いで消され、
+#      3 台本とも固定の終止文に戻っていた。そのまま通ること、代筆（まだ を含まない）は従来どおり消えることを確かめる
+REAL_T5 = [
+    "相手を休ませることを特に優先する流れにはせず、普通に鍋を食べて、食後はお茶を飲む形にします。テレビを見ながらの会話も、そのまま自然に楽しめる時間として残します。"
+    "全体で大切にしたいことと避けたいことの整理は、まだ残っています。  \n最後に、この夕食で大切にしたいことや避けたいことを、自分の言葉でまとめてください。",
+    "食べ始めは軽いつまみを二人でつまみ、主菜は取り分けながらゆっくり味わう流れにします。食後は温かいお茶を飲みながら、昔の写真や失敗談をきっかけに長く話し、沈黙もそのまま心地よく過ごせそうです。"
+    "\n\n全体として大切にしたいことと避けたいことのまとめは、まだ残っています。\n最後に、この夕食で大切にしたいことや避けたいことを、自分の言葉でまとめてください。",
+    "ゆっくり食べたいという流れに合わせ、食事を急がず、静かな会話の間も自然に置けるようにします。食後に「ありがとう」と伝える流れはそのままにします。"
+    "全体として大切にしたいことと避けたいことは、まだまとめられていません。最後に、この夕食で大切にしたいことや避けたいことを、自分の言葉でまとめてください。",
+]
+for i, text in enumerate(REAL_T5):
+    r = run(text, turn=5, mode="gap")
+    check(f"gap turn 5 real output {i + 1} accepted", r["meta"]["closingFallback"] is False and "まだ" in r["dialogue"]
+          and r["dialogue"].endswith(core.TURN_ENDINGS[5]) and len(r["meta"]["dialogueAttempts"]) == 1,
+          f'{r["meta"]["closingFallback"]} {len(r["meta"]["dialogueAttempts"])} {r["dialogue"][-80:]}')
+# 12c) personal・第5回：依頼文そのものが「大切にしたい…避けたい…」を含むので、代筆の除去に巻き込まれないこと
+P5 = ("ゆっくり食べたいという希望に合わせ、食べる速さを急がず、会話の間も取りながら過ごす流れにします。" + PAD
+      + "最後に、「簡単な鍋」も含めて、この夕食で大切にしたいことや避けたいことを、自分の言葉でまとめてください。")
+r = run(P5, turn=5, mode="personal")
+check("personal turn 5 request sentence kept", r["meta"]["closingFallback"] is False and r["dialogue"].endswith("自分の言葉でまとめてください。")
+      and "「簡単な鍋」" in r["dialogue"] and len(r["meta"]["dialogueAttempts"]) == 1, f'{r["meta"]["closingFallback"]} {r["dialogue"][-70:]}')
+GHOST = "ゆっくり食べる流れにします。大切にしたいことは落ち着いた時間、避けたいことは急ぐことです。" + PAD
+for mode in ("fixed", "gap"):
+    r = run(core.ensure_exact_turn_ending(5, GHOST), turn=5, mode=mode)
+    check(f"ghost-written summary still removed ({mode})", "避けたいことは急ぐこと" not in r["dialogue"], r["dialogue"][:80])
+
 for mode in ("fixed", "personal", "gap"):
     hist, ok, detail = [], True, ""
     for t, text in enumerate(INPUTS, 1):

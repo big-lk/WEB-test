@@ -102,12 +102,17 @@ def main(argv=None) -> int:
     c = sub.add_parser("check"); c.add_argument("paths", nargs="+")
     p = sub.add_parser("process"); p.add_argument("session_json"); p.add_argument("tsv"); p.add_argument("--out", default="out")
     b = sub.add_parser("batch"); b.add_argument("sess_dir"); b.add_argument("gaze_dir"); b.add_argument("--out", default="out")
+    v = sub.add_parser("convert", help="Pro Lab プロジェクト内の生の記録を TSV に直す（管線の確認用。正式な分析には Pro Lab のエクスポートを使う）")
+    v.add_argument("rec_dir"); v.add_argument("out_tsv"); v.add_argument("--utc-offset", type=float, default=9.0)
     sub.add_parser("selftest")
     a = ap.parse_args(argv)
     if a.cmd == "check":
         return cmd_check(a.paths)
     if a.cmd == "process":
         cmd_process(a.session_json, a.tsv, a.out); return 0
+    if a.cmd == "convert":
+        from .prolab_raw import convert
+        print(json.dumps(convert(a.rec_dir, a.out_tsv, a.utc_offset), ensure_ascii=False, indent=1)); return 0
     if a.cmd == "batch":
         cmd_batch(a.sess_dir, a.gaze_dir, a.out); return 0
     return cmd_selftest()

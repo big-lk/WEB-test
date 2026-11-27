@@ -39,6 +39,21 @@
 - 検証：`python tests/aitest/test_model_switch.py`（偽の通信による。**実際の API での動作は未確認**）。
 - 正式実験で Claude を使う場合は、研究計画書の「OpenAI Responses API」の記載と外部送信先の説明が変わるので、先に指導教員へ報告する。
 
+## 実際のモデルで確かめた結果と、切り替えられる項目（2026-11-27 追加）
+詳しい数字はプロジェクト文書「第二実験_早報_2026-11-27」。以下はどれも **既定の動作を変えない**（指定したときだけ効く）。
+- 分析AI の指示文の版：`ANALYSIS_PROMPTS`（v1＝従来。v2〜v6 は gpt-6-luna の実際の出力を見て直したもの）。既定は v1。
+  環境変数 `EXPERIMENT_ANALYSIS_PROMPT=v6` で切り替える（試験用の参加者番号はリクエストの `analysisPrompt` でも選べる）。
+  gpt-6-luna では v1 だとカードがほとんど更新されない（新しい入力がカードに入ったのは 10/17）。v6 は 17/17、調整に使っていない台本でも 17〜18/18。
+  指示文はモデルに合わせて調整したものなので、**モデルを変えたら調整し直す**（claude-haiku-5-5 では v5 より v2 の方が良かった）。
+  v2 以降では、第3・4回の事象カードの文面を必ず登録済みのものに置き換える（`enforce_generic_panel(force_registered=True)`）。
+- 末尾の方式：`?closing=fixed|gap|gap2|personal`。実際の出力では personal（参加者の言葉を引用）と gap が安定。gap2 は試作（やり直しが多い）。
+  第5回で gap / personal が必ず失敗する不具合（末尾の文が代筆の除去に巻き込まれる）は修正済み。
+- 回答の長さ：`lengthMode: "target"`（試験用の番号だけ）。やり直しが増えるので採用は勧めない。
+- 空の枠：分析AI が中身のない項目を返したら、「まだ決めていないこと」「最初に選んだ場面」（従来からある文面）に置き換える。
+- 手元で指示文を直しながら実際の出力を確かめる：`python tools/offline/serve.py --online`（`api/aitest/*.py` を書き換えると自動で再起動）。
+- 視線：`eyetools/extra_metrics.py`（焦点のカードへの注視、最初に見るまでの時間、注視の並び、見た／書いたの分類）。記述・探索用。
+  「書いた」の判定は語の一致による機械的なもので、人の確認が必要。
+
 ## 守ること
 - `.env` や API キーは絶対にコミットしない。
 - テスト用の参加者番号は `TEST-` / `PREVIEW-` / `SIMTEST-` で始める（正式データから自動除外される）。
@@ -62,6 +77,12 @@
 5. 確認：列名エラーなし、`sync.ok = true`・一致クリック数が 10 以上、`TEST-01_toi_metrics.csv` に第2〜6回の reading 行がある、
    UI B なら BTN（PANEL_BUTTONS）への訪問が別に数えられている。
    列名が違えば `eyetools/gaze.py` の CANDIDATES に追加。マウスイベントが無ければ書き出し時の Event 列を確認。
+6. （2026-11-27 追加）Pro Lab から TSV を書き出す前でも、プロジェクト内の生の記録から管線を通せる：
+   `python -m eyetools.cli convert <プロジェクト>/Data/Recordings/<ID> TEST-01.tsv` → あとは 4 と同じ。
+   注視の判定は I-VT の近似なので、**正式な分析には Pro Lab のエクスポートを使う**。TEST-01 の実データで確認済み
+   （同期：クリック 36/36 一致、残差 0.7 ms。第 2〜6 回の reading 行あり、ボタンへの訪問は別に数えられる）。
+   Pro Lab の実際のエクスポートの列名はまだ未確認。書き出すときは列に `Recording date`（できれば `Recording date UTC` と
+   `Recording start time UTC` も）を足す：記録開始の時刻が読めると同期の探索範囲が狭まる。
 
 ## 未決事項（使用者と相談中）
 - 正式に使う刺激（推奨：generic_unranked 単一）。例文をそのまま送った場合の H1 の数え方。H1 変更の教授確認。

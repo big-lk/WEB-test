@@ -48,6 +48,28 @@ const TURN_PROMPTS = [
   }
 ];
 const QUERY = new URLSearchParams(location.search);
+// ?invite=rich（試作。使用者の提案 2026-11-27）：参加者が一度に多く書きやすくするための文言と入力欄。既定の文言は変えない。
+// 変えるのは「一つ」という数の指定と、入力欄の例示だけ。正式に使うには、資料 4・5 との対応を使用者が確認すること。
+const INVITE_RICH = QUERY.get("invite") === "rich";
+if (INVITE_RICH) {
+  document.documentElement.dataset.invite = "rich";
+  const rich = [
+    { guide: "相手にどう感じてほしいか、夕食後に二人がどうなっていたらよいかを、思い浮かぶ場面も交えて書いてください。いくつ書いてもかまいません。実現方法はまだ一つに決めなくてかまいません。",
+      placeholder: "夕食中の雰囲気や、夕食後の二人の様子を、思い浮かぶだけ入力してください。" },
+    { kicker: "2回目｜ほかに大切にしたいこと", title: "同時に大切にしたい気持ちや雰囲気を加える",
+      guide: "最初に書いた目標と一緒にかなえたいことを、思いつくだけ書いてください。そう思う理由や場面も添えてかまいません。献立や演出の方法は、まだ決め切らなくてかまいません。",
+      placeholder: "ほかに大切にしたい気持ちや雰囲気を、思いつくだけ入力してください。" },
+    { guide: "食事中の会話、距離感、気分、避けたい空気などを、場面を思い浮かべながらいくつか書いてください。具体的な方法まで決めなくてかまいません。",
+      placeholder: "食事中の二人に、どんな時間や空気があるとよいか、思い浮かぶだけ入力してください。" },
+    { guide: "実際に二人が食卓に座っている場面を思い浮かべ、どんな様子ならこの夕食らしいと感じるかを、いくつか書いてください。",
+      placeholder: "実際の食卓での二人の様子を、思い浮かぶだけ入力してください。" },
+    { guide: "料理の出し方、会話、演出の強さなどを含め、二人にとって自然だと思う夕食の流れを、順を追って書いてください。",
+      placeholder: "食べ始めから食後までの流れを、順を追って入力してください。" },
+    { guide: "細かな方法は未定のままでもかまいません。最後に大切にしたい感じや、避けたいことを、いくつでも書いてください。",
+      placeholder: "この夕食で大切にしたいこと、避けたいことを、思いつくだけ入力してください。" }
+  ];
+  rich.forEach((item, index) => Object.assign(TURN_PROMPTS[index], item));
+}
 const PREVIEW_MODE = QUERY.get("preview") === "1";
 const EMBED_MODE = QUERY.get("embed") === "1" || window.self !== window.top;
 // 視線計測用の配置。指定がなければ従来の配置のまま。機能と記録内容は変えない。
@@ -148,7 +170,7 @@ function newSession(participantId, condition, experimentVariant = "standard") {
     environment: {
       screenWidth: screen.width, screenHeight: screen.height, viewportWidth: innerWidth,
       viewportHeight: innerHeight, pixelRatio: devicePixelRatio, userAgent: navigator.userAgent,
-      layoutVariant: LAYOUT_VARIANT
+      layoutVariant: LAYOUT_VARIANT, inviteRich: INVITE_RICH
     },
     aiModels: apiModels,
     pretest: null,
@@ -599,8 +621,9 @@ async function submitTurn() {
         panelLock: QUERY.get("lock") === "1",
         // flow 配置：回答の末尾を、固定の終止文ではなく、参加者の言葉を入れた依頼文にする（両 UI 共通）
         // 比較用に ?closing=fixed|personal|gap で切り替えられる（gap＝固定の終止文の前に「まだ決まっていないこと」を一文入れる）
-        closingMode: ["fixed", "personal", "gap"].includes(QUERY.get("closing")) ? QUERY.get("closing")
-          : (LAYOUT_VARIANT === "flow" ? "personal" : "fixed"),
+        closingMode: ["fixed", "personal", "gap", "gap2"].includes(QUERY.get("closing")) ? QUERY.get("closing")
+          : (LAYOUT_VARIANT === "flow" || INVITE_RICH ? "personal" : "fixed"),
+        ...(INVITE_RICH ? { inviteMode: "rich" } : {}),
         // 試験用の参加者番号（TEST- など）に限り、?model=… でモデルを切り替えられる（サーバー側で確認する）
         ...(QUERY.get("model") ? { model: QUERY.get("model") } : {}),
         turn: session.currentTurn,
