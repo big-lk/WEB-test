@@ -2428,11 +2428,21 @@ CONCERN_COMPARATIVE_RE = re.compile(r"(?<!いつも)(?<!普段)(?<!ふだん)(?<
 
 def concern_state(spec: dict[str, Any], texts: list[str], priority: bool = False) -> str:
     """刺激のあとの入力で、参加者がその話題の決め方を打ち消したか（touched）、触れていないか（untouched）。
+    話題の語（その話題の語＋登録文の「一般的なやり方」に出てくる語）のある文か、その前後の文に打ち消しがあれば touched。
+    前後の文まで見るのは、「それは違います。天井の電気は消して…」のように、打ち消しと中身が別の文になることが多いため。
     priority=True（第4回の刺激）では「優先」「後回し」などの語も話題の語として数える。"""
-    words = list(spec["words"]) + (["優先", "後回し", "見栄え", "品数", "手早く", "多くの方", "一般"] if priority else ["一般的", "標準"])
-    for sentence in re.split(r"[。！？!?\n]+", "\n".join(texts)):
-        if any(w in sentence for w in words) and (SMALLTALK_NEGATION_RE.search(sentence) or SMALLTALK_WEAK_NEGATION_RE.search(sentence)
-                                                  or CONCERN_COMPARATIVE_RE.search(sentence)):
+    form_words = [w for w in re.findall(r"[一-龥ァ-ヶーA-Za-zＡ-Ｚ]{2,}", spec.get("form", "")) if w not in {"一般", "形"}]
+    words = list(spec["words"]) + form_words + (["優先", "後回し", "見栄え", "品数", "手早く", "多くの方", "一般"] if priority else ["一般的", "標準"])
+    sentences = [x for x in re.split(r"[。！？!?\n]+", "\n".join(texts)) if x.strip()]
+
+    def negated(text: str) -> bool:
+        return bool(SMALLTALK_NEGATION_RE.search(text) or SMALLTALK_WEAK_NEGATION_RE.search(text) or CONCERN_COMPARATIVE_RE.search(text))
+
+    for i, sentence in enumerate(sentences):
+        if not any(w in sentence for w in words):
+            continue
+        if negated(sentence) or (i > 0 and SMALLTALK_NEGATION_RE.search(sentences[i - 1])) \
+                or (i + 1 < len(sentences) and SMALLTALK_NEGATION_RE.search(sentences[i + 1])):
             return "touched"
     return "untouched"
 
