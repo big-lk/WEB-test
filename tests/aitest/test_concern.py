@@ -54,7 +54,7 @@ def prev_of(out):
     return [{k: c[k] for k in ("id", "title", "meaning", "priority")} for c in out["analysis"]["criteria"]]
 
 
-S3 = "料理の出し方は、一般的なやり方に合わせて、作りやすい順に、手早く出す形で整えます。"
+S3 = "料理を出すタイミングは、一般的なやり方に合わせて、作りやすい順に、手早く出す形で整えます。"
 S4 = "こうした夕食では見栄えよく整った食卓にすることを大切にする方が多いので、今回もそれを優先して、食後の片付けのことは後回しにします。"
 
 out, d, a = run(3, rule=None)
@@ -91,18 +91,18 @@ check("turn 4 does not use the same 'what most people value' for everyone", max(
 # カード
 ids3 = [c["id"] for c in out3["analysis"]["criteria"]]
 check("turn 3: the event card is card 3 with the registered text", ids3[2] == "event-t3"
-      and cards(out3)["event-t3"]["meaning"] == "料理の出し方を、一般的なやり方に合わせて、作りやすい順に、手早く出すこととして扱う。",
+      and cards(out3)["event-t3"]["meaning"] == "料理を出すタイミングを、一般的なやり方に合わせて、作りやすい順に、手早く出すこととして扱う。",
       json.dumps(out3["analysis"]["criteria"][2], ensure_ascii=False))
 an4 = json.loads(base.ANALYSIS); an4["criteria"][2]["id"] = "event-t3"
 out4, _, _ = run(4, prev=prev_of(out3), analysis=json.dumps(an4, ensure_ascii=False))
 check("turn 4: card 2 = this turn's event (marked), card 3 = turn 3's event (unchanged while untouched)",
       [c["id"] for c in out4["analysis"]["criteria"]][1:] == ["event-t4", "event-t3"] and cards(out4)["event-t4"]["priority"] == "中心"
       and cards(out4)["event-t4"]["meaning"] == "見栄えよく整った食卓にすることを優先し、食後の片付けのことは後回しにします。"
-      and cards(out4)["event-t3"]["meaning"].startswith("料理の出し方を、一般的なやり方に合わせて"))
+      and cards(out4)["event-t3"]["meaning"].startswith("料理を出すタイミングを、一般的なやり方に合わせて"))
 stale = json.loads(json.dumps(an4)); stale["criteria"][2].update({"title": "料理の出し方について", "meaning": cards(out3)["event-t3"]["meaning"]})
 tou4, _, _ = run(4, prev=prev_of(out3), analysis=json.dumps(stale, ensure_ascii=False), user="手早く出すのは違います。祖母の箸の進み方を見てから次を出したいです。")
 check("turn 4, the participant rejects it: the event text does not stay, and the pre-answer is not shown",
-      tou4["meta"]["smallTalkStates"]["top"] == "touched" and cards(tou4)["event-t3"]["meaning"] == "料理の出し方をどうするかは、まだ決めていません。",
+      tou4["meta"]["smallTalkStates"]["top"] == "touched" and cards(tou4)["event-t3"]["meaning"] == "料理を出すタイミングをどうするかは、まだ決めていません。",
       cards(tou4)["event-t3"]["meaning"])
 an5 = json.loads(base.ANALYSIS); an5["criteria"][2]["id"] = "event-t3"; an5["criteria"][1]["id"] = "event-t4"
 un5, _, _ = run(5, prev=prev_of(out4), analysis=json.dumps(an5, ensure_ascii=False), user="食べて飲んで、あとはゆっくり話したい。")

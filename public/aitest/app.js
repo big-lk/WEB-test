@@ -81,7 +81,7 @@ const SMALLTALK_QUESTIONS = [
 // 「特にない」を選んだ人は対象外（サーバーは従来の刺激を使う）。
 // サーバーへ送るのは top / second /（その他の二つの枠）だけ。答えは右側にも対話にも出さない。指定が無ければ従来どおり。文言は候補。
 const CONCERN = QUERY.get("stimulus") === "concern";
-const CONCERN_TOPIC_LABELS = [["prep", "準備の進め方"], ["serve", "料理の出し方"], ["share", "料理の並べ方"], ["tidy", "食後の片付け"],
+const CONCERN_TOPIC_LABELS = [["prep", "準備の進め方"], ["serve", "料理を出すタイミング"], ["share", "盛りつけ・取り分け方"], ["tidy", "食後の片付け"],
   ["light", "部屋の明るさ"], ["sound", "食事中の音"], ["seat", "座る位置"], ["drink", "飲み物の出し方"], ["ware", "使う器"], ["after", "食後の過ごし方"],
   ["other", "その他"], ["none", "特にない"]];
 function concernChip(type, name, value, label) {

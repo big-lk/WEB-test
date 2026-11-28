@@ -89,7 +89,7 @@ def parse_talk(text: str, questions: list[dict[str, Any]]) -> dict[str, str]:
     return out
 
 
-CONCERN_CHIPS = [("prep", "準備の進め方"), ("serve", "料理の出し方"), ("share", "料理の並べ方"), ("tidy", "食後の片付け"),
+CONCERN_CHIPS = [("prep", "準備の進め方"), ("serve", "料理を出すタイミング"), ("share", "盛りつけ・取り分け方"), ("tidy", "食後の片付け"),
                  ("light", "部屋の明るさ"), ("sound", "食事中の音"), ("seat", "座る位置"), ("drink", "飲み物の出し方"), ("ware", "使う器"),
                  ("after", "食後の過ごし方"), ("other", "その他（自分で書く）"), ("none", "特にない")]
 CONCERN_TALK_INSTRUCTIONS = """あなたは、ある調査の参加者の役を演じます。下に書かれた人物本人として、画面の質問に答えます。
