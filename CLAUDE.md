@@ -9,7 +9,7 @@
 - サーバー：`api/aitest/core.py`（オンライン版・OpenAI）、`offline_engine.py` + `offline_corpus.py`（オフライン版・生成AIなし）
 - オフライン版ローカルサーバー：`tools/offline/serve.py` → http://127.0.0.1:8765/aitest/
 - 分析：`tools/aitest_analysis/analyze.py`、視線：`tools/aitest_analysis/eyetools/`
-- テスト：`python tests/aitest/test_offline_engine.py`、`python tests/aitest/test_v17_offline.py`、`python tests/aitest/test_model_switch.py`、`node tests/aitest/example_sentence_test.mjs`、`node tests/aitest/setup_preset_test.mjs`、`python tests/aitest/test_personal_closing.py`、`python tests/aitest/test_open_style.py`、`python tests/aitest/test_prechoice.py`
+- テスト：`python tests/aitest/test_offline_engine.py`、`python tests/aitest/test_v17_offline.py`、`python tests/aitest/test_model_switch.py`、`node tests/aitest/example_sentence_test.mjs`、`node tests/aitest/setup_preset_test.mjs`、`python tests/aitest/test_personal_closing.py`、`python tests/aitest/test_open_style.py`、`python tests/aitest/test_prechoice.py`、`python tests/aitest/test_smalltalk.py`
 - 公開版：https://www.lkdesigner.top/aitest/ （オフライン版で試す：`?engine=offline`）
 - 変更を push するときは `main` と `aitest-v1.7-stability` の両方へ。
 
@@ -174,6 +174,30 @@
   1920×1080 で事前の画面の下の説明（「この一文はどこで使う？」）がスクロールしないと見えない／オフライン版は未対応／人と実験機では未確認。
 - 検証：`python tests/aitest/test_prechoice.py`（偽の応答）。模擬参加者は第0回に選択する（`sim_user.build_choice_payload`）。
 - 手元で試す：`http://127.0.0.1:8765/aitest/?layout=flow2&condition=UI_B&variant=generic_unranked&stimulus=prechoice`
+
+## 試作：?stimulus=smalltalk（2026-11-28 夜、ブランチ aitest-layout-side。**main には未反映**）
+使用者の要望（11/28 19:16）：事前の短い答えは実験の後半で気づかれないように隠す（料理の準備の雑談のような形）。鍵になる個人の判断を一つ二つ
+裏で覚えておき、後で AI が一般的な形で決めて（その判断に応じない）、はっきりした食い違いを見せる。日程は問題にしない。
+詳しくはプロジェクト文書「第二実験_試作_事前の雑談による刺激_2026-11-28」。指定しなければ画面もサーバーも従来どおり。
+- 画面（`app.js` の `SMALLTALK`）：「今の状態」の画面に「ふだんの食事について」の 5 問（選択式）。鍵は 2 問：
+  prep（招くときの準備：来る前に全部済ませる／来てから一緒に仕上げる）→ 第3回、keep（時間が足りないとき：品数や見た目／一緒にいる時間）→ 第4回。
+  サーバーへ `stimulusRule: "smalltalk"` と `smallTalk: {prep, keep}` を送る。ほかの 3 問は `session.smallTalk` に記録するだけ。
+- サーバー（`core.py` の `SMALLTALK_ITEMS`）：答えは対話AI・分析AI に渡さず、右側にも出さない。第3・4回に、答えと**逆の側**の登録文（全部で 4 文）を
+  回答の第2文として出す。刺激のカードは第3回＝3 枚目（id event-t3）、第4回＝2 枚目（event-t4）。その後のカードの文面も規則で決める（`smalltalk_state`）：
+  untouched＝刺激の文面のまま／own（話題の語か打ち消し＋自分の側の言葉）＝登録済みの「受け取り直した」文／other（話題の語と打ち消し）＝分析AI に任せ、
+  刺激の文面が残っていれば「まだ決めていません」の登録文。第3・4回は入力の長さに合わせない。
+- 実際の出力（gpt-6-luna、模擬参加者 8 名、84 回、失敗 0・回退 0）：同じ答えなら文は同じ（2 巡とも走らせた 5 名で一致）、登録文は第2文 16/16、
+  カード位置は 8/8、第3・4回の回答 308〜366 字（入力 10〜184 字）、待ち時間は第3・4回 17.0 / 21.5 秒（1 セッション、1 名）。
+  keep は 8 名とも「一緒にいる時間」を選んだ（第4回の文が全員同じになる）。模擬参加者は考えを渡されているので 7/8 が刺激の前に自分から準備の話を書いた
+  （人ではそうとは限らない）。
+- 残っている問題：訂正の判定は語の一致（2 巡で直したが、言い方が増えれば漏れる）／own の文面は事前の答えを使うので、対話に書いていないことが
+  カードに出ることがある／第3回の登録文は話題がやや唐突／ずれの性質が「意味を狭める」から「個人の判断と逆に決める」に変わる（申請書の書き方との対応を
+  指導教員に確認）／分析の回退時は規則が効かない／オフライン版は未対応／人・実験機・「気づかれないか」は未確認。
+- **質問 5 つと文 4 つは候補。** 事前の質問が増えるのは参加者に見える資料と取得データの変更で、事後説明にも一文要る。使用者と指導教員の確認が要る。
+- （同じ日に修正）flow2 の「今の状態」の画面で、尋ねないはずの 2 項目が灰色のまま表示されていた（hidden 属性が CSS の display: grid に負けていた）。
+  `.scale-field[hidden] { display: none; }` で修正。見えているかどうかは、属性ではなく実際の大きさで確かめること。
+- 検証：`python tests/aitest/test_smalltalk.py`（偽の応答）。模擬参加者は第0回に鍵の 2 問に答える（`sim_user.build_talk_payload`）。
+- 手元で試す：`http://127.0.0.1:8765/aitest/?layout=flow2&condition=UI_B&variant=generic_unranked&stimulus=smalltalk`
 
 ## 未決事項（使用者と相談中）
 - 正式に使う刺激（推奨：generic_unranked 単一）。例文をそのまま送った場合の H1 の数え方。H1 変更の教授確認。
