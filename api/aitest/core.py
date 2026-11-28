@@ -2142,7 +2142,9 @@ SMALLTALK_ITEMS: dict[str, dict[str, Any]] = {
 }
 SMALLTALK_OPPOSITE = {"before": "together", "together": "before", "dishes": "time", "time": "dishes"}
 SMALLTALK_NEGATION_RE = re.compile(r"ではな|じゃな|違い|違う|違っ|ちがう|逆|やめ|いらな|要らな|しなくて|したくな|決めていな|決めてな|決めないで|決めつけ"
-                                   r"|私が決め|自分で決め|私の言葉では|嫌|困る|望んでいな|望んでな|にはせず|はせず|しない|しません|より")
+                                   r"|私が決め|自分で決め|私の言葉では|嫌|困る|望んでいな|望んでな")
+# 話題の語と同じ文の中でだけ使う、弱い打ち消し（「準備を一緒にする形にはせず」）。これだけでは「自分の側へ訂正」にはしない
+SMALLTALK_WEAK_NEGATION_RE = re.compile(r"にはせず|はせず|しない|しません")
 EVENT_IDS = ("event-t3", "event-t4")
 
 
@@ -2177,7 +2179,7 @@ def smalltalk_state(item_key: str, own: str, texts: list[str]) -> str:
     if (on_topic or SMALLTALK_NEGATION_RE.search(joined)) and any(k in joined for k in item["poles"][own]["keys"]):
         return "own"
     for sentence in re.split(r"[。！？!?\n]+", joined):
-        if any(t in sentence for t in item["topic"]) and SMALLTALK_NEGATION_RE.search(sentence):
+        if any(t in sentence for t in item["topic"]) and (SMALLTALK_NEGATION_RE.search(sentence) or SMALLTALK_WEAK_NEGATION_RE.search(sentence)):
             return "other"
     return "untouched"
 
