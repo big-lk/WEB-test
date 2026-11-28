@@ -2144,7 +2144,7 @@ SMALLTALK_OPPOSITE = {"before": "together", "together": "before", "dishes": "tim
 SMALLTALK_NEGATION_RE = re.compile(r"ではな|じゃな|違い|違う|違っ|ちがう|逆|やめ|いらな|要らな|しなくて|したくな|決めていな|決めてな|決めないで|決めつけ"
                                    r"|私が決め|自分で決め|私の言葉では|嫌|困る|望んでいな|望んでな")
 # 話題の語と同じ文の中でだけ使う、弱い打ち消し（「準備を一緒にする形にはせず」）。これだけでは「自分の側へ訂正」にはしない
-SMALLTALK_WEAK_NEGATION_RE = re.compile(r"にはせず|はせず|しない|ません|(?:く|て|で|は|も|とは)ない|なくて")
+SMALLTALK_WEAK_NEGATION_RE = re.compile(r"にはせず|はせず|しない|ません|(?:て|で|は|も|とは)ない")
 EVENT_IDS = ("event-t3", "event-t4")
 
 
