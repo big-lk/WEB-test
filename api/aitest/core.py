@@ -2110,12 +2110,14 @@ def prechoice_parts(turn: int, pre: list[dict[str, str]]) -> dict[str, str]:
 # 質問と文面は候補で、正式に使う前に使用者の確認が要る。
 SMALLTALK_ITEMS: dict[str, dict[str, Any]] = {
     "prep": {
-        "phrase": "夕食の準備", "title": "夕食の準備", "topic": ["準備", "仕上げ", "支度", "用意", "済ませ", "段取り"],
+        "phrase": "夕食の準備", "title": "夕食の準備", "topic": ["準備", "仕上げ", "支度", "用意", "済ませ", "段取り", "整えてお", "作ってお", "出してお", "出しとい"],
         "withdrawn": "夕食の準備をどう進めるかは、まだ決めていません。",
         "poles": {
             "before": {"generic": "相手が来る前にすべて済ませておくこと",
                        "own": "夕食の準備は、相手が来る前に済ませておきたい、と受け取っています。",
-                       "keys": ["来る前に", "着く前に", "先に済ませ", "済ませておき", "済ませてお", "待たせ", "座ってて", "座っていて", "座って待",
+                       "keys": ["来る前に", "着く前に", "帰宅前", "帰る前", "帰ってくる前", "先に済ませ", "済ませておき", "済ませてお", "仕上げておき", "仕上げてお",
+                                "作っておき", "作ってお", "用意しておき", "準備しておき", "整えておき", "整えてお", "出しておき", "出しとい",
+                                "先に準備", "先に作", "全部先に", "待たせ", "座ってて", "座っていて", "座って待",
                                 "一人で準備", "私が準備", "自分で準備", "こちらで準備", "手伝わせ"]},
             "together": {"generic": "相手が来てから、仕上げを一緒にすること",
                          "own": "夕食の準備は、相手が来てから一緒に仕上げたい、と受け取っています。",
@@ -2140,7 +2142,7 @@ SMALLTALK_ITEMS: dict[str, dict[str, Any]] = {
 }
 SMALLTALK_OPPOSITE = {"before": "together", "together": "before", "dishes": "time", "time": "dishes"}
 SMALLTALK_NEGATION_RE = re.compile(r"ではな|じゃな|違い|違う|違っ|ちがう|逆|やめ|いらな|要らな|しなくて|したくな|決めていな|決めてな|決めないで|決めつけ"
-                                   r"|私が決め|自分で決め|私の言葉では|嫌|困る|望んでいな|望んでな")
+                                   r"|私が決め|自分で決め|私の言葉では|嫌|困る|望んでいな|望んでな|にはせず|はせず|しない|しません|より")
 EVENT_IDS = ("event-t3", "event-t4")
 
 
@@ -2171,7 +2173,8 @@ def smalltalk_state(item_key: str, own: str, texts: list[str]) -> str:
     item = SMALLTALK_ITEMS[item_key]
     joined = "\n".join(texts)
     on_topic = any(t in joined for t in item["topic"])
-    if on_topic and any(k in joined for k in item["poles"][own]["keys"]):
+    # 自分の側の言葉に加えて、話題の語か打ち消し（「いや、そうじゃなくて」など）があれば、訂正とみなす
+    if (on_topic or SMALLTALK_NEGATION_RE.search(joined)) and any(k in joined for k in item["poles"][own]["keys"]):
         return "own"
     for sentence in re.split(r"[。！？!?\n]+", joined):
         if any(t in sentence for t in item["topic"]) and SMALLTALK_NEGATION_RE.search(sentence):
