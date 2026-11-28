@@ -28,3 +28,17 @@ python analyze.py run --json-dir input/json --division ... --division-key ... --
 ```
 H3 は第4・5回の読解区間（AI 回答の表示 → 入力欄の初回クリック）でのカード本文への訪問回数。UI B のボタン行（BTN_1〜3）は別集計。
 初めて実データの TSV を得たら、列名が eyetools/gaze.py の CANDIDATES と合っているか確認すること。
+読み取りは、列名の単位（`[ms]`、`[DACS px]` など）、時刻の単位（ミリ秒／マイクロ秒）、文字コード、Sensor 列の有無の違いを吸収する。
+何を使ったかは `<参加者>_qa.json` の `gaze` に残る（`timestamp_unit_from` が `interval` なら、単位はサンプル間隔から決めたもの）。
+
+`check` と `batch` は、各参加者の設定（刺激・配置・会話AI・分析AI・分析の指示文・末尾の方式）を表示する。
+- 正式データの中で設定が違う参加者がいればエラー（S11_MIXED_SETTING）。試験用の番号（TEST- など）は判定に入れない。
+- 1 人の中で回によって設定が変わっていれば警告（S12_SETTING_CHANGED）。
+- 刺激は `standard` と `generic_unranked` を通す（どちらを正式に使うかは未決）。決まったら `--variant standard` のように固定して確かめる。
+
+配置の比較（試し録り用。本文とボタンの視線がどれだけ分けて数えられるか）：
+```
+python -m eyetools.cli separation TEST-02.json TEST-02.tsv TEST-03.json TEST-03.tsv --script-turn 6 --out out/
+```
+`--script-turn 6` は、第 6 回の読解区間で「カード1本文→カード1ボタン→カード2本文→カード2ボタン→カード3本文→カード3ボタン」の順に
+各 2 秒ほど見た記録を照合する。外れの割合は下限（当てはめは合う時間が最大になるように行う）。

@@ -50,7 +50,262 @@ const TURN_PROMPTS = [
 const QUERY = new URLSearchParams(location.search);
 // ?invite=rich（試作。使用者の提案 2026-11-27）：参加者が一度に多く書きやすくするための文言と入力欄。既定の文言は変えない。
 // 変えるのは「一つ」という数の指定と、入力欄の例示だけ。正式に使うには、資料 4・5 との対応を使用者が確認すること。
-const INVITE_RICH = QUERY.get("invite") === "rich";
+// ?layout=flow2（試作。2026-11-28、使用者が実験機で通しての指摘をまとめて入れた版）：flow の配置に次を加える。
+//   送信前の小さな確認／中身のない枠は短い帯にする／例文の出どころと変わった文を見分けられるようにする／
+//   事前の状態は眠気と緊張だけにする／対話の完了時に視線計測の停止を求めない／入力の案内を「多めに・二人ならではのことを」に寄せる／
+//   回答は長めで、入力の具体さに合わせる（サーバーへ dialogueStyle: "open" を送る）。
+// 既定・side・flow の動作と文言は変えない。参加者に見える新しい文言は候補であり、正式に使う前に使用者の確認が必要。
+const FLOW2 = QUERY.get("layout") === "flow2";
+// 試作（2026-11-28）：?stimulus=prechoice。対話の前に「大切にしたいこと」を決まった選択肢から二つ選んでもらい、
+// 第3・4回の刺激をその二つだけで決める（サーバーへ stimulusRule: "prechoice" と pretaskAnchor.values を送る）。
+// 先に選んだものが X（第3回に意味を狭められる）、後に選んだものが Y（第4回に縮められる）。
+// 指定が無ければ画面も送信内容も従来どおり。選択肢と見出しの文言は候補で、正式に使う前に使用者の確認が要る。
+const PRECHOICE = QUERY.get("stimulus") === "prechoice";
+const PRECHOICE_OPTIONS = [["no_burden", "気を遣わせない"], ["natural_talk", "自然に話せる"], ["not_grand", "大げさにしない"],
+  ["not_heavy", "重くしない"], ["relaxed", "ゆっくりできる"], ["as_usual", "いつもどおり"]];
+// 試作（2026-11-28 夜）：?stimulus=smalltalk。はじめの「今の状態」の画面に、ふだんの食事についての短い質問を 5 つ足す。
+// そのうち 2 つ（prep, keep）の答えをサーバーへ送り（stimulusRule: "smalltalk", smallTalk）、第3・4回の刺激を答えと逆の側で出す。
+// 答えは右側にも対話にも出さない。残りの 3 つは記録するだけ。指定が無ければ画面も送信内容も従来どおり。文言は候補。
+const SMALLTALK = QUERY.get("stimulus") === "smalltalk";
+const SMALLTALK_QUESTIONS = [
+  ["cook", "ふだん、料理はどのくらいしますか。", [["daily", "ほぼ毎日"], ["weekly", "週に数回"], ["rarely", "あまりしない"]]],
+  ["prep", "誰かを食事に招くとき、準備はどうしたいですか。", [["before", "来る前に全部済ませておきたい"], ["together", "来てから一緒に仕上げたい"]]],
+  ["menu", "献立はいつ決めることが多いですか。", [["ahead", "前の日までに決める"], ["sameday", "当日、買い物をしながら決める"]]],
+  ["keep", "準備の時間が足りなくなったら、どちらを取りますか。", [["dishes", "品数や見た目をそろえる"], ["time", "相手と一緒にいる時間をとる"]]],
+  ["taste", "味つけはどちらに近いですか。", [["recipe", "レシピどおりに量る"], ["byeye", "目分量で決める"]]]
+];
+// 試作（2026-11-28 夜）：?stimulus=concern。その人のこだわりを先に聞いておき、後で AI がそれを一般的なやり方で扱う。
+// 「ここは自分なりのやり方がある」と思う話題を選んでもらい（いくつでも）、いちばん強いものとその次を決めてもらう。
+// 話題は増やせる目録（サーバーの CONCERN_TOPICS と同じ id）。目録に無いこだわりは「その他」で、「何について／どうしたい」の二つの枠に書く
+// （サーバーが目録の話題か、同じ種類かに分類する。分類の結果は session.smallTalk.map に残し、次の回から送り返す）。
+// 「特にない」を選んだ人は対象外（サーバーは従来の刺激を使う）。
+// サーバーへ送るのは top / second /（その他の二つの枠）だけ。答えは右側にも対話にも出さない。指定が無ければ従来どおり。文言は候補。
+const CONCERN = QUERY.get("stimulus") === "concern";
+// 試作（2026-11-28 夜、使用者の考え：文言で、自分の大切にしたいことを思い出させ、保たせる）：?stimulus=concern&guide=awaken。
+// 事前の質問を「思い出す → 気づく → いちばんを決める → 言葉にする → 手元に置く」の順に並べ、話題ごとに「よくある例」を添える。
+// 「今の状態」の画面を二段に分ける（眠気・緊張 → この質問）。各回の案内の末尾に、自分の目標とやり方を思い浮かべる一文を足す。
+// サーバーへ送るものは concern と同じ（top / second / その他の二つの枠）。どうする・何のため・強さは記録するだけ。指定が無ければ concern のまま。文言は候補。
+const AWAKEN = CONCERN && QUERY.get("guide") === "awaken";
+const AWAKEN_HINTS = { prep: "前の日から少しずつ／当日にまとめて／相手と一緒に", serve: "最初に全部並べる／一品ずつ出す／相手の進み具合を見て出す",
+  share: "大皿から各自で取る／一人分ずつ盛る／こちらで取り分ける", tidy: "食べ終えたらすぐ／話が済んでから／相手が帰ってから",
+  light: "全体を明るく／少し落とす／手元だけ灯す", sound: "音楽を流す／テレビをつけておく／何も流さない",
+  seat: "向かい合う／隣に並ぶ／角を挟んで座る", drink: "最初にそろえておく／料理に合わせて出す／相手のペースで注ぐ",
+  ware: "そろいの食器／いつもの器／相手に合わせて選ぶ", after: "お茶や甘いものを出す／そのまま話し続ける／早めに切り上げる",
+  other: "ここに無いこと。自分で書く", none: "どれも、その場の流れでよい" };
+const AWAKEN_REMINDER = "書く前に、あなたがこの夕食で大切にしたいことと、ふだんのあなたのやり方を、もう一度思い浮かべてください。";
+const AWAKEN_STRENGTH = [["1", "できればそうしたい"], ["2", "たいていそうする"], ["3", "必ずそうする"]];
+const CONCERN_TOPIC_LABELS = [["prep", "準備の進め方"], ["serve", "料理を出すタイミング"], ["share", "盛りつけ・取り分け方"], ["tidy", "食後の片付け"],
+  ["light", "部屋の明るさ"], ["sound", "食事中の音"], ["seat", "座る位置"], ["drink", "飲み物の出し方"], ["ware", "使う器"], ["after", "食後の過ごし方"],
+  ["other", "その他"], ["none", "特にない"]];
+function concernChip(type, name, value, label, hint = "") {
+  const row = document.createElement("label");
+  const input = document.createElement("input");
+  input.type = type; input.name = name; input.value = value;
+  const span = document.createElement("span");
+  span.textContent = label;
+  if (hint) { const small = document.createElement("small"); small.textContent = hint; span.append(small); }
+  row.append(input, span);
+  return row;
+}
+function concernBox(legendText, columns, extraClass = "") {
+  const box = document.createElement("fieldset");
+  box.className = "scenario-picker talk-item " + extraClass;
+  box.style.gridTemplateColumns = `repeat(${columns}, minmax(0, 1fr))`;
+  const legend = document.createElement("legend");
+  legend.textContent = legendText;
+  box.append(legend);
+  return box;
+}
+function setupConcernTalk(form) {
+  if (!CONCERN || form.querySelector(".talk-section")) return;
+  const section = document.createElement("section");
+  section.className = "prep-section talk-section talk-wide";
+  const head = document.createElement("h2");
+  head.textContent = AWAKEN ? "ふだんの、あなたのやり方" : "ふだんの食事について";
+  const lead = document.createElement("p");
+  lead.className = "talk-lead";
+  lead.textContent = AWAKEN ? "対話の前に、あなた自身のことを少し思い出してください。正解はありません。" : "対話の前に、少しだけ教えてください。正解はありません。";
+  const cook = concernBox("ふだん、料理はどのくらいしますか。", 3, "talk-cook");
+  [["daily", "ほぼ毎日"], ["weekly", "週に数回"], ["rarely", "あまりしない"]].forEach(([v, l]) => cook.append(concernChip("radio", "talk_cook", v, l)));
+  const pick = concernBox(AWAKEN
+    ? "② そのときのことを思い浮かべながら読んでください。次のうち、「自分はいつもこうしている」「ここは人に決められるより、自分で決めたい」と思うものはどれですか（いくつでも）。人によってやり方が分かれるところです。小さい字は、よくある例です。"
+    : "誰かと家で食事をするとき、「ここは自分なりのやり方がある」と思うものを選んでください（いくつでも）。", AWAKEN ? 4 : 6, "talk-pickmany");
+  CONCERN_TOPIC_LABELS.forEach(([v, l]) => pick.append(concernChip("checkbox", "talk_picked", v, l, AWAKEN ? AWAKEN_HINTS[v] : "")));
+  const other = document.createElement("div");
+  other.className = "talk-other hidden";
+  other.innerHTML = '<label><span>その他：何について</span><input type="text" name="talk_other_what" maxlength="12" autocomplete="off" placeholder="例：部屋の匂い" /></label>'
+    + '<label><span>どうしたい</span><input type="text" name="talk_other_how" maxlength="30" autocomplete="off" placeholder="例：料理の匂いを残したくない" /></label>';
+  const top = concernBox(AWAKEN ? "③ その中で、ほかの人に決められるといちばん引っかかるのはどれですか。" : "その中で、こだわりがいちばん強いのはどれですか。", 6, "talk-pick talk-top hidden");
+  const second = concernBox("その次はどれですか。", 6, "talk-pick talk-second hidden");
+  const noteRow = document.createElement(AWAKEN ? "div" : "label");
+  noteRow.className = "talk-note hidden" + (AWAKEN ? " talk-words" : "");
+  noteRow.innerHTML = AWAKEN
+    ? '<p class="talk-step">④ いちばんのものについて、あなたの言葉で書いてください。</p>'
+      + '<label><span>あなたは、どうしますか。</span><input type="text" name="talk_note" maxlength="40" autocomplete="off" /></label>'
+      + '<label><span>そうするのは、何のためですか。</span><input type="text" name="talk_why" maxlength="40" autocomplete="off" placeholder="相手のこと、自分のこと、前にあったことなど" /></label>'
+    : '<span>いちばんのこだわりは、どんなふうにしたいですか。ひとこと（任意）</span><input type="text" name="talk_note" maxlength="40" autocomplete="off" />';
+  section.append(head, lead, cook, pick, other, top, second, noteRow);
+  let keep = null;
+  if (AWAKEN) {
+    const recall = document.createElement("p");
+    recall.className = "talk-step talk-recall";
+    recall.textContent = "① 最近、誰かと家で食事をしたときのことを、一つ思い浮かべてください。うまくいった日でも、少し心残りがあった日でもかまいません。";
+    cook.after(recall);
+    const strength = concernBox("それは、どのくらい決まっていますか。", 3, "talk-strength hidden");
+    AWAKEN_STRENGTH.forEach(([v, l]) => strength.append(concernChip("radio", "talk_strength", v, l)));
+    keep = document.createElement("div");
+    keep.className = "talk-keep hidden";
+    keep.innerHTML = '<p class="talk-keep-line"></p><p class="talk-keep-note">これは、あなたが決めたことです。対話のあいだも、頭の片隅に置いておいてください。</p>';
+    section.append(strength, keep);
+    section.classList.add("talk-awaken");
+    // 一画面（1920×1080）に収める：料理の頻度は一段目（眠気・緊張の下）へ、「いちばん」「その次」は横に並べる
+    const cookWrap = document.createElement("section");
+    cookWrap.className = "prep-section talk-section talk-cookwrap";
+    cookWrap.append(cook);
+    form.querySelector(".participant-scales").after(cookWrap);
+    const rank = document.createElement("div");
+    rank.className = "talk-rank";
+    top.before(rank);
+    rank.append(top, second);
+    form.dataset.talkPhase = "state";
+    form.querySelector('button[type="submit"]').textContent = "次へ";
+  }
+  (form.querySelector(".talk-cookwrap") || form.querySelector(".participant-scales")).after(section);
+  const labelOf = (v) => v === "other" ? (form.querySelector('input[name="talk_other_what"]').value.trim() || "その他") : CONCERN_TOPIC_LABELS.find(([id]) => id === v)[1];
+  const refresh = () => {
+    const boxes = [...pick.querySelectorAll("input")];
+    const none = boxes.find((b) => b.value === "none");
+    const chosen = boxes.filter((b) => b.checked && b.value !== "none").map((b) => b.value);
+    other.classList.toggle("hidden", !chosen.includes("other"));
+    [[top, "talk_top", chosen.length >= 1], [second, "talk_second", chosen.length >= 2]].forEach(([box, name, show]) => {
+      const kept = box.querySelector("input:checked")?.value;
+      [...box.querySelectorAll("label")].forEach((x) => x.remove());
+      chosen.forEach((v) => { const chip = concernChip("radio", name, v, labelOf(v)); if (v === kept) chip.querySelector("input").checked = true; box.append(chip); });
+      box.style.gridTemplateColumns = `repeat(${Math.max(2, Math.min(AWAKEN ? 3 : 6, chosen.length))}, minmax(0, 1fr))`;
+      box.classList.toggle("hidden", !show || none.checked);
+    });
+    if (chosen.length === 1) top.querySelector("input").checked = true;
+    noteRow.classList.toggle("hidden", chosen.length < 1 || none.checked);
+    if (AWAKEN) {
+      // 自分の答えを一文にまとめて見せる（自分で決めたこととして手元に置いてもらう）
+      const topValue = top.querySelector("input:checked")?.value;
+      const how = form.querySelector('input[name="talk_note"]').value.trim();
+      const why = form.querySelector('input[name="talk_why"]').value.trim();
+      section.querySelector(".talk-strength").classList.toggle("hidden", chosen.length < 1 || none.checked);
+      const ready = Boolean(topValue && how.length >= 2 && !none.checked);
+      keep.classList.toggle("hidden", !ready);
+      if (ready) keep.querySelector(".talk-keep-line").textContent = `あなたのやり方：${labelOf(topValue)}は、${how.replace(/[。．.]+$/, "")}。${why ? why.replace(/[。．.]+$/, "") + "。" : ""}`;
+    }
+  };
+  if (AWAKEN) { section.addEventListener("input", refresh); section.addEventListener("change", refresh); }
+  pick.addEventListener("change", (event) => {
+    const boxes = [...pick.querySelectorAll("input")];
+    const none = boxes.find((b) => b.value === "none");
+    if (event.target === none && none.checked) boxes.forEach((b) => { if (b !== none) b.checked = false; });
+    else if (event.target !== none && event.target.checked) none.checked = false;
+    refresh();
+  });
+  other.addEventListener("input", refresh);
+}
+function readConcernTalk(form) {
+  if (!CONCERN) return null;
+  const cook = form.querySelector('input[name="talk_cook"]:checked');
+  const picked = [...form.querySelectorAll('input[name="talk_picked"]:checked')].map((b) => b.value);
+  if (!cook || picked.length === 0) return undefined;
+  if (picked.includes("none")) return { cook: cook.value, picked: [], top: "none", second: null, note: "" };
+  const top = form.querySelector('input[name="talk_top"]:checked')?.value;
+  const second = picked.length >= 2 ? form.querySelector('input[name="talk_second"]:checked')?.value : null;
+  if (!top || (picked.length >= 2 && !second)) return undefined;
+  if (top === second) return "same";
+  const out = { cook: cook.value, picked, top, second: second || null, note: (form.querySelector('input[name="talk_note"]')?.value || "").trim() };
+  if (AWAKEN) {
+    out.why = (form.querySelector('input[name="talk_why"]')?.value || "").trim();
+    out.strength = Number(form.querySelector('input[name="talk_strength"]:checked')?.value || 0);
+    out.guide = "awaken";
+    if (out.note.length < 2 || out.why.length < 2 || !out.strength) return "words";
+  }
+  if (picked.includes("other")) {
+    const what = form.querySelector('input[name="talk_other_what"]').value.trim();
+    const how = form.querySelector('input[name="talk_other_how"]').value.trim();
+    if (what.length < 2) return "other";
+    out.other = { what, how };
+  }
+  return out;
+}
+function setupSmallTalk(form) {
+  if (!SMALLTALK || form.querySelector(".talk-section")) return;
+  const section = document.createElement("section");
+  section.className = "prep-section talk-section";
+  const head = document.createElement("h2");
+  head.textContent = "ふだんの食事について";
+  const lead = document.createElement("p");
+  lead.className = "talk-lead";
+  lead.textContent = "近いほうを選んでください。深く考えなくてかまいません。";
+  section.append(head, lead);
+  SMALLTALK_QUESTIONS.forEach(([name, question, options]) => {
+    const box = document.createElement("fieldset");
+    box.className = "scenario-picker talk-item";
+    box.style.gridTemplateColumns = `repeat(${options.length}, minmax(0, 1fr))`;
+    const legend = document.createElement("legend");
+    legend.textContent = question;
+    box.append(legend);
+    options.forEach(([value, label]) => {
+      const row = document.createElement("label");
+      const input = document.createElement("input");
+      input.type = "radio"; input.name = `talk_${name}`; input.value = value; input.required = true;
+      const span = document.createElement("span");
+      span.textContent = label;
+      row.append(input, span);
+      box.append(row);
+    });
+    section.append(box);
+  });
+  form.querySelector(".participant-scales").after(section);
+}
+function readSmallTalk(form) {
+  if (!SMALLTALK) return null;
+  const out = {};
+  for (const [name] of SMALLTALK_QUESTIONS) {
+    const picked = form.querySelector(`input[name="talk_${name}"]:checked`);
+    if (!picked) return undefined;
+    out[name] = picked.value;
+  }
+  return out;
+}
+let prechoicePicked = [];
+function setupPrechoice(form) {
+  if (!PRECHOICE || form.querySelector(".value-picker")) return;
+  const box = document.createElement("fieldset");
+  box.className = "scenario-picker value-picker";
+  const legend = document.createElement("legend");
+  legend.textContent = "3．この夕食で大切にしたいことに近いものを、二つ選ぶ";
+  box.append(legend);
+  PRECHOICE_OPTIONS.forEach(([id, label]) => {
+    const row = document.createElement("label");
+    const input = document.createElement("input");
+    input.type = "checkbox"; input.name = "prechoice"; input.value = id;
+    const span = document.createElement("span");
+    span.textContent = label;
+    row.append(input, span);
+    box.append(row);
+    input.addEventListener("change", () => {
+      if (input.checked) {
+        if (prechoicePicked.length >= 2) { input.checked = false; showToast("選べるのは二つまでです。選び直すときは、選んだものをもう一度押して外してください。"); return; }
+        prechoicePicked.push(id);
+      } else {
+        prechoicePicked = prechoicePicked.filter((x) => x !== id);
+      }
+    });
+  });
+  const text = form.querySelector(".anchor-text");
+  text.after(box);
+}
+function restorePrechoice(form, values) {
+  if (!PRECHOICE || !Array.isArray(values)) return;
+  prechoicePicked = values.filter((v) => PRECHOICE_OPTIONS.some(([id]) => id === v)).slice(0, 2);
+  form.querySelectorAll('input[name="prechoice"]').forEach((el) => { el.checked = prechoicePicked.includes(el.value); });
+}
+const INVITE_RICH = QUERY.get("invite") === "rich" || FLOW2;
 if (INVITE_RICH) {
   document.documentElement.dataset.invite = "rich";
   const rich = [
@@ -69,6 +324,12 @@ if (INVITE_RICH) {
       placeholder: "この夕食で大切にしたいこと、避けたいことを、思いつくだけ入力してください。" }
   ];
   rich.forEach((item, index) => Object.assign(TURN_PROMPTS[index], item));
+  if (FLOW2) {
+    // 第1回の入力が、その後の回答とカードの材料になる。短い一言で終わらないよう、目安と「二人ならでは」を明示する。
+    TURN_PROMPTS[0].guide = "相手にどう感じてほしいか、夕食後に二人がどうなっていたらよいかを、3文くらいを目安に書いてください。"
+      + "相手の人柄や、お二人のいつもの様子など、お二人ならではのことを入れてください。実現方法はまだ一つに決めなくてかまいません。";
+    TURN_PROMPTS[0].placeholder = "夕食中の雰囲気や、夕食後の二人の様子を、相手の人柄やいつもの二人の様子も交えて入力してください。";
+  }
 }
 const PREVIEW_MODE = QUERY.get("preview") === "1";
 const EMBED_MODE = QUERY.get("embed") === "1" || window.self !== window.top;
@@ -77,8 +338,12 @@ const EMBED_MODE = QUERY.get("embed") === "1" || window.self !== window.top;
 //   ?layout=flow … side に加えて、画面の部品を「回答を読む → 右側を見る → 入力する」の一本の流れに並べ直す。
 //                  今回の案内を入力欄のすぐ上に移す。右側上部の説明を1行にする。優先度のタグは「高い」のカードだけに出す。
 //                  カードごとの「AIはこう受け取っています」と、例文作成後のトーストは出さない。
-const LAYOUT_VARIANT = ["side", "flow"].includes(QUERY.get("layout")) ? QUERY.get("layout") : "default";
+const LAYOUT_VARIANT = FLOW2 ? "flow" : ["side", "flow"].includes(QUERY.get("layout")) ? QUERY.get("layout") : "default";
 document.documentElement.dataset.layout = LAYOUT_VARIANT;
+if (FLOW2) document.documentElement.dataset.flow2 = "1";
+const LAYOUT_NAME = FLOW2 ? "flow2" : LAYOUT_VARIANT;  // 記録用の名前
+// 回答の書き方：flow2 は "open"（長め・入力に合わせる）。比較用に ?style=open|default で切り替えられる。
+const DIALOGUE_STYLE = ["open", "default"].includes(QUERY.get("style")) ? QUERY.get("style") : (FLOW2 ? "open" : "default");
 // v2.8: ?engine=offline で生成AIを使わないオフライン版（登録済みの文から回答を組み立てる）
 const ENGINE = QUERY.get("engine") === "offline" ? "offline" : "online";
 const API_HEALTH_URL = new URL("../api/aitest/health" + (ENGINE === "offline" ? "?engine=offline"
@@ -170,7 +435,7 @@ function newSession(participantId, condition, experimentVariant = "standard") {
     environment: {
       screenWidth: screen.width, screenHeight: screen.height, viewportWidth: innerWidth,
       viewportHeight: innerHeight, pixelRatio: devicePixelRatio, userAgent: navigator.userAgent,
-      layoutVariant: LAYOUT_VARIANT, inviteRich: INVITE_RICH
+      layoutVariant: LAYOUT_NAME, inviteRich: INVITE_RICH, dialogueStyle: DIALOGUE_STYLE, pretalkGuide: AWAKEN ? "awaken" : null
     },
     aiModels: apiModels,
     pretest: null,
@@ -287,6 +552,7 @@ function prepareInstructions() {
     const radio = els.anchorForm.querySelector(`input[value="${session.pretaskAnchor.scenarioId}"]`);
     if (radio) radio.checked = true;
     els.anchorText.value = session.pretaskAnchor.freeText || "";
+    restorePrechoice(els.anchorForm, session.pretaskAnchor.values);
   }
   updateAnchorState();
   showOnly(els.instructionScreen);
@@ -304,6 +570,11 @@ function readAnchor() {
   if (!scenario) { showToast("場面カードを一つ選んでください。"); return null; }
   if (freeText.length < 4) { showToast("目指したい雰囲気と夕食後の二人の状態を、一文で入力してください。"); els.anchorText.focus(); return null; }
   const label = scenario.closest("label").querySelector("span").textContent;
+  if (PRECHOICE) {
+    if (prechoicePicked.length !== 2) { showToast("大切にしたいことに近いものを、二つ選んでください。"); return null; }
+    const labels = prechoicePicked.map((v) => PRECHOICE_OPTIONS.find(([id]) => id === v)[1]);
+    return { scenarioId: scenario.value, scenarioLabel: label, freeText, values: [...prechoicePicked], valueLabels: labels };
+  }
   return { scenarioId: scenario.value, scenarioLabel: label, freeText };
 }
 
@@ -312,7 +583,8 @@ function startTask(resuming = false) {
     const anchor = readAnchor();
     if (!anchor) return;
     session.pretaskAnchor = anchor;
-    logEvent("pretask_anchor_recorded", { scenarioId: anchor.scenarioId, textLength: anchor.freeText.length });
+    logEvent("pretask_anchor_recorded", { scenarioId: anchor.scenarioId, textLength: anchor.freeText.length,
+      ...(anchor.values ? { values: anchor.values } : {}) });
   }
   session.status = session.status === "complete" ? "complete" : "running";
   if (!session.startedAt) session.startedAt = isoNow();
@@ -390,8 +662,14 @@ function renderTurn() {
   els.promptKicker.textContent = complete ? "対話完了" : prompt.kicker;
   els.promptText.textContent = complete ? "全6回の対話が完了しました。" : prompt.title;
   els.guideText.textContent = complete
-    ? "視線計測を停止してから、振り返りへ進んでください。"
+    ? (FLOW2 ? "このまま、振り返りへ進んでください。" : "視線計測を停止してから、振り返りへ進んでください。")
     : prompt.guide;
+  if (AWAKEN) {
+    // 案内の本文に埋もれないよう、思い出す一文は別の行にする（練習と完了後には出さない）
+    let remind = els.guideText.parentElement.querySelector(".guide-remind");
+    if (!remind) { remind = document.createElement("small"); remind.className = "guide-remind"; els.guideText.after(remind); }
+    remind.textContent = complete || session.status !== "running" ? "" : AWAKEN_REMINDER;
+  }
   els.turnAnchor.classList.toggle("hidden", complete || !session.pretaskAnchor);
   if (session.pretaskAnchor) {
     els.anchorScenarioText.textContent = session.pretaskAnchor.scenarioLabel;
@@ -418,7 +696,7 @@ function renderCriteria() {
   els.createExample.disabled = !exampleAvailable;
   const savedExample = activeRound.exampleText || "";
   els.exampleGuide.classList.toggle("hidden", !exampleAvailable || !savedExample);
-  els.exampleGuideText.textContent = savedExample;
+  renderExampleText(activeRound);
   if (!source) {
     const empty = document.createElement("article");
     empty.className = "criterion-card";
@@ -427,8 +705,31 @@ function renderCriteria() {
     return;
   }
   let defaultsAdded = false;
+  const exampleKeys = new Set((activeRound.exampleUsed || []).map((item) => item.key));
   source.analysis.criteria.forEach((criterion) => {
     const key = criterion.id || criterion.title;
+    if (FLOW2 && isPlaceholderCriterion(key)) {
+      // 会話からまだ読み取れていない枠。見出しと本文とボタンのある 1 枚のカードにすると、読み取った内容のように見えるので、
+      // 見出しだけの短い帯にする（文言は従来からある見出しのまま）。ボタンは付けず、例文にも使わない。
+      const bar = document.createElement("article");
+      bar.className = "criterion-card placeholder";
+      bar.dataset.key = key;
+      bar.dataset.priority = "";
+      const heading = document.createElement("div");
+      heading.className = "criterion-title";
+      const h3 = document.createElement("h3");
+      h3.textContent = criterion.title;
+      heading.append(h3);
+      bar.append(heading);
+      if (key === "anchor-context") {
+        const note = document.createElement("span");
+        note.className = "placeholder-note";
+        note.textContent = criterion.meaning;
+        bar.append(note);
+      }
+      els.criteriaList.append(bar);
+      return;
+    }
     if (session.condition === "UI_B" && !activeRound.delegation[key]) {
       const previousRound = session.currentTurn > 1 ? session.rounds[session.currentTurn - 2] : null;
       activeRound.delegation[key] = previousRound?.delegation[key] || "consult";
@@ -439,7 +740,7 @@ function renderCriteria() {
       ? (activeRound.delegation[key] || "consult")
       : stateToControl(criterion.delegationState);
     const card = document.createElement("article");
-    card.className = `criterion-card${criterion.focus ? " focus" : ""}`;
+    card.className = `criterion-card${criterion.focus ? " focus" : ""}${FLOW2 && exampleKeys.has(key) ? " in-example" : ""}`;
     card.dataset.key = key;
     card.dataset.priority = criterion.priority || "";
     const heading = document.createElement("div");
@@ -521,11 +822,34 @@ const DELEGATION_EXAMPLE_PATTERNS = {
 };
 const DELEGATION_EXAMPLE_ORDER = { self: 0, ai: 1, consult: 2 };
 const PLACEHOLDER_CRITERION_IDS = new Set(["anchor-context", "pending-meaning"]);
+function isPlaceholderCriterion(key) { return PLACEHOLDER_CRITERION_IDS.has(key) || /^pending-meaning/.test(String(key)); }
+
+// 例文の表示。flow2 では、(1) ボタンの選択から作った文か、書き方の型かを枠の見た目で分け、(2) 文ごとに区切り、
+// (3) 同じ回で作り直したときに前回から変わった文に印を付け、(4) 文のもとになったカードのボタンに同じ色の縁を付ける。
+// 動きのある表示（点滅など）は使わない：視線を引いて、見る場所を画面側が指示することになるため。
+function splitExampleSentences(text) { return String(text || "").split(/(?<=。)/).map((x) => x.trim()).filter(Boolean); }
+function renderExampleText(round) {
+  const text = round?.exampleText || "";
+  if (!FLOW2) { els.exampleGuideText.textContent = text; return; }
+  els.exampleGuide.dataset.source = round?.exampleSource || "template";
+  const previous = new Set(round?.examplePreviousSentences || []);
+  const fromButtons = round?.exampleSource === "buttons";
+  els.exampleGuideText.replaceChildren(...splitExampleSentences(text).map((sentence, index) => {
+    const span = document.createElement("span");
+    span.className = "example-sentence";
+    span.textContent = sentence;
+    if (fromButtons && round.exampleUsed?.[index]) span.dataset.state = round.exampleUsed[index].state;
+    if (round.exampleGenerationCount > 1 && !previous.has(sentence)) span.dataset.changed = "1";
+    return span;
+  }));
+  const keys = new Set((fromButtons ? round.exampleUsed || [] : []).map((item) => item.key));
+  els.criteriaList.querySelectorAll(".criterion-card").forEach((card) => card.classList.toggle("in-example", keys.has(card.dataset.key)));
+}
 
 function buildDelegationExample(criteria, delegation, touched, maxItems = 2, maxLength = 120) {
   const picked = (criteria || [])
     .map((item, index) => ({ item, index, key: item.id || item.title }))
-    .filter(({ item, key }) => key && item.title && !PLACEHOLDER_CRITERION_IDS.has(key) && !/^turn-\d+-record$/.test(key))
+    .filter(({ item, key }) => key && item.title && !isPlaceholderCriterion(key) && !/^turn-\d+-record$/.test(key))
     .map((entry) => ({ ...entry, state: delegation?.[entry.key] || "consult" }))
     // 既定の「一緒に考える」のまま触っていないカードは例文に入れない
     .filter(({ key, state }) => state !== "consult" || touched?.[key] === true)
@@ -561,11 +885,14 @@ function createNextInputExample() {
   };
   const text = fromButtons.text || examples[turn].slice(0, 100);
   els.exampleGuide.dataset.source = fromButtons.text ? "buttons" : "template";
-  els.exampleGuideText.textContent = text;
-  els.exampleGuide.classList.remove("hidden");
+  round.examplePreviousSentences = splitExampleSentences(round.exampleText);
   round.exampleGeneratedAt = isoNow();
   round.exampleText = text;
   round.exampleGenerationCount = (round.exampleGenerationCount || 0) + 1;
+  round.exampleSource = fromButtons.text ? "buttons" : "template";
+  round.exampleUsed = fromButtons.used;
+  renderExampleText(round);
+  els.exampleGuide.classList.remove("hidden");
   logEvent("example_generated", {
     at: round.exampleGeneratedAt,
     textLength: text.length,
@@ -624,6 +951,14 @@ async function submitTurn() {
         closingMode: ["fixed", "personal", "gap", "gap2"].includes(QUERY.get("closing")) ? QUERY.get("closing")
           : (LAYOUT_VARIANT === "flow" || INVITE_RICH ? "personal" : "fixed"),
         ...(INVITE_RICH ? { inviteMode: "rich" } : {}),
+        ...(DIALOGUE_STYLE === "open" ? { dialogueStyle: "open" } : {}),
+        ...(PRECHOICE && Array.isArray(session.pretaskAnchor?.values) ? { stimulusRule: "prechoice" } : {}),
+        ...(SMALLTALK && session.smallTalk ? { stimulusRule: "smalltalk", smallTalk: { prep: session.smallTalk.prep, keep: session.smallTalk.keep } } : {}),
+        ...(CONCERN && session.smallTalk ? { stimulusRule: "concern", smallTalk: { top: session.smallTalk.top, second: session.smallTalk.second,
+          ...(session.smallTalk.other ? { other: session.smallTalk.other } : {}), ...(session.smallTalk.map ? { map: session.smallTalk.map } : {}) } } : {}),
+        // 分析AI の指示文の版。サーバーは試験用の参加者番号のときだけ受け付ける（正式な番号では環境変数 EXPERIMENT_ANALYSIS_PROMPT で決まる）。
+        // flow2 は v7（title は項目名、meaning は AI の受け取り方）を前提にしているので、試験用の番号では v7 を送る。?prompt=v1〜v7 で切り替えられる。
+        ...(/^v[1-9]$/.test(QUERY.get("prompt") || "") ? { analysisPrompt: QUERY.get("prompt") } : FLOW2 ? { analysisPrompt: "v7" } : {}),
         // 試験用の参加者番号（TEST- など）に限り、?model=… でモデルを切り替えられる（サーバー側で確認する）
         ...(QUERY.get("model") ? { model: QUERY.get("model") } : {}),
         turn: session.currentTurn,
@@ -642,6 +977,8 @@ async function submitTurn() {
       requestError.details = result;
       throw requestError;
     }
+    // 試作 concern：「その他」の分類の結果を覚えておき、次の回から送り返す（回ごとに分類が変わらないように）
+    if (CONCERN && session.smallTalk && result.meta?.concernMap && !session.smallTalk.map) session.smallTalk.map = result.meta.concernMap;
     const displayTime = isoNow();
     round.userText = text;
     round.submittedAt = sendTime;
@@ -704,7 +1041,10 @@ function renderCompletion() {
   if (els.chatStage.querySelector(".completion-card")) return;
   const card = document.createElement("section");
   card.className = "completion-card";
-  card.innerHTML = "<h3>6回の対話が完了しました</h3><p>視線計測を停止してから、対話後の振り返りへ進んでください。</p><button type=\"button\">振り返りへ進む</button>";
+  // flow2：ここで視線計測を止めると、参加者の前で別のソフトに切り替えることになる。止めずに振り返りへ進み、最後に実験者が止める。
+  card.innerHTML = FLOW2
+    ? "<h3>6回の対話が完了しました</h3><p>このまま、対話後の振り返りへ進んでください。</p><button type=\"button\">振り返りへ進む</button>"
+    : "<h3>6回の対話が完了しました</h3><p>視線計測を停止してから、対話後の振り返りへ進んでください。</p><button type=\"button\">振り返りへ進む</button>";
   card.querySelector("button").addEventListener("click", openReflection);
   els.chatStage.append(card);
 }
@@ -793,7 +1133,7 @@ function updateCharCount() { els.charCount.textContent = `${els.messageInput.val
 function updateAnchorState() {
   const scenarioSelected = Boolean(els.anchorForm.querySelector('input[name="scenario"]:checked'));
   const textLength = els.anchorText.value.trim().length;
-  const ready = scenarioSelected && textLength >= 4;
+  const ready = scenarioSelected && textLength >= 4 && (!PRECHOICE || prechoicePicked.length === 2);
   els.anchorCharCount.textContent = `${els.anchorText.value.length} / 160`;
   els.startTask.disabled = !ready;
   els.startTaskHint.textContent = ready
@@ -907,24 +1247,62 @@ els.setupForm.addEventListener("submit", async (event) => {
   session = newSession(participantId, String(data.get("condition")), experimentVariant);
   session.experimenterChecks = data.getAll("checks");
   session.events.push({ time: isoNow(), type: "experiment_variant_selected", experimentVariant });
+  if (Object.keys(setupPreset).length) {  // URL で選択を入れておいた場合は、実際に送信された値と合わせて残す
+    session.events.push({ time: isoNow(), type: "setup_preset", preset: setupPreset,
+      kept: (setupPreset.condition ?? session.condition) === session.condition
+        && (setupPreset.experimentVariant ?? experimentVariant) === experimentVariant });
+  }
   saveSession();
   if (els.fullscreenToggle.checked) await tryFullscreen();
   showOnly(els.prepScreen);
 });
 
+if (FLOW2) {
+  // 「考えを言葉にできそうか」は抽象的で答えにくく、「AIチャットの使い慣れ」は背景の調査にあたる（使用者の指摘）。この画面では尋ねない。
+  ["confidence", "familiarity"].forEach((name) => {
+    const input = els.prepForm.querySelector(`input[name="${name}"]`);
+    if (!input) return;
+    input.disabled = true;
+    input.closest("label").hidden = true;
+  });
+}
 els.prepForm.querySelectorAll('input[type="range"]').forEach((input) => {
   const output = $(`#${input.name}Value`);
   input.addEventListener("input", () => { if (output) output.textContent = input.value; });
 });
+setupSmallTalk(els.prepForm);
+setupConcernTalk(els.prepForm);
 els.prepForm.addEventListener("submit", (event) => {
   event.preventDefault();
+  if (AWAKEN && els.prepForm.dataset.talkPhase === "state") {
+    if (!els.prepForm.querySelector('input[name="talk_cook"]:checked')) { showToast("料理をどのくらいするかを選んでください。"); return; }
+    // 一段目（眠気・緊張）→ 二段目（ふだんのやり方）。一画面に収めるため、同じ画面の中で切り替える。
+    els.prepForm.dataset.talkPhase = "talk";
+    els.prepForm.querySelector("#prepTitle").textContent = "ふだんの、あなたのやり方";
+    els.prepForm.querySelector('button[type="submit"]').textContent = "課題の説明へ";
+    els.prepForm.scrollTop = 0;
+    logEvent("pretalk_shown", { guide: "awaken" });
+    return;
+  }
+  const talk = CONCERN ? readConcernTalk(els.prepForm) : readSmallTalk(els.prepForm);
+  if (talk === undefined) { showToast(AWAKEN ? "すべての質問に答えてください。" : "ふだんの食事についての質問に、すべて答えてください。"); return; }
+  if (talk === "words") { showToast("「どうしますか」「何のためですか」「どのくらい決まっていますか」に答えてください。"); return; }
+  if (talk === "same") { showToast("「いちばん」と「その次」には、別のものを選んでください。"); return; }
+  if (talk === "other") { showToast("「その他」を選んだときは、何についてかを書いてください。"); return; }
+  if (talk) {
+    session.smallTalk = talk;
+    // 自由記述（ひとこと、その他の二つの枠）はログの本文には入れず、長さだけ残す（内容は session.smallTalk にある）
+    const { note, other, why, ...choices } = talk;
+    logEvent("smalltalk_recorded", { ...choices, ...(note === undefined ? {} : { noteLength: note.length }), ...(why === undefined ? {} : { whyLength: why.length }), ...(other ? { otherLength: other.what.length + other.how.length } : {}) });
+  }
   const data = new FormData(els.prepForm);
   session.pretest = {
     completedAt: isoNow(),
     sleepiness: Number(data.get("sleepiness")),
     tension: Number(data.get("tension")),
-    confidence: Number(data.get("confidence")),
-    familiarity: Number(data.get("familiarity"))
+    // flow2 では尋ねない（null）。0 や 4 を入れると、答えた値と区別できなくなる。
+    confidence: data.has("confidence") ? Number(data.get("confidence")) : null,
+    familiarity: data.has("familiarity") ? Number(data.get("familiarity")) : null
   };
   session.status = "instructions";
   logEvent("pretest_completed");
@@ -942,6 +1320,7 @@ els.resumeButton.addEventListener("click", () => {
   else if (session.status === "debrief" || session.status === "finished") { showOnly(els.debriefScreen); }
   else startTask(true);
 });
+setupPrechoice(els.anchorForm);
 els.anchorForm.addEventListener("input", updateAnchorState);
 els.anchorForm.addEventListener("change", updateAnchorState);
 els.startTask.addEventListener("click", () => startTask(false));
@@ -1038,8 +1417,89 @@ document.addEventListener("keydown", (event) => {
 window.addEventListener("resize", () => { if (session) logEvent("viewport_changed", { width: innerWidth, height: innerHeight }); });
 window.addEventListener("beforeunload", saveSession);
 
+// flow2：送信ボタンを押すと、ボタンのすぐ上（入力欄の上の行、字数の表示の位置）に小さな確認を出す。「送信する」を押して初めて送る。
+// 今回の案内や入力した文に重ならず、出ても画面の配置は動かない。出てから 0.4 秒は押せない（二度押しで送られないように）。
+// Enter キーは改行にする（日本語入力の確定の Enter が続けて送信になるのを防ぐ。2026-11-27 の試し録りで「友達が」だけが送られた）。
+// 確認の中では Enter で送らない。入力を続けるか Esc を押すと、確認は閉じる。
+const SEND_CONFIRM_SHORT_CHARS = 25;
+let sendConfirmed = false;
+let sendConfirmShownAt = 0;
+function sendConfirmElement() {
+  let box = $("#sendConfirm");
+  if (box) return box;
+  box = document.createElement("div");
+  box.id = "sendConfirm";
+  box.className = "send-confirm hidden";
+  box.setAttribute("role", "group");
+  box.setAttribute("aria-label", "送信の確認");
+  box.dataset.aoi = "AOI_Left_SendConfirm";
+  box.innerHTML = "<p>この内容で送信しますか。</p>"
+    + "<button type=\"button\" class=\"send-confirm-yes\">送信する</button><button type=\"button\" class=\"send-confirm-no\">書き足す</button>";
+  const note = document.createElement("small");
+  note.id = "sendConfirmNote";
+  note.className = "send-confirm-note hidden";
+  note.textContent = "まだ短めです。相手の人柄や、お二人のいつもの様子も書き足せます。";
+  els.composer.append(note, box);
+  box.querySelector(".send-confirm-yes").addEventListener("click", () => {
+    if (performance.now() - sendConfirmShownAt < 400) return;
+    closeSendConfirm(null);
+    sendConfirmed = true;
+    try { els.composer.requestSubmit(); } finally { sendConfirmed = false; }
+  });
+  box.querySelector(".send-confirm-no").addEventListener("click", () => { closeSendConfirm("button"); els.messageInput.focus(); });
+  return box;
+}
+function closeSendConfirm(via) {
+  const box = $("#sendConfirm");
+  if (!box || box.classList.contains("hidden")) return;
+  box.classList.add("hidden");
+  $("#sendConfirmNote")?.classList.add("hidden");
+  if (via && session) logEvent("send_confirm_cancelled", { via });
+}
+function openSendConfirm() {
+  const box = sendConfirmElement();
+  const length = els.messageInput.value.trim().length;
+  const short = Boolean(session) && session.status === "running" && session.currentTurn === 1 && length < SEND_CONFIRM_SHORT_CHARS;
+  $("#sendConfirmNote").classList.toggle("hidden", !short);
+  box.classList.remove("hidden");
+  sendConfirmShownAt = performance.now();
+  const b = box.getBoundingClientRect();
+  if (session) logEvent("send_confirm_shown", { length, shortNote: short,
+    rect: [Math.round(b.left), Math.round(b.top), Math.round(b.width), Math.round(b.height)] });
+}
+if (FLOW2) {
+  document.addEventListener("submit", (event) => {
+    if (event.target !== els.composer || sendConfirmed) return;
+    if (!els.messageInput.value.trim()) return;  // 空のときは、従来どおりの案内に任せる
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    openSendConfirm();
+  }, { capture: true });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") { closeSendConfirm("escape"); return; }
+    if (event.target === els.messageInput && event.key === "Enter" && !event.shiftKey) event.stopImmediatePropagation();  // 改行にする
+  }, { capture: true });
+  els.messageInput.addEventListener("input", () => closeSendConfirm("typing"));
+}
+
+// 実験者用：?condition=UI_A|UI_B と ?variant=<設定画面にある値> を付けると、設定画面の選択をあらかじめ入れておく。
+// 付けなければ従来どおり（UI A・通常のずれが選ばれた状態）。画面の文言は変えない。
+// 正式実験では UI ごとにブックマークを作っておくと、画面タイプや「解釈のずれ」の選び間違いを防げる。
+function applySetupPreset(form, get) {
+  const applied = {};
+  for (const [param, field] of [["condition", "condition"], ["variant", "experimentVariant"]]) {
+    const value = get(param);
+    if (!value || !/^[A-Za-z0-9_]+$/.test(value)) continue;
+    const input = form.querySelector(`input[name="${field}"][value="${value}"]`);
+    if (input) { input.checked = true; applied[field] = value; }
+  }
+  return applied;
+}
+let setupPreset = {};
+
 (async function init() {
   await checkAiHealth();
+  if (!PREVIEW_MODE) setupPreset = applySetupPreset(els.setupForm, (key) => QUERY.get(key));
   if (PREVIEW_MODE) {
     session = buildPreviewSession();
     if (QUERY.get("screen") === "prep") {

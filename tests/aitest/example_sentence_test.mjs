@@ -37,4 +37,12 @@ check("overlap: copied example ≈1", Number(exampleOverlap("「静かに休め�
   "静かに休める時間は自分で決めたいので、AIからは案を出さないでください。")) > 0.95);
 check("overlap: unrelated ≈0", Number(exampleOverlap("「静かに休める時間」は自分で決めたいので。", "洋食で前菜を出したいです")) < 0.2);
 check("overlap: no example → blank", exampleOverlap("", "abc") === "");
+// 2 枠目の「まだ決めていないこと」（id=pending-meaning-2、分析の指示文 v6 以降）も例文に使わない
+{
+  const withSecond = [{ id: "rest", title: "静かに休める時間" }, { id: "pending-meaning", title: "まだ決めていないこと" },
+    { id: "pending-meaning-2", title: "まだ決めていないこと" }];
+  const r = buildDelegationExample(withSecond, { rest: "consult", "pending-meaning": "self", "pending-meaning-2": "self" },
+    { "pending-meaning": true, "pending-meaning-2": true });
+  check("second placeholder is not used in the example", r.text === "" && r.used.length === 0, JSON.stringify(r));
+}
 console.log(`\n${fails} failure(s)`); process.exit(fails ? 1 : 0);
