@@ -625,3 +625,8 @@ html[data-flow2] .send-confirm-note { position: absolute; top: 17px; left: 46px;
 .talk-keep-note { margin: 0; color: #465268; font-size: 14px; }
 .guide-remind { display: block; margin-top: 5px; color: #294f8c; font-weight: 700; }
 .guide-remind:empty { display: none; }
+/* 試作 ?stimulus=prechoice&guide=scene：選んだ順を見せ、いちばんの言葉について一言書いてもらう */
+.value-picker span[data-order]::after { content: attr(data-order); margin-left: 10px; padding: 1px 8px; border-radius: 999px; background: var(--blue); color: #fff; font-size: 12px; font-weight: 700; }
+.value-scene { display: grid; gap: 6px; margin-top: 14px; color: #364258; font-weight: 800; }
+.value-scene.hidden { display: none; }
+.value-scene input { height: 42px; padding: 0 14px; border: 2px solid #d7dde7; border-radius: 12px; font: inherit; font-weight: 400; }

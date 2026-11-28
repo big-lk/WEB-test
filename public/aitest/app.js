@@ -61,6 +61,11 @@ const FLOW2 = QUERY.get("layout") === "flow2";
 // 先に選んだものが X（第3回に意味を狭められる）、後に選んだものが Y（第4回に縮められる）。
 // 指定が無ければ画面も送信内容も従来どおり。選択肢と見出しの文言は候補で、正式に使う前に使用者の確認が要る。
 const PRECHOICE = QUERY.get("stimulus") === "prechoice";
+// 試作（2026-11-28 深夜、使用者の指摘：席や器のように選べば決まる事柄には人が加わる余地がない。人が決めることに意味があるのは空気・雰囲気のほう）：
+// ?stimulus=prechoice&guide=scene。選ぶ順の意味を画面に出し（いちばん／もう一つ）、いちばんの言葉について
+// 「あなたと相手の場合、どんな様子のことですか」を一言で書いてもらう（自分にとっての意味を先に持ってもらう）。
+// 書いた一言はサーバーへ送らない（session.prechoiceScene に記録するだけ）。サーバーの規則は prechoice のまま。文言は候補。
+const SCENE = PRECHOICE && QUERY.get("guide") === "scene";
 const PRECHOICE_OPTIONS = [["no_burden", "気を遣わせない"], ["natural_talk", "自然に話せる"], ["not_grand", "大げさにしない"],
   ["not_heavy", "重くしない"], ["relaxed", "ゆっくりできる"], ["as_usual", "いつもどおり"]];
 // 試作（2026-11-28 夜）：?stimulus=smalltalk。はじめの「今の状態」の画面に、ふだんの食事についての短い質問を 5 つ足す。
@@ -278,8 +283,21 @@ function setupPrechoice(form) {
   const box = document.createElement("fieldset");
   box.className = "scenario-picker value-picker";
   const legend = document.createElement("legend");
-  legend.textContent = "3．この夕食で大切にしたいことに近いものを、二つ選ぶ";
+  legend.textContent = SCENE ? "3．この夕食で、いちばん大切にしたい空気に近いものを一つ選び、続けて、もう一つ選ぶ" : "3．この夕食で大切にしたいことに近いものを、二つ選ぶ";
   box.append(legend);
+  let sceneRow = null;
+  const refreshScene = () => {
+    if (!SCENE) return;
+    box.querySelectorAll("label").forEach((row) => {
+      const at = prechoicePicked.indexOf(row.querySelector("input").value);
+      const chip = row.querySelector("span");
+      if (at < 0) delete chip.dataset.order; else chip.dataset.order = at === 0 ? "いちばん" : "もう一つ";
+    });
+    const first = prechoicePicked[0] ? PRECHOICE_OPTIONS.find(([id]) => id === prechoicePicked[0])[1] : "";
+    sceneRow.classList.toggle("hidden", !first);
+    sceneRow.querySelector("span").textContent = `4．「${first}」は、あなたと相手の場合、どんな様子のことですか。場面を一つ思い浮かべて、ひとことで書いてください。`;
+    updateAnchorState();
+  };
   PRECHOICE_OPTIONS.forEach(([id, label]) => {
     const row = document.createElement("label");
     const input = document.createElement("input");
@@ -295,10 +313,18 @@ function setupPrechoice(form) {
       } else {
         prechoicePicked = prechoicePicked.filter((x) => x !== id);
       }
+      refreshScene();
     });
   });
   const text = form.querySelector(".anchor-text");
   text.after(box);
+  if (SCENE) {
+    sceneRow = document.createElement("label");
+    sceneRow.className = "value-scene hidden";
+    sceneRow.innerHTML = '<span></span><input type="text" name="prechoice_scene" maxlength="40" autocomplete="off" />';
+    box.after(sceneRow);
+    sceneRow.querySelector("input").addEventListener("input", updateAnchorState);
+  }
 }
 function restorePrechoice(form, values) {
   if (!PRECHOICE || !Array.isArray(values)) return;
@@ -573,6 +599,11 @@ function readAnchor() {
   if (PRECHOICE) {
     if (prechoicePicked.length !== 2) { showToast("大切にしたいことに近いものを、二つ選んでください。"); return null; }
     const labels = prechoicePicked.map((v) => PRECHOICE_OPTIONS.find(([id]) => id === v)[1]);
+    if (SCENE) {
+      const scene = (els.anchorForm.querySelector('input[name="prechoice_scene"]')?.value || "").trim();
+      if (scene.length < 2) { showToast("「どんな様子のことですか」に、ひとことで答えてください。"); return null; }
+      session.prechoiceScene = scene;
+    }
     return { scenarioId: scenario.value, scenarioLabel: label, freeText, values: [...prechoicePicked], valueLabels: labels };
   }
   return { scenarioId: scenario.value, scenarioLabel: label, freeText };
@@ -584,7 +615,7 @@ function startTask(resuming = false) {
     if (!anchor) return;
     session.pretaskAnchor = anchor;
     logEvent("pretask_anchor_recorded", { scenarioId: anchor.scenarioId, textLength: anchor.freeText.length,
-      ...(anchor.values ? { values: anchor.values } : {}) });
+      ...(anchor.values ? { values: anchor.values } : {}), ...(SCENE ? { sceneLength: (session.prechoiceScene || "").length } : {}) });
   }
   session.status = session.status === "complete" ? "complete" : "running";
   if (!session.startedAt) session.startedAt = isoNow();
@@ -1133,7 +1164,8 @@ function updateCharCount() { els.charCount.textContent = `${els.messageInput.val
 function updateAnchorState() {
   const scenarioSelected = Boolean(els.anchorForm.querySelector('input[name="scenario"]:checked'));
   const textLength = els.anchorText.value.trim().length;
-  const ready = scenarioSelected && textLength >= 4 && (!PRECHOICE || prechoicePicked.length === 2);
+  const ready = scenarioSelected && textLength >= 4 && (!PRECHOICE || prechoicePicked.length === 2)
+    && (!SCENE || (els.anchorForm.querySelector('input[name="prechoice_scene"]')?.value || "").trim().length >= 2);
   els.anchorCharCount.textContent = `${els.anchorText.value.length} / 160`;
   els.startTask.disabled = !ready;
   els.startTaskHint.textContent = ready

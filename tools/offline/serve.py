@@ -79,6 +79,11 @@ class OfflineHandler(core.Handler):
                     talk = sim_user.parse_awaken_talk(text, body.get("screen") or "chips")
                     self.send_json(200, {"talk": talk, "pretalk": sim_user.awaken_pretalk(talk), "reminder": sim_user.AWAKEN_REMINDER, "latencyMs": latency})
                     return
+                if int(body.get("turn", 1)) == 0 and body.get("kind") == "meaning":   # 試作：空気の言葉を選ぶ（scene=True なら「どんな様子のことか」も書く）
+                    body["options"] = [{"id": k, "label": v["phrase"]} for k, v in core.PRECHOICE_VALUES.items()]
+                    text, _raw, latency = core.call_model(sim_user.build_meaning_payload(body, core.DIALOGUE_MODEL))
+                    self.send_json(200, dict(sim_user.parse_meaning(text, body["options"], bool(body.get("scene"))), latencyMs=latency))
+                    return
                 if int(body.get("turn", 1)) == 7:   # 対話のあとの感想（模擬）
                     text, _raw, latency = core.call_model(sim_user.build_probe_payload(body, core.DIALOGUE_MODEL))
                     self.send_json(200, {"probe": sim_user.parse_probe(text), "latencyMs": latency})

@@ -257,6 +257,42 @@ def awaken_pretalk(talk: dict[str, Any]) -> str:
             + "　その下に「これは、あなたが決めたことです。対話のあいだも、頭の片隅に置いておいてください。」と書かれていた。")
 
 
+# ---- 試作（2026-11-28 深夜）：意味の水準（空気・雰囲気）で選んでもらう。使用者の指摘：席や器のような「選べば決まる」事柄には人が加わる余地がない ----
+# 事前に「いちばん大切にしたい空気」に近い言葉を選び、scene=True のときは「それは、あなたと相手の場合、どんな様子のことですか」に一言で答える。
+# サーバーの規則は prechoice のまま（選んだ言葉の意味を、第3回に登録済みの一般的な意味へ狭める）。
+MEANING_SCENE_QUESTION = "それは、あなたと相手の場合、どんな様子のことですか。場面を一つ思い浮かべて、ひとことで書いてください。"
+MEANING_INSTRUCTIONS = """あなたは、ある調査の参加者の役を演じます。下に書かれた人物本人として、画面の文を読み、その人物が実際に答えそうなように答えます。
+人物設定に書かれていない事情は作らない。出力は二行だけにする。説明は付けない。
+一行目：選んだ番号を、いちばんのもの、もう一つの順にカンマで区切る（例：3,1）
+二行目：画面で聞かれていれば、その答え（40字以内）。聞かれていなければ「なし」"""
+
+
+def build_meaning_payload(body: dict[str, Any], model: str) -> dict[str, Any]:
+    persona = body["persona"]
+    anchor = body.get("pretaskAnchor") or {}
+    options = body.get("options") or []
+    listed = "\n".join(f"{i + 1}. {o.get('label', '')}" for i, o in enumerate(options))
+    screen = (("【質問1】この夕食で、いちばん大切にしたい空気に近いものを、一つ選んでください。\n" + listed
+               + "\n【質問2】もう一つ選ぶなら、どれですか。\n【質問3】質問1で選んだことについて：" + MEANING_SCENE_QUESTION + "（40字以内）")
+              if body.get("scene") else
+              ("【質問】この夕食で大切にしたいことに近いものを、二つ選んでください。\n" + listed))
+    text = (f"【人物】\n性格：{persona.get('character', '')}\nふだんの様子と、この夕食で望んでいること：{persona.get('needs', '')}\n\n"
+            f"【場面】{anchor.get('scenarioLabel', '')}\n【最初に書いた目標】{anchor.get('freeText', '')}\n\n" + screen)
+    return {"model": model, "instructions": MEANING_INSTRUCTIONS, "input": text, "reasoning": {"effort": "low"},
+            "text": {"verbosity": "low"}, "max_output_tokens": 400, "store": False}
+
+
+def parse_meaning(text: str, options: list[dict[str, Any]], scene: bool) -> dict[str, Any]:
+    lines = [x.strip() for x in (text or "").strip().splitlines() if x.strip()]
+    values = parse_choice(lines[0] if lines else "", options)
+    labels = [next(o["label"] for o in options if o["id"] == v) for v in values]
+    said = lines[1].strip("「」")[:40] if scene and len(lines) > 1 and not lines[1].startswith("なし") else ""
+    pretalk = (f"この夕食でいちばん大切にしたい空気として「{labels[0]}」、もう一つとして「{labels[1]}」を選んだ。"
+               f"「{labels[0]}」が自分と相手の場合どんな様子のことかを聞かれ、「{said}」と書いた。" if said else
+               f"この夕食で大切にしたいことに近いものとして、「{labels[0]}」と「{labels[1]}」を選んだ。")
+    return {"values": values, "labels": labels, "scene": said, "pretalk": pretalk}
+
+
 PROBE_INSTRUCTIONS = """あなたは、ある調査の参加者の役を演じます。AIとの6回のやり取りを終えたところです。
 下に書かれた人物本人として、三つの質問に答えます。出力は三行にする。
 一行目：質問1の数字（1〜5）。二行目：質問2の数字（1〜5）。三行目：そう感じた理由を、その人物の言葉で一文（60字以内）。"""

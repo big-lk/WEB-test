@@ -40,4 +40,14 @@ assert t["strength"] == 0 and t["why"] == "" and "ひとこと：すぐ洗う" i
 p = su.build_payload({"turn": 3, "persona": {}, "pretalk": "X", "reminder": su.AWAKEN_REMINDER}, "m")["input"]
 assert "【対話の前の画面で、自分で答えたこと】X" in p and su.AWAKEN_REMINDER in p
 assert "対話の前の画面で" not in su.build_payload({"turn": 3, "persona": {}}, "m")["input"]
+# 5) 試作 ?stimulus=prechoice&guide=scene：画面と模擬の質問がそろっていること、読み取り
+common = "あなたと相手の場合、どんな様子のことですか。場面を一つ思い浮かべて、ひとことで書いてください。"
+assert common in js and common in su.MEANING_SCENE_QUESTION
+opts = [{"id": k, "label": v["phrase"]} for k, v in core.PRECHOICE_VALUES.items()]
+m = su.parse_meaning("1,6\n母が台所に立たず、座ってお茶を飲んでいる", opts, True)
+assert m["values"] == ["no_burden", "as_usual"] and m["scene"].startswith("母が台所") and "どんな様子のことかを聞かれ" in m["pretalk"]
+m = su.parse_meaning("3,5\nなし", opts, False)
+assert m["scene"] == "" and "二つ" not in m["pretalk"] and "「大げさにしない」と「ゆっくりできる」を選んだ" in m["pretalk"]
+assert "質問3" in su.build_meaning_payload({"persona": {}, "options": opts, "scene": True}, "m")["input"]
+assert "質問3" not in su.build_meaning_payload({"persona": {}, "options": opts}, "m")["input"]
 print("ok test_awaken_sim")
