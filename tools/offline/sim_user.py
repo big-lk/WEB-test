@@ -153,11 +153,17 @@ def build_probe_payload(body: dict[str, Any], model: str) -> dict[str, Any]:
         f"【人物】\n性格：{persona.get('character', '')}\n"
         f"この夕食で望んでいること・ふだんの様子：{persona.get('needs', '')}\n読み方：{persona.get('reading', '')}\n\n"
         f"【AIとのやり取り】\n{talk}\n\n"
-        "【質問1】AIは、あなたがこの夕食で特に大切にしていることを分かっていたと思いますか。（1 全く分かっていなかった 〜 5 よく分かっていた）\n"
-        "【質問2】AIの回答は、あなた個人に向けたものだと感じましたか。（1 誰にでも当てはまる内容だった 〜 5 自分に向けた内容だった）\n"
-        "【質問3】そう感じた理由"
+        + ("いま、AIの最後の回答を読み終えたところです。その最後の回答だけについて答えてください。\n"
+           "【質問1】この回答は、あなたがこの夕食で特に大切にしていることを分かって書かれていると思いますか。（1 全く分かっていない 〜 5 よく分かっている）\n"
+           "【質問2】この回答は、あなた個人に向けたものだと感じましたか。（1 誰にでも当てはまる内容だった 〜 5 自分に向けた内容だった）\n"
+           "【質問3】そう感じた理由"
+           if body.get("latestOnly") else
+           "【質問1】AIは、あなたがこの夕食で特に大切にしていることを分かっていたと思いますか。（1 全く分かっていなかった 〜 5 よく分かっていた）\n"
+           "【質問2】AIの回答は、あなた個人に向けたものだと感じましたか。（1 誰にでも当てはまる内容だった 〜 5 自分に向けた内容だった）\n"
+           "【質問3】そう感じた理由")
     )
-    return {"model": model, "instructions": PROBE_INSTRUCTIONS, "input": text, "reasoning": {"effort": "low"},
+    instructions = PROBE_INSTRUCTIONS.replace("AIとの6回のやり取りを終えたところです。", "AIとのやり取りの途中です。") if body.get("latestOnly") else PROBE_INSTRUCTIONS
+    return {"model": model, "instructions": instructions, "input": text, "reasoning": {"effort": "low"},
             "text": {"verbosity": "low"}, "max_output_tokens": 400, "store": False}
 
 

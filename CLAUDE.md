@@ -9,7 +9,7 @@
 - サーバー：`api/aitest/core.py`（オンライン版・OpenAI）、`offline_engine.py` + `offline_corpus.py`（オフライン版・生成AIなし）
 - オフライン版ローカルサーバー：`tools/offline/serve.py` → http://127.0.0.1:8765/aitest/
 - 分析：`tools/aitest_analysis/analyze.py`、視線：`tools/aitest_analysis/eyetools/`
-- テスト：`python tests/aitest/test_offline_engine.py`、`python tests/aitest/test_v17_offline.py`、`python tests/aitest/test_model_switch.py`、`node tests/aitest/example_sentence_test.mjs`、`node tests/aitest/setup_preset_test.mjs`、`python tests/aitest/test_personal_closing.py`、`python tests/aitest/test_open_style.py`、`python tests/aitest/test_prechoice.py`、`python tests/aitest/test_smalltalk.py`
+- テスト：`python tests/aitest/test_offline_engine.py`、`python tests/aitest/test_v17_offline.py`、`python tests/aitest/test_model_switch.py`、`node tests/aitest/example_sentence_test.mjs`、`node tests/aitest/setup_preset_test.mjs`、`python tests/aitest/test_personal_closing.py`、`python tests/aitest/test_open_style.py`、`python tests/aitest/test_prechoice.py`、`python tests/aitest/test_smalltalk.py`、`python tests/aitest/test_concern.py`
 - 公開版：https://www.lkdesigner.top/aitest/ （オフライン版で試す：`?engine=offline`）
 - 変更を push するときは `main` と `aitest-v1.7-stability` の両方へ。
 
@@ -198,6 +198,31 @@
   `.scale-field[hidden] { display: none; }` で修正。見えているかどうかは、属性ではなく実際の大きさで確かめること。
 - 検証：`python tests/aitest/test_smalltalk.py`（偽の応答）。模擬参加者は第0回に鍵の 2 問に答える（`sim_user.build_talk_payload`）。
 - 手元で試す：`http://127.0.0.1:8765/aitest/?layout=flow2&condition=UI_B&variant=generic_unranked&stimulus=smalltalk`
+
+## 試作：?stimulus=concern（2026-11-28 夜、ブランチ aitest-layout-side。**main には未反映**）
+使用者の要望（11/28 19:43）：その人ならではのこだわりを際立たせ、後で AI が「通り一遍で、分かっていない」扱いをする感じを作る。
+性格と必要の違う人物で模擬する。雑談の質問を、いくつかの設計者の立場から見直す。
+詳しくはプロジェクト文書「第二実験_試作_こだわりを一般的に扱う刺激_2026-11-28」（質問の見直しの表もそこにある）。指定しなければ従来どおり。
+- 画面（`app.js` の `CONCERN`）：「今の状態」の画面に「ふだんの食事について」。同じ形の質問 4 つ（準備・出し方・並べ方・片付け、各 3 択）＋
+  「こだわりがいちばん強いもの」「その次」＋任意のひとこと。サーバーへ送るのは `stimulusRule: "concern"` と `smallTalk: {top, second}` だけ。
+- サーバー（`core.py` の `CONCERN_TOPICS`）：第3回＝top の話題を「一般的なやり方に合わせて、…形で整えます」（話題ごとに 1 文。効率・見栄え・標準の手順）。
+  第4回＝「こうした夕食では…を大切にする方が多いので、今回もそれを優先して、<second の話題>には手をかけずに済ませます」。登録文は 4＋4。
+  どの選択肢を選んだかは使わない。答えは二つの AI に渡さず、右側にも出さない。訂正後のカードにも事前の答えは使わない
+  （`concern_state`：untouched＝刺激の文面のまま／touched＝分析AI の読み取り。刺激の文面が残っていれば「まだ決めていません」）。
+  カードの位置・第2文・第3・4回の長さの固定は smalltalk と同じ。
+- 人物設定・第2版：`tools/offline/personas_concern.json`（10 名。こだわり 1 つずつ、料理の経験×相手×話題×理由で重ならないように。
+  C9＝こだわりなし、C10＝こだわりが 4 話題の外）。登録文の中身を先取りした言い方は設定に入れていない。
+  模擬参加者は雑談に答え（`build_concern_talk_payload`）、各回の直後と終了後に「分かってもらえたか」を答える（`build_probe_payload`、`latestOnly`）。
+- 実際の出力（gpt-6-luna、10 名×6 回、新旧の規則で各 60 回、失敗 0）：こだわりのある 8 名は top・second とも 8/8 で一致。登録文は第2文 20/20、カード位置 10/10。
+  模擬の「分かってもらえたか」（1〜5）：従来 第2回 4.5 → 第3回 3.6 → 第4回 3.3、concern 4.2 → 2.5 → 2.7。終了後は 3.2 と 3.6 で差がない
+  （第5回から訂正を受け入れるため）。理由の中身が違う：従来は「関係のないものを足された」、concern は「一般的な順番や間隔を決められた」。
+- 残っている問題：こだわりのない人・話題の外の人には当たらない（「特にない」の選択肢と、その場合の扱いが要る）／こだわりを選ばせることと隠すことは
+  引っ張り合う／模擬は反応を高く見積もる（人物に考えを渡している）／訂正の判定は語の一致／話題が参加者ごとに違う（分析では共変量）／
+  「前菜から順に、決まった間隔で出す」は鍋や出前の人には不自然、「見栄え」が第4回でほぼ全員に出る（文面を直す）／画面の題と中身が合っていない／
+  ひとことは新しい自由記述のデータ／オフライン版は未対応／人・実験機は未確認。
+- **質問 8 つと文 8 つは候補。** 使用者と指導教員の確認が要る。
+- 検証：`python tests/aitest/test_concern.py`（偽の応答）。
+- 手元で試す：`http://127.0.0.1:8765/aitest/?layout=flow2&condition=UI_B&variant=generic_unranked&stimulus=concern`
 
 ## 未決事項（使用者と相談中）
 - 正式に使う刺激（推奨：generic_unranked 単一）。例文をそのまま送った場合の H1 の数え方。H1 変更の教授確認。
