@@ -70,6 +70,17 @@ class OfflineHandler(core.Handler):
                 body = json.loads(self.rfile.read(size).decode("utf-8"))
                 if not str(body.get("sessionId", "")).upper().startswith("SIMTEST-"):
                     raise ValueError("模擬参加者は SIMTEST- で始まる番号でだけ使えます。")
+                if int(body.get("turn", 1)) == 0 and body.get("kind") == "smalltalk":   # 試作 smalltalk：対話の前の雑談の、鍵になる二問
+                    body["questions"] = [
+                        {"name": "prep", "question": "誰かを食事に招くとき、準備はどうしたいですか。",
+                         "options": [{"id": "before", "label": "来る前に全部済ませておきたい"}, {"id": "together", "label": "来てから一緒に仕上げたい"}]},
+                        {"name": "keep", "question": "準備の時間が足りなくなったら、どちらを取りますか。",
+                         "options": [{"id": "dishes", "label": "品数や見た目をそろえる"}, {"id": "time", "label": "相手と一緒にいる時間をとる"}]}]
+                    text, _raw, latency = core.call_model(sim_user.build_talk_payload(body, core.DIALOGUE_MODEL))
+                    talk = sim_user.parse_talk(text, body["questions"])
+                    labels = [next(o["label"] for o in q["options"] if o["id"] == talk[q["name"]]) for q in body["questions"]]
+                    self.send_json(200, {"talk": talk, "labels": labels, "latencyMs": latency})
+                    return
                 if int(body.get("turn", 1)) == 0:   # 試作 prechoice：対話の前の選択
                     body["options"] = [{"id": k, "label": v["phrase"]} for k, v in core.PRECHOICE_VALUES.items()]
                     text, _raw, latency = core.call_model(sim_user.build_choice_payload(body, core.DIALOGUE_MODEL))

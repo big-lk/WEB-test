@@ -2102,6 +2102,135 @@ def prechoice_parts(turn: int, pre: list[dict[str, str]]) -> dict[str, str]:
     return {"preferred": x["noun"], "action": y["limit"]}
 
 
+# ---------------------------------------------------------------- 試作（2026-11-28 夜）：事前の雑談で聞いた判断と逆の形で刺激を出す
+# stimulusRule="smalltalk"：対話の前の「ふだんの食事について」の短い質問（料理の準備の雑談）の中に、鍵になる質問を二つ混ぜる。
+#   prep（準備をいつ・誰とするか）→ 第3回、keep（時間が足りないときにどちらを取るか）→ 第4回。
+# 参加者の答えはサーバーの中だけで使う：対話AI・分析AI には渡さず、右側にも出さない。第3・4回には、答えと逆の側の
+# 登録済みの文を出す（参加者の判断に応じない、一般的な形の決め方）。訂正されたあとのカードの文面も登録しておく。
+# 質問と文面は候補で、正式に使う前に使用者の確認が要る。
+SMALLTALK_ITEMS: dict[str, dict[str, Any]] = {
+    "prep": {
+        "phrase": "夕食の準備", "title": "夕食の準備", "topic": ["準備", "仕上げ", "支度", "用意", "済ませ", "段取り"],
+        "withdrawn": "夕食の準備をどう進めるかは、まだ決めていません。",
+        "poles": {
+            "before": {"generic": "相手が来る前にすべて済ませておくこと",
+                       "own": "夕食の準備は、相手が来る前に済ませておきたい、と受け取っています。",
+                       "keys": ["来る前に", "着く前に", "先に済ませ", "済ませておき", "済ませてお", "待たせ", "座ってて", "座っていて", "座って待",
+                                "一人で準備", "私が準備", "自分で準備", "こちらで準備", "手伝わせ"]},
+            "together": {"generic": "相手が来てから、仕上げを一緒にすること",
+                         "own": "夕食の準備は、相手が来てから一緒に仕上げたい、と受け取っています。",
+                         "keys": ["来てから", "一緒に作", "一緒に仕上", "一緒に準備", "一緒に料理", "一緒に台所", "一緒に混ぜ", "一緒に焼", "一緒に切",
+                                  "一緒に炒", "一緒に具", "一緒にや", "二人で作", "二人で台所", "二人で仕上", "二人で準備",
+                                  "台所に並", "台所に立", "並んで", "手伝って", "仕上げは二人"]},
+        },
+    },
+    "keep": {
+        "title": "料理と一緒に過ごす時間", "topic": ["優先", "品数", "一品", "二品", "盛りつけ", "盛り付け", "減ら", "増や", "そろえ"],
+        "withdrawn": "料理と一緒に過ごす時間のどちらを取るかは、まだ決めていません。",
+        "poles": {
+            "dishes": {"preferred": "料理をきちんとそろえること", "action": "品数を一品増やし、盛りつけにも時間をかけます",
+                       "own": "一緒に過ごす時間よりも、料理をきちんとそろえることを大切にしたい、と受け取っています。",
+                       "keys": ["品数は減ら", "減らさな", "減らしたくな", "きちんとそろえ", "料理はそろえ", "見た目も", "品数をそろえ"]},
+            "time": {"preferred": "相手と一緒に過ごすこと", "action": "料理は二品に減らします",
+                     "own": "料理をそろえることよりも、相手と一緒に過ごす時間を大切にしたい、と受け取っています。",
+                     "keys": ["一緒にいる", "一緒に過ご", "そばにい", "隣にい", "隣で", "席を外", "台所にこも", "品数はいらな", "品数より",
+                              "品数は増やさ", "増やさな", "時間をかけな", "時間をかけず"]},
+        },
+    },
+}
+SMALLTALK_OPPOSITE = {"before": "together", "together": "before", "dishes": "time", "time": "dishes"}
+SMALLTALK_NEGATION_RE = re.compile(r"ではな|じゃな|違い|違う|違っ|ちがう|逆|やめ|いらな|要らな|しなくて|したくな|決めていな|決めてな|決めないで|決めつけ"
+                                   r"|私が決め|自分で決め|私の言葉では|嫌|困る|望んでいな|望んでな")
+EVENT_IDS = ("event-t3", "event-t4")
+
+
+def smalltalk_answers(body: Any) -> dict[str, str] | None:
+    """stimulusRule="smalltalk" と smallTalk（{"prep": "before"|"together", "keep": "dishes"|"time"}）を読む。"""
+    if not isinstance(body, dict) or body.get("stimulusRule") != "smalltalk":
+        return None
+    raw = body.get("smallTalk")
+    if not (isinstance(raw, dict) and raw.get("prep") in SMALLTALK_ITEMS["prep"]["poles"] and raw.get("keep") in SMALLTALK_ITEMS["keep"]["poles"]):
+        raise ExperimentError("P05_INVALID_SMALLTALK", "はじめの質問に答えてください。", status=400)
+    return {"prep": raw["prep"], "keep": raw["keep"]}
+
+
+def smalltalk_parts(turn: int, talk: dict[str, str]) -> dict[str, str]:
+    """参加者の答えと逆の側の、登録済みの文の部品を返す。"""
+    if turn == 3:
+        item = SMALLTALK_ITEMS["prep"]
+        return {"phrase": item["phrase"], "generic": item["poles"][SMALLTALK_OPPOSITE[talk["prep"]]]["generic"], "quoted": ""}
+    pole = SMALLTALK_ITEMS["keep"]["poles"][SMALLTALK_OPPOSITE[talk["keep"]]]
+    return {"preferred": pole["preferred"], "action": pole["action"]}
+
+
+def smalltalk_state(item_key: str, own: str, texts: list[str]) -> str:
+    """刺激のあとの参加者の入力から、その項目の状態を決める。
+    own＝その話題に触れ、自分の側の言葉を書いた（事前の判断のとおりに訂正）。other＝その話題を否定した（向きは分からない）。
+    untouched＝触れていない。自分の側の言葉だけ（話題の語が無い）では own にしない：「一緒に過ごす時間を楽しみたい」のような
+    ふつうの言い方で、気づいていない人の刺激を取り下げないため。"""
+    item = SMALLTALK_ITEMS[item_key]
+    joined = "\n".join(texts)
+    on_topic = any(t in joined for t in item["topic"])
+    if on_topic and any(k in joined for k in item["poles"][own]["keys"]):
+        return "own"
+    for sentence in re.split(r"[。！？!?\n]+", joined):
+        if any(t in sentence for t in item["topic"]) and SMALLTALK_NEGATION_RE.search(sentence):
+            return "other"
+    return "untouched"
+
+
+def take_event_slot(criteria: list[dict[str, Any]], event_id: str, repairs: list[str]) -> None:
+    """その回の刺激を書く枠を一つ決めて id を付ける（空の枠 → 未確定 → 最後の枠 の順）。すでにあれば何もしない。"""
+    if any(c.get("id") == event_id for c in criteria):
+        return
+    free = [c for c in criteria if c.get("id") not in EVENT_IDS]
+    if not free:
+        return
+    rank = {"未確定": 0, "維持": 1, "中心": 2}
+    slot = min(free, key=lambda c: (c.get("id") not in PLACEHOLDER_IDS, rank.get(c.get("priority"), 1), -criteria.index(c)))
+    repairs.append(f"event_slot:{event_id}<-{slot.get('id')}")
+    slot["id"] = event_id
+
+
+def order_event_cards(criteria: list[dict[str, Any]]) -> None:
+    """刺激のカードの位置を参加者間でそろえる：会話からの項目 → 第4回の刺激（2 枚目）→ 第3回の刺激（3 枚目）。"""
+    order = {"event-t4": 1, "event-t3": 2}
+    criteria.sort(key=lambda c: order.get(c.get("id"), 0))
+
+
+def apply_smalltalk_states(turn: int, criteria: list[dict[str, Any]], talk: dict[str, str], states: dict[str, str],
+                           event_texts: dict[str, tuple[str, str]], repairs: list[str]) -> None:
+    """刺激を出した回より後の、刺激のカードの文面を決める。
+    untouched＝登録済みの刺激の文面のまま。own＝登録済みの「受け取り直した」文面。other＝分析AI の読み取りに任せる。"""
+    for event_id, item_key, since in (("event-t3", "prep", 4), ("event-t4", "keep", 5)):
+        if turn < since:
+            continue
+        card = next((c for c in criteria if c.get("id") == event_id), None)
+        if card is None:
+            continue
+        state = states.get(item_key, "untouched")
+        item = SMALLTALK_ITEMS[item_key]
+        if state == "untouched" and event_id in event_texts:
+            card["title"], card["meaning"] = event_texts[event_id]
+            card["source"] = "AI_INFERENCE"
+            card["priority"] = "中心" if event_id == "event-t4" else "維持"
+        elif state == "own":
+            card["title"], card["meaning"] = item["title"], item["poles"][talk[item_key]]["own"]
+            card["source"] = "USER_TURN"
+            card["priority"] = "維持"
+        else:
+            # other：分析AI の読み取りに任せる。ただし刺激の文面が残っていたら、「まだ決めていません」の登録文に置き換える
+            if event_id in event_texts and text_similarity(str(card.get("meaning", "")), event_texts[event_id][1]) >= 0.6:
+                card["title"], card["meaning"] = item["title"], item["withdrawn"]
+                card["source"] = "USER_TURN"
+            card["priority"] = "維持" if card.get("priority") == "中心" else card.get("priority", "維持")
+        repairs.append(f"smalltalk_state:{event_id}={state}")
+    if any(c.get("id") == "event-t4" and c.get("priority") == "中心" for c in criteria):
+        for c in criteria:
+            if c.get("id") != "event-t4" and c.get("priority") == "中心":
+                c["priority"] = "維持"
+
+
 def pin_control_sentence(text: str, sentence: str) -> str:
     """登録文を回答の第2文に置く（第1文＝今回の入力への応答、第2文＝登録文）。すでに第2文ならそのまま返す。"""
     if not sentence or sentence not in text:
@@ -2168,7 +2297,12 @@ def least_overlapping(candidates: list[str], participant_text: str) -> str:
 
 def generate_generic_stimulus(turn: int, variant: str, anchor: dict[str, str], history: list[dict[str, str]],
                               user_text: str, analysis_model: str | None = None,
-                              pre: list[dict[str, str]] | None = None) -> tuple[str, dict[str, Any]]:
+                              pre: list[dict[str, str]] | None = None,
+                              talk: dict[str, str] | None = None) -> tuple[str, dict[str, Any]]:
+    if talk:
+        parts = smalltalk_parts(turn, talk)
+        return build_generic_sentence(turn, variant, parts), {
+            "variant": variant, "attempts": [], "method": "smalltalk", "source": "registered", "parts": parts}
     if pre:
         parts = prechoice_parts(turn, pre)
         return build_generic_sentence(turn, variant, parts), {
@@ -2369,6 +2503,9 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     dialogue_model, analysis_model, model_override = resolve_models(body, session_id)
     # 試作：事前に選んだ重視点で刺激を決める（generic 系の刺激のときだけ。指定が無ければ従来どおり）
     pre_values = prechoice_values(body) if experiment_variant in GENERIC_VARIANTS else None
+    # 試作：事前の雑談で聞いた判断と逆の形で刺激を出す（答えはここだけで使い、対話AI・分析AI には渡さない）
+    talk = smalltalk_answers(body) if experiment_variant in GENERIC_VARIANTS else None
+    fixed_rule = bool(pre_values or talk)
     # lengthMode="target"（試験用の番号だけ）：gpt-6-luna の実際の出力は、verbosity=low のとき第1回 150〜210字・第5回 113〜145字で、
     # 指定の目安（220〜360字、140〜230字）の下限に届かない。詳しさを一段上げ、目安の下限の約 9 割を最低字数にして比べる。
     length_mode = "target" if (str(session_id).upper().startswith(TEST_ID_PREFIXES) and body.get("lengthMode") == "target") else "default"
@@ -2421,7 +2558,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     generic_info: dict[str, Any] | None = None
     if experiment_variant in GENERIC_VARIANTS and turn in {3, 4}:
         required_control_sentence, generic_info = generate_generic_stimulus(
-            turn, experiment_variant, anchor, history, user_text, analysis_model, pre=pre_values)
+            turn, experiment_variant, anchor, history, user_text, analysis_model, pre=pre_values, talk=talk)
     elif strong_stimulus:
         required_control_sentence = strong_ambiguity_sentence(anchor["scenarioId"], turn)
     elif turn == 3:
@@ -2499,7 +2636,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         # 上限：1920×1080 の画面で、回答が対話欄（高さ約 645px）に収まるのは 720 字ほどまで。本文 500 字＋依頼文で約 690 字。
         body_cap = {1: 500, 2: 500, 3: 500, 4: 500, 5: 440, 6: 500}[turn]
         # 試作（prechoice）：刺激を出す第3・4回は、入力の長さに合わせない（回答の長さ＝読む時間を参加者間でそろえる）
-        fixed_turn = bool(pre_values) and turn in {3, 4}
+        fixed_turn = fixed_rule and turn in {3, 4}
         body_min = base_body if fixed_turn else min(max(base_body, int(input_chars * 2.2)), body_cap)
         visible_length_target = f"{body_min + 70}〜{body_min + (130 if fixed_turn else 190)}字"
         default_max = 480 if turn in {1, 2} else 430 if turn in {3, 4} else 280 if turn == 5 else 360
@@ -2581,6 +2718,8 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         + (f"事前に参加者が選んだ、大切にしたいこと（二つ）: 「{pre_values[0]['phrase']}」「{pre_values[1]['phrase']}」\n"
            "この二つは参加者自身の言葉として扱ってよい。ただし、その意味や二つのあいだの優先順位は、今回の強制文がある回を除いて、こちらで決めない。\n"
            if pre_values else "")
+        + ("夕食の準備をいつ・誰とするか、品数と一緒に過ごす時間のどちらを取るかは、今回の強制文がある回を除いて、こちらで決めない"
+           "（参加者が書いたことは、そのまま受け取ってよい）。\n" if talk else "")
         + f"対話:\n{transcript_text(history, user_text)}"
     )
     dialogue_payload = {
@@ -2609,6 +2748,16 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         # 従来の判定は具体策の語（片付け、写真など）が一つでも出れば「触れた」になるので、訂正していない人でも
         # 右側の優先の表示が消えることがあった（実際の出力：「食べて飲んで片付ける」で消えた）。
         gen_rel_untouched = not any("優先" in t or any(k in t for k in pre_values[1]["keys"]) for t in later_user_texts)
+    # 試作（smalltalk）：刺激のあとの入力から、二つの項目の状態（untouched / own / other）を決める
+    talk_states: dict[str, str] = {}
+    if talk:
+        all_user_texts = [row["content"] for row in history if row["role"] == "user"] + [user_text]   # [0] が第1回
+        if turn >= 4:
+            talk_states["prep"] = smalltalk_state("prep", talk["prep"], all_user_texts[3:])
+        if turn >= 5:
+            talk_states["keep"] = smalltalk_state("keep", talk["keep"], all_user_texts[4:])
+        if gen_rel_card:
+            gen_rel_untouched = talk_states.get("keep") == "untouched"
 
     final_relation_inserted: list[str] = []
 
@@ -2626,7 +2775,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
                 lead = re.match(r"^\s*", parts_[best]).group(0)
                 parts_[best] = lead + required_control_sentence
                 normalized = "".join(parts_)
-        if pre_values and turn in {3, 4} and required_control_sentence:
+        if fixed_rule and turn in {3, 4} and required_control_sentence:
             # 試作（prechoice）：登録文の位置を参加者間でそろえる（第2文）
             normalized = pin_control_sentence(normalized, required_control_sentence)
         if turn == 6 and gen_rel_untouched:
@@ -2810,6 +2959,20 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
                     analysis_repairs.append(f"generic_relation_kept:{target['id']}")
     if pre_values and not analysis_fallback:
         place_prechoice_cards(analysis["criteria"], pre_values, analysis_repairs)
+    talk_event_texts: dict[str, tuple[str, str]] = {}
+    if talk and not analysis_fallback:
+        if turn >= 3:
+            take_event_slot(analysis["criteria"], "event-t3", analysis_repairs)
+        if turn >= 4:
+            take_event_slot(analysis["criteria"], "event-t4", analysis_repairs)
+        for event_id, event_turn in (("event-t3", 3), ("event-t4", 4)):
+            parts_ = smalltalk_parts(event_turn, talk)
+            if event_turn == 3:
+                last_ = parts_["generic"].rstrip("。").removesuffix("こと").split("、")[-1]
+                talk_event_texts[event_id] = (f"準備＝{last_}"[:20], f"{parts_['phrase']}を、{parts_['generic'].rstrip('。')}として扱う。")
+            else:
+                talk_event_texts[event_id] = (generic_event_title(4, parts_),
+                                              f"{parts_['preferred'].rstrip('。')}を優先し、{parts_['action'].rstrip('。')}。")
     if generic_info and generic_info.get("parts"):
         locked_ids = {cid for cid, state in delegation.items() if state == "self"} if panel_lock else set()
         for quoted, state in delegation_requests(" ".join([user_text] + [r["content"] for r in history if r["role"] == "user"])):
@@ -2819,9 +2982,21 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
                     locked_ids.add(hit["id"])
         enforce_generic_panel(turn, analysis["criteria"], generic_info["parts"], analysis_repairs, card_mode, locked_ids,
                               force_registered=analysis_prompt != "v1",
-                              target_id=(PRECHOICE_IDS[0] if turn == 3 else PRECHOICE_IDS[1]) if pre_values else None)
+                              target_id=((PRECHOICE_IDS[0] if turn == 3 else PRECHOICE_IDS[1]) if pre_values
+                                         else f"event-t{turn}" if talk else None))
     if pre_values and not analysis_fallback and turn >= 4:
         strip_leaked_priority(analysis["criteria"], PRECHOICE_IDS[1], previous_criteria, analysis_repairs)
+    if talk and not analysis_fallback and turn >= 3:
+        if turn in {3, 4}:   # その回の刺激のカード：見出しと文面を登録済みのものにそろえる
+            now_card = next((c for c in analysis["criteria"] if c.get("id") == f"event-t{turn}"), None)
+            if now_card is not None:
+                now_card["title"], now_card["meaning"] = talk_event_texts[f"event-t{turn}"]
+                if turn == 3:
+                    now_card["priority"] = "維持"
+        apply_smalltalk_states(turn, analysis["criteria"], talk, talk_states, talk_event_texts, analysis_repairs)
+        if turn >= 4:
+            strip_leaked_priority(analysis["criteria"], "event-t4", previous_criteria, analysis_repairs)
+        order_event_cards(analysis["criteria"])
     # v7 以降：「中心」（画面では「AIの優先度：高い」）を付けてよいのは、第4回に AI が決めた優先を書く項目だけにする。
     # 実際の出力（2026-11-28）：第1回から、ふつうの項目に「中心」が付くことがあった。参加者には、登録していない
     # 「AI が優先を決めた」という表示になり、意図しないずれが増える。優先のずれは第4回の登録済みの文だけにする。
@@ -2973,7 +3148,8 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
             "eventDelegation": event_delegation,
             "eventTarget": dict(event_target, analysisFallback=analysis_fallback) if event_target else None,
             "genericStimulus": generic_info,
-            "stimulusRule": "prechoice" if pre_values else "default",
+            "stimulusRule": "prechoice" if pre_values else "smalltalk" if talk else "default",
+            "smallTalk": talk, "smallTalkStates": talk_states or None,
             "prechoice": [v["id"] for v in pre_values] if pre_values else None,
             "eventCardMode": card_mode,
             "panelLock": panel_lock,

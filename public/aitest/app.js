@@ -63,6 +63,57 @@ const FLOW2 = QUERY.get("layout") === "flow2";
 const PRECHOICE = QUERY.get("stimulus") === "prechoice";
 const PRECHOICE_OPTIONS = [["no_burden", "気を遣わせない"], ["natural_talk", "自然に話せる"], ["not_grand", "大げさにしない"],
   ["not_heavy", "重くしない"], ["relaxed", "ゆっくりできる"], ["as_usual", "いつもどおり"]];
+// 試作（2026-11-28 夜）：?stimulus=smalltalk。はじめの「今の状態」の画面に、ふだんの食事についての短い質問を 5 つ足す。
+// そのうち 2 つ（prep, keep）の答えをサーバーへ送り（stimulusRule: "smalltalk", smallTalk）、第3・4回の刺激を答えと逆の側で出す。
+// 答えは右側にも対話にも出さない。残りの 3 つは記録するだけ。指定が無ければ画面も送信内容も従来どおり。文言は候補。
+const SMALLTALK = QUERY.get("stimulus") === "smalltalk";
+const SMALLTALK_QUESTIONS = [
+  ["cook", "ふだん、料理はどのくらいしますか。", [["daily", "ほぼ毎日"], ["weekly", "週に数回"], ["rarely", "あまりしない"]]],
+  ["prep", "誰かを食事に招くとき、準備はどうしたいですか。", [["before", "来る前に全部済ませておきたい"], ["together", "来てから一緒に仕上げたい"]]],
+  ["menu", "献立はいつ決めることが多いですか。", [["ahead", "前の日までに決める"], ["sameday", "当日、買い物をしながら決める"]]],
+  ["keep", "準備の時間が足りなくなったら、どちらを取りますか。", [["dishes", "品数や見た目をそろえる"], ["time", "相手と一緒にいる時間をとる"]]],
+  ["taste", "味つけはどちらに近いですか。", [["recipe", "レシピどおりに量る"], ["byeye", "目分量で決める"]]]
+];
+function setupSmallTalk(form) {
+  if (!SMALLTALK || form.querySelector(".talk-section")) return;
+  const section = document.createElement("section");
+  section.className = "prep-section talk-section";
+  const head = document.createElement("h2");
+  head.textContent = "ふだんの食事について";
+  const lead = document.createElement("p");
+  lead.className = "talk-lead";
+  lead.textContent = "近いほうを選んでください。深く考えなくてかまいません。";
+  section.append(head, lead);
+  SMALLTALK_QUESTIONS.forEach(([name, question, options]) => {
+    const box = document.createElement("fieldset");
+    box.className = "scenario-picker talk-item";
+    box.style.gridTemplateColumns = `repeat(${options.length}, minmax(0, 1fr))`;
+    const legend = document.createElement("legend");
+    legend.textContent = question;
+    box.append(legend);
+    options.forEach(([value, label]) => {
+      const row = document.createElement("label");
+      const input = document.createElement("input");
+      input.type = "radio"; input.name = `talk_${name}`; input.value = value; input.required = true;
+      const span = document.createElement("span");
+      span.textContent = label;
+      row.append(input, span);
+      box.append(row);
+    });
+    section.append(box);
+  });
+  form.querySelector(".participant-scales").after(section);
+}
+function readSmallTalk(form) {
+  if (!SMALLTALK) return null;
+  const out = {};
+  for (const [name] of SMALLTALK_QUESTIONS) {
+    const picked = form.querySelector(`input[name="talk_${name}"]:checked`);
+    if (!picked) return undefined;
+    out[name] = picked.value;
+  }
+  return out;
+}
 let prechoicePicked = [];
 function setupPrechoice(form) {
   if (!PRECHOICE || form.querySelector(".value-picker")) return;
@@ -738,6 +789,7 @@ async function submitTurn() {
         ...(INVITE_RICH ? { inviteMode: "rich" } : {}),
         ...(DIALOGUE_STYLE === "open" ? { dialogueStyle: "open" } : {}),
         ...(PRECHOICE && Array.isArray(session.pretaskAnchor?.values) ? { stimulusRule: "prechoice" } : {}),
+        ...(SMALLTALK && session.smallTalk ? { stimulusRule: "smalltalk", smallTalk: { prep: session.smallTalk.prep, keep: session.smallTalk.keep } } : {}),
         // 分析AI の指示文の版。サーバーは試験用の参加者番号のときだけ受け付ける（正式な番号では環境変数 EXPERIMENT_ANALYSIS_PROMPT で決まる）。
         // flow2 は v7（title は項目名、meaning は AI の受け取り方）を前提にしているので、試験用の番号では v7 を送る。?prompt=v1〜v7 で切り替えられる。
         ...(/^v[1-9]$/.test(QUERY.get("prompt") || "") ? { analysisPrompt: QUERY.get("prompt") } : FLOW2 ? { analysisPrompt: "v7" } : {}),
@@ -1050,8 +1102,12 @@ els.prepForm.querySelectorAll('input[type="range"]').forEach((input) => {
   const output = $(`#${input.name}Value`);
   input.addEventListener("input", () => { if (output) output.textContent = input.value; });
 });
+setupSmallTalk(els.prepForm);
 els.prepForm.addEventListener("submit", (event) => {
   event.preventDefault();
+  const talk = readSmallTalk(els.prepForm);
+  if (talk === undefined) { showToast("ふだんの食事についての質問に、すべて答えてください。"); return; }
+  if (talk) { session.smallTalk = talk; logEvent("smalltalk_recorded", { ...talk }); }
   const data = new FormData(els.prepForm);
   session.pretest = {
     completedAt: isoNow(),

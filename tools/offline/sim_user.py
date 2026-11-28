@@ -56,6 +56,39 @@ def build_choice_payload(body: dict[str, Any], model: str) -> dict[str, Any]:
             "text": {"verbosity": "low"}, "max_output_tokens": 300, "store": False}
 
 
+TALK_INSTRUCTIONS = """あなたは、ある調査の参加者の役を演じます。下に書かれた人物本人として、二つの質問に答えます。
+出力は、質問1の番号と質問2の番号をカンマで区切ったものだけにする（例：2,1）。説明は付けない。"""
+
+
+def build_talk_payload(body: dict[str, Any], model: str) -> dict[str, Any]:
+    """第0回（試作 smalltalk）：対話の前の「ふだんの食事について」の質問のうち、鍵になる二つに答える。"""
+    persona = body["persona"]
+    questions = body.get("questions") or []
+    text = (
+        f"【人物】\n性格：{persona.get('character', '')}\n"
+        f"この夕食で望んでいること（本人だけが知っている）：{persona.get('needs', '')}\n"
+        f"AIへの態度：{persona.get('attitude', '')}\n\n"
+        + "\n\n".join(f"【質問{i + 1}】{q.get('question', '')}\n" + "\n".join(f"{j + 1}. {o.get('label', '')}" for j, o in enumerate(q.get("options") or []))
+                        for i, q in enumerate(questions))
+    )
+    return {"model": model, "instructions": TALK_INSTRUCTIONS, "input": text, "reasoning": {"effort": "low"},
+            "text": {"verbosity": "low"}, "max_output_tokens": 300, "store": False}
+
+
+def parse_talk(text: str, questions: list[dict[str, Any]]) -> dict[str, str]:
+    import re
+    nums = [int(n) for n in re.findall(r"\d+", text or "")]
+    if len(nums) < len(questions):
+        raise ValueError(f"答えを読み取れませんでした：{(text or '')[:60]}")
+    out = {}
+    for q, n in zip(questions, nums):
+        options = q.get("options") or []
+        if not 1 <= n <= len(options):
+            raise ValueError(f"答えを読み取れませんでした：{(text or '')[:60]}")
+        out[q["name"]] = options[n - 1]["id"]
+    return out
+
+
 def parse_choice(text: str, options: list[dict[str, Any]]) -> list[str]:
     import re
     picked: list[str] = []
@@ -86,6 +119,7 @@ def build_payload(body: dict[str, Any], model: str) -> dict[str, Any]:
         f"【場面】{anchor.get('scenarioLabel', '')}\n"
         f"【最初に書いた目標】{anchor.get('freeText', '')}\n"
         + (f"【対話の前に自分で選んだ、大切にしたいこと】{'、'.join(body.get('chosenLabels') or [])}\n" if body.get("chosenLabels") else "")
+        + (f"【この人がふだんから当たり前だと思っていること】{'。'.join(body.get('beliefs') or [])}。\n" if body.get("beliefs") else "")
         + f"\n【これまでの対話】\n{talk}\n\n"
         f"【画面の右側に出ている「AIが読み取ったこと」】\n{cards}\n\n"
         f"【今回（第{turn}回）の案内】{GUIDES[turn]}\n\n"
