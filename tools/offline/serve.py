@@ -74,6 +74,11 @@ class OfflineHandler(core.Handler):
                     text, _raw, latency = core.call_model(sim_user.build_concern_talk_payload(body, core.DIALOGUE_MODEL))
                     self.send_json(200, {"talk": sim_user.parse_concern_talk(text), "latencyMs": latency})
                     return
+                if int(body.get("turn", 1)) == 0 and body.get("kind") == "awaken":   # 試作：事前の画面の文言の版（chips / hints / guided）を比べる
+                    text, _raw, latency = core.call_model(sim_user.build_awaken_talk_payload(body, core.DIALOGUE_MODEL))
+                    talk = sim_user.parse_awaken_talk(text, body.get("screen") or "chips")
+                    self.send_json(200, {"talk": talk, "pretalk": sim_user.awaken_pretalk(talk), "reminder": sim_user.AWAKEN_REMINDER, "latencyMs": latency})
+                    return
                 if int(body.get("turn", 1)) == 7:   # 対話のあとの感想（模擬）
                     text, _raw, latency = core.call_model(sim_user.build_probe_payload(body, core.DIALOGUE_MODEL))
                     self.send_json(200, {"probe": sim_user.parse_probe(text), "latencyMs": latency})

@@ -81,15 +81,29 @@ const SMALLTALK_QUESTIONS = [
 // 「特にない」を選んだ人は対象外（サーバーは従来の刺激を使う）。
 // サーバーへ送るのは top / second /（その他の二つの枠）だけ。答えは右側にも対話にも出さない。指定が無ければ従来どおり。文言は候補。
 const CONCERN = QUERY.get("stimulus") === "concern";
+// 試作（2026-11-28 夜、使用者の考え：文言で、自分の大切にしたいことを思い出させ、保たせる）：?stimulus=concern&guide=awaken。
+// 事前の質問を「思い出す → 気づく → いちばんを決める → 言葉にする → 手元に置く」の順に並べ、話題ごとに「よくある例」を添える。
+// 「今の状態」の画面を二段に分ける（眠気・緊張 → この質問）。各回の案内の末尾に、自分の目標とやり方を思い浮かべる一文を足す。
+// サーバーへ送るものは concern と同じ（top / second / その他の二つの枠）。どうする・何のため・強さは記録するだけ。指定が無ければ concern のまま。文言は候補。
+const AWAKEN = CONCERN && QUERY.get("guide") === "awaken";
+const AWAKEN_HINTS = { prep: "前の日から少しずつ／当日にまとめて／相手と一緒に", serve: "最初に全部並べる／一品ずつ出す／相手の進み具合を見て出す",
+  share: "大皿から各自で取る／一人分ずつ盛る／こちらで取り分ける", tidy: "食べ終えたらすぐ／話が済んでから／相手が帰ってから",
+  light: "全体を明るく／少し落とす／手元だけ灯す", sound: "音楽を流す／テレビをつけておく／何も流さない",
+  seat: "向かい合う／隣に並ぶ／角を挟んで座る", drink: "最初にそろえておく／料理に合わせて出す／相手のペースで注ぐ",
+  ware: "そろいの食器／いつもの器／相手に合わせて選ぶ", after: "お茶や甘いものを出す／そのまま話し続ける／早めに切り上げる",
+  other: "ここに無いこと。自分で書く", none: "どれも、その場の流れでよい" };
+const AWAKEN_REMINDER = "書く前に、あなたがこの夕食で大切にしたいことと、ふだんのあなたのやり方を、もう一度思い浮かべてください。";
+const AWAKEN_STRENGTH = [["1", "できればそうしたい"], ["2", "たいていそうする"], ["3", "必ずそうする"]];
 const CONCERN_TOPIC_LABELS = [["prep", "準備の進め方"], ["serve", "料理を出すタイミング"], ["share", "盛りつけ・取り分け方"], ["tidy", "食後の片付け"],
   ["light", "部屋の明るさ"], ["sound", "食事中の音"], ["seat", "座る位置"], ["drink", "飲み物の出し方"], ["ware", "使う器"], ["after", "食後の過ごし方"],
   ["other", "その他"], ["none", "特にない"]];
-function concernChip(type, name, value, label) {
+function concernChip(type, name, value, label, hint = "") {
   const row = document.createElement("label");
   const input = document.createElement("input");
   input.type = type; input.name = name; input.value = value;
   const span = document.createElement("span");
   span.textContent = label;
+  if (hint) { const small = document.createElement("small"); small.textContent = hint; span.append(small); }
   row.append(input, span);
   return row;
 }
@@ -107,25 +121,56 @@ function setupConcernTalk(form) {
   const section = document.createElement("section");
   section.className = "prep-section talk-section talk-wide";
   const head = document.createElement("h2");
-  head.textContent = "ふだんの食事について";
+  head.textContent = AWAKEN ? "ふだんの、あなたのやり方" : "ふだんの食事について";
   const lead = document.createElement("p");
   lead.className = "talk-lead";
-  lead.textContent = "対話の前に、少しだけ教えてください。正解はありません。";
+  lead.textContent = AWAKEN ? "対話の前に、あなた自身のことを少し思い出してください。正解はありません。" : "対話の前に、少しだけ教えてください。正解はありません。";
   const cook = concernBox("ふだん、料理はどのくらいしますか。", 3, "talk-cook");
   [["daily", "ほぼ毎日"], ["weekly", "週に数回"], ["rarely", "あまりしない"]].forEach(([v, l]) => cook.append(concernChip("radio", "talk_cook", v, l)));
-  const pick = concernBox("誰かと家で食事をするとき、「ここは自分なりのやり方がある」と思うものを選んでください（いくつでも）。", 6, "talk-pickmany");
-  CONCERN_TOPIC_LABELS.forEach(([v, l]) => pick.append(concernChip("checkbox", "talk_picked", v, l)));
+  const pick = concernBox(AWAKEN
+    ? "② そのときのことを思い浮かべながら読んでください。次のうち、「自分はいつもこうしている」「ここは人に決められるより、自分で決めたい」と思うものはどれですか（いくつでも）。人によってやり方が分かれるところです。小さい字は、よくある例です。"
+    : "誰かと家で食事をするとき、「ここは自分なりのやり方がある」と思うものを選んでください（いくつでも）。", AWAKEN ? 4 : 6, "talk-pickmany");
+  CONCERN_TOPIC_LABELS.forEach(([v, l]) => pick.append(concernChip("checkbox", "talk_picked", v, l, AWAKEN ? AWAKEN_HINTS[v] : "")));
   const other = document.createElement("div");
   other.className = "talk-other hidden";
   other.innerHTML = '<label><span>その他：何について</span><input type="text" name="talk_other_what" maxlength="12" autocomplete="off" placeholder="例：部屋の匂い" /></label>'
     + '<label><span>どうしたい</span><input type="text" name="talk_other_how" maxlength="30" autocomplete="off" placeholder="例：料理の匂いを残したくない" /></label>';
-  const top = concernBox("その中で、こだわりがいちばん強いのはどれですか。", 6, "talk-pick talk-top hidden");
+  const top = concernBox(AWAKEN ? "③ その中で、ほかの人に決められるといちばん引っかかるのはどれですか。" : "その中で、こだわりがいちばん強いのはどれですか。", 6, "talk-pick talk-top hidden");
   const second = concernBox("その次はどれですか。", 6, "talk-pick talk-second hidden");
-  const noteRow = document.createElement("label");
-  noteRow.className = "talk-note hidden";
-  noteRow.innerHTML = '<span>いちばんのこだわりは、どんなふうにしたいですか。ひとこと（任意）</span><input type="text" name="talk_note" maxlength="40" autocomplete="off" />';
+  const noteRow = document.createElement(AWAKEN ? "div" : "label");
+  noteRow.className = "talk-note hidden" + (AWAKEN ? " talk-words" : "");
+  noteRow.innerHTML = AWAKEN
+    ? '<p class="talk-step">④ いちばんのものについて、あなたの言葉で書いてください。</p>'
+      + '<label><span>あなたは、どうしますか。</span><input type="text" name="talk_note" maxlength="40" autocomplete="off" /></label>'
+      + '<label><span>そうするのは、何のためですか。</span><input type="text" name="talk_why" maxlength="40" autocomplete="off" placeholder="相手のこと、自分のこと、前にあったことなど" /></label>'
+    : '<span>いちばんのこだわりは、どんなふうにしたいですか。ひとこと（任意）</span><input type="text" name="talk_note" maxlength="40" autocomplete="off" />';
   section.append(head, lead, cook, pick, other, top, second, noteRow);
-  form.querySelector(".participant-scales").after(section);
+  let keep = null;
+  if (AWAKEN) {
+    const recall = document.createElement("p");
+    recall.className = "talk-step talk-recall";
+    recall.textContent = "① 最近、誰かと家で食事をしたときのことを、一つ思い浮かべてください。うまくいった日でも、少し心残りがあった日でもかまいません。";
+    cook.after(recall);
+    const strength = concernBox("それは、どのくらい決まっていますか。", 3, "talk-strength hidden");
+    AWAKEN_STRENGTH.forEach(([v, l]) => strength.append(concernChip("radio", "talk_strength", v, l)));
+    keep = document.createElement("div");
+    keep.className = "talk-keep hidden";
+    keep.innerHTML = '<p class="talk-keep-line"></p><p class="talk-keep-note">これは、あなたが決めたことです。対話のあいだも、頭の片隅に置いておいてください。</p>';
+    section.append(strength, keep);
+    section.classList.add("talk-awaken");
+    // 一画面（1920×1080）に収める：料理の頻度は一段目（眠気・緊張の下）へ、「いちばん」「その次」は横に並べる
+    const cookWrap = document.createElement("section");
+    cookWrap.className = "prep-section talk-section talk-cookwrap";
+    cookWrap.append(cook);
+    form.querySelector(".participant-scales").after(cookWrap);
+    const rank = document.createElement("div");
+    rank.className = "talk-rank";
+    top.before(rank);
+    rank.append(top, second);
+    form.dataset.talkPhase = "state";
+    form.querySelector('button[type="submit"]').textContent = "次へ";
+  }
+  (form.querySelector(".talk-cookwrap") || form.querySelector(".participant-scales")).after(section);
   const labelOf = (v) => v === "other" ? (form.querySelector('input[name="talk_other_what"]').value.trim() || "その他") : CONCERN_TOPIC_LABELS.find(([id]) => id === v)[1];
   const refresh = () => {
     const boxes = [...pick.querySelectorAll("input")];
@@ -136,12 +181,23 @@ function setupConcernTalk(form) {
       const kept = box.querySelector("input:checked")?.value;
       [...box.querySelectorAll("label")].forEach((x) => x.remove());
       chosen.forEach((v) => { const chip = concernChip("radio", name, v, labelOf(v)); if (v === kept) chip.querySelector("input").checked = true; box.append(chip); });
-      box.style.gridTemplateColumns = `repeat(${Math.max(2, Math.min(6, chosen.length))}, minmax(0, 1fr))`;
+      box.style.gridTemplateColumns = `repeat(${Math.max(2, Math.min(AWAKEN ? 3 : 6, chosen.length))}, minmax(0, 1fr))`;
       box.classList.toggle("hidden", !show || none.checked);
     });
     if (chosen.length === 1) top.querySelector("input").checked = true;
     noteRow.classList.toggle("hidden", chosen.length < 1 || none.checked);
+    if (AWAKEN) {
+      // 自分の答えを一文にまとめて見せる（自分で決めたこととして手元に置いてもらう）
+      const topValue = top.querySelector("input:checked")?.value;
+      const how = form.querySelector('input[name="talk_note"]').value.trim();
+      const why = form.querySelector('input[name="talk_why"]').value.trim();
+      section.querySelector(".talk-strength").classList.toggle("hidden", chosen.length < 1 || none.checked);
+      const ready = Boolean(topValue && how.length >= 2 && !none.checked);
+      keep.classList.toggle("hidden", !ready);
+      if (ready) keep.querySelector(".talk-keep-line").textContent = `あなたのやり方：${labelOf(topValue)}は、${how.replace(/[。．.]+$/, "")}。${why ? why.replace(/[。．.]+$/, "") + "。" : ""}`;
+    }
   };
+  if (AWAKEN) { section.addEventListener("input", refresh); section.addEventListener("change", refresh); }
   pick.addEventListener("change", (event) => {
     const boxes = [...pick.querySelectorAll("input")];
     const none = boxes.find((b) => b.value === "none");
@@ -162,6 +218,12 @@ function readConcernTalk(form) {
   if (!top || (picked.length >= 2 && !second)) return undefined;
   if (top === second) return "same";
   const out = { cook: cook.value, picked, top, second: second || null, note: (form.querySelector('input[name="talk_note"]')?.value || "").trim() };
+  if (AWAKEN) {
+    out.why = (form.querySelector('input[name="talk_why"]')?.value || "").trim();
+    out.strength = Number(form.querySelector('input[name="talk_strength"]:checked')?.value || 0);
+    out.guide = "awaken";
+    if (out.note.length < 2 || out.why.length < 2 || !out.strength) return "words";
+  }
   if (picked.includes("other")) {
     const what = form.querySelector('input[name="talk_other_what"]').value.trim();
     const how = form.querySelector('input[name="talk_other_how"]').value.trim();
@@ -373,7 +435,7 @@ function newSession(participantId, condition, experimentVariant = "standard") {
     environment: {
       screenWidth: screen.width, screenHeight: screen.height, viewportWidth: innerWidth,
       viewportHeight: innerHeight, pixelRatio: devicePixelRatio, userAgent: navigator.userAgent,
-      layoutVariant: LAYOUT_NAME, inviteRich: INVITE_RICH, dialogueStyle: DIALOGUE_STYLE
+      layoutVariant: LAYOUT_NAME, inviteRich: INVITE_RICH, dialogueStyle: DIALOGUE_STYLE, pretalkGuide: AWAKEN ? "awaken" : null
     },
     aiModels: apiModels,
     pretest: null,
@@ -602,6 +664,12 @@ function renderTurn() {
   els.guideText.textContent = complete
     ? (FLOW2 ? "このまま、振り返りへ進んでください。" : "視線計測を停止してから、振り返りへ進んでください。")
     : prompt.guide;
+  if (AWAKEN) {
+    // 案内の本文に埋もれないよう、思い出す一文は別の行にする（練習と完了後には出さない）
+    let remind = els.guideText.parentElement.querySelector(".guide-remind");
+    if (!remind) { remind = document.createElement("small"); remind.className = "guide-remind"; els.guideText.after(remind); }
+    remind.textContent = complete || session.status !== "running" ? "" : AWAKEN_REMINDER;
+  }
   els.turnAnchor.classList.toggle("hidden", complete || !session.pretaskAnchor);
   if (session.pretaskAnchor) {
     els.anchorScenarioText.textContent = session.pretaskAnchor.scenarioLabel;
@@ -1206,15 +1274,26 @@ setupSmallTalk(els.prepForm);
 setupConcernTalk(els.prepForm);
 els.prepForm.addEventListener("submit", (event) => {
   event.preventDefault();
+  if (AWAKEN && els.prepForm.dataset.talkPhase === "state") {
+    if (!els.prepForm.querySelector('input[name="talk_cook"]:checked')) { showToast("料理をどのくらいするかを選んでください。"); return; }
+    // 一段目（眠気・緊張）→ 二段目（ふだんのやり方）。一画面に収めるため、同じ画面の中で切り替える。
+    els.prepForm.dataset.talkPhase = "talk";
+    els.prepForm.querySelector("#prepTitle").textContent = "ふだんの、あなたのやり方";
+    els.prepForm.querySelector('button[type="submit"]').textContent = "課題の説明へ";
+    els.prepForm.scrollTop = 0;
+    logEvent("pretalk_shown", { guide: "awaken" });
+    return;
+  }
   const talk = CONCERN ? readConcernTalk(els.prepForm) : readSmallTalk(els.prepForm);
-  if (talk === undefined) { showToast("ふだんの食事についての質問に、すべて答えてください。"); return; }
+  if (talk === undefined) { showToast(AWAKEN ? "すべての質問に答えてください。" : "ふだんの食事についての質問に、すべて答えてください。"); return; }
+  if (talk === "words") { showToast("「どうしますか」「何のためですか」「どのくらい決まっていますか」に答えてください。"); return; }
   if (talk === "same") { showToast("「いちばん」と「その次」には、別のものを選んでください。"); return; }
   if (talk === "other") { showToast("「その他」を選んだときは、何についてかを書いてください。"); return; }
   if (talk) {
     session.smallTalk = talk;
     // 自由記述（ひとこと、その他の二つの枠）はログの本文には入れず、長さだけ残す（内容は session.smallTalk にある）
-    const { note, other, ...choices } = talk;
-    logEvent("smalltalk_recorded", { ...choices, ...(note === undefined ? {} : { noteLength: note.length }), ...(other ? { otherLength: other.what.length + other.how.length } : {}) });
+    const { note, other, why, ...choices } = talk;
+    logEvent("smalltalk_recorded", { ...choices, ...(note === undefined ? {} : { noteLength: note.length }), ...(why === undefined ? {} : { whyLength: why.length }), ...(other ? { otherLength: other.what.length + other.how.length } : {}) });
   }
   const data = new FormData(els.prepForm);
   session.pretest = {

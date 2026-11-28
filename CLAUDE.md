@@ -9,7 +9,7 @@
 - サーバー：`api/aitest/core.py`（オンライン版・OpenAI）、`offline_engine.py` + `offline_corpus.py`（オフライン版・生成AIなし）
 - オフライン版ローカルサーバー：`tools/offline/serve.py` → http://127.0.0.1:8765/aitest/
 - 分析：`tools/aitest_analysis/analyze.py`、視線：`tools/aitest_analysis/eyetools/`
-- テスト：`python tests/aitest/test_offline_engine.py`、`python tests/aitest/test_v17_offline.py`、`python tests/aitest/test_model_switch.py`、`node tests/aitest/example_sentence_test.mjs`、`node tests/aitest/setup_preset_test.mjs`、`python tests/aitest/test_personal_closing.py`、`python tests/aitest/test_open_style.py`、`python tests/aitest/test_prechoice.py`、`python tests/aitest/test_smalltalk.py`、`python tests/aitest/test_concern.py`
+- テスト：`python tests/aitest/test_offline_engine.py`、`python tests/aitest/test_v17_offline.py`、`python tests/aitest/test_model_switch.py`、`node tests/aitest/example_sentence_test.mjs`、`node tests/aitest/setup_preset_test.mjs`、`python tests/aitest/test_personal_closing.py`、`python tests/aitest/test_open_style.py`、`python tests/aitest/test_prechoice.py`、`python tests/aitest/test_smalltalk.py`、`python tests/aitest/test_concern.py`、`python tests/aitest/test_awaken_sim.py`
 - 公開版：https://www.lkdesigner.top/aitest/ （オフライン版で試す：`?engine=offline`）
 - 変更を push するときは `main` と `aitest-v1.7-stability` の両方へ。
 
@@ -243,6 +243,30 @@
   （「料理の並べ方」では選び違いが出て、名前を直した）／訂正の判定は、この回の 14 文で直した（打ち消しが隣の文にある、登録文の言い回しを引いて打ち消す、
   「〜ず、」「ではありません」）。この 14 文に合わせた直しなので、独立の確認ではない。
 - 使用者が決めること：対象外の人の扱い（最後までやってもらい主要な分析から除く／募集の前にふるいにかける）、目録に入れる話題、「その他」の類比を残すか、文言。
+
+### concern の続き 2：文言で「自分のやり方」を呼び起こす ?guide=awaken（2026-11-28 夜。**main には未反映**）
+使用者の考え（11/28 21:48）：文言の設計で、自分の大切な目標を思い出させ、保たせる。十分な文の案内が要る。よくある場合を広く挙げて試す。
+詳しくはプロジェクト文書「第二実験_試作_文言による呼び起こし_2026-11-28」。`?stimulus=concern&guide=awaken` のときだけ効く（concern だけなら従来の画面）。
+- 画面（`app.js` の `AWAKEN`）：「今の状態」を二段に分ける（眠気・緊張・料理の頻度 → 「ふだんの、あなたのやり方」）。
+  ① 最近の食事を一つ思い浮かべる → ② 「自分はいつもこうしている」「人に決められるより自分で決めたい」ものを選ぶ（話題ごとに「よくある例」を小さい字で添える。
+  登録文の言い回しは例に入れない）→ ③ 「ほかの人に決められるといちばん引っかかる」もの・その次 → ④ どうするか／何のためか（各 40 字、必須）／
+  どのくらい決まっているか（3 段階）→ 自分の答えを一文にまとめて表示（「あなたのやり方：…」「対話のあいだも、頭の片隅に置いておいてください」）。
+  各回の案内の下に別の行で「書く前に、…もう一度思い浮かべてください。」（練習と完了後は出さない）。1920×1080 でスクロールなし（Linux の Chrome）。
+- サーバーへ送るものは concern と同じ。どうする・何のため・強さは `session.smallTalk`（note / why / strength / guide）に記録するだけ。`pretalk_shown` をログに残す。
+- 模擬（`sim_user.py` の `build_awaken_talk_payload`、`/_simuser` の `kind: "awaken"`、`screen: chips|hints|words|guided`）。人物と指示は版によらず同じで、違うのは画面の文だけ。
+  人物設定は `tools/offline/personas_common.json`（24 名：自分で決めている 6／いつもそうしているだけ 9／どちらかといえば 5／特にない 4。うち 2 名は一般的なやり方と同じ向き）。
+  対話の模擬には、こだわりを直接は渡さず、「対話の前の画面で自分が答えたこと」を画面に出た形で渡す（`pretalk`）。
+- 実際の出力（gpt-6-luna）。事前の画面だけ（24 名×3 回）：自分で決めている人は 4 版とも 18/18。「いつもそうしているだけ」の人は chips 3/27、hints 14/27、words 24/27、guided 26/27。
+  ただしこの差は、人物設定の一文（「こだわりだと考えたことはない」）と画面の語（「こだわり」「自分なりのやり方」）の食い違いから出る：その一文を「特に意識したことはない」に替えると chips でも 22/27。
+  「特にない」4 名が対象に入った回：chips 2/12、guided 4/12（献立だけ気にする人が「その他：作る料理」強さ 3 と書く。分類は対象外にした）。強さは 自分で決めている 3.0／いつも 2.0／どちらかといえば 1.0。
+  対話まで（24 名×2 条件、288 回、失敗 0・回退 0）：「いつも」の 9 名は 従来の画面 1/9 → guided 9/9 が対象になり、「分かってもらえたか」は 4.1→3.4→2.9 から 3.9→2.4→2.3。
+  自分で決めている人では、画面と思い出す一文の有無で差は見えない（模擬は人物設定を毎回読むので、保つ効果は測れない）。
+- 分かったこと：対象になった人は全員、第1・2回に自分のやり方をもう書いている（第3回の文は「聞いていない」形の食い違いになる）／
+  自分のやり方が一般的なやり方と同じ向きの人（明るくする、向かい合う）は第3回で食い違わない（3.5〜4.0 のまま）＝話題ごとに登録文を二つ用意し、本人の選んだ例と違う側を出す必要がある／
+  目録に無い「食べ方（ホットプレート）」は「準備」に類比され、食い違いが薄い。
+- **文言はすべて候補。** 事前の質問・自由記述（どうする、何のため）・強さが増える。各回の案内に一文が増える（UI A / UI B 共通）。資料 4・5 と事後説明、指導教員の確認が要る。
+- 検証：`python tests/aitest/test_awaken_sim.py`（画面と模擬の文言がそろっていること、読み取り）。画面は `/home/claude/scripts/awaken_check.py` 相当の手順で確認（リポジトリ外）。
+- 手元で試す：`http://127.0.0.1:8765/aitest/?layout=flow2&condition=UI_B&variant=generic_unranked&stimulus=concern&guide=awaken`
 
 ## 未決事項（使用者と相談中）
 - 正式に使う刺激（推奨：generic_unranked 単一）。例文をそのまま送った場合の H1 の数え方。H1 変更の教授確認。

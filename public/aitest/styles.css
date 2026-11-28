@@ -599,3 +599,29 @@ html[data-flow2] .send-confirm-note { position: absolute; top: 17px; left: 46px;
 .talk-other { display: grid; grid-template-columns: 1fr 1.6fr; gap: 14px; margin: 0 0 10px; }
 .talk-other label { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 10px; color: #465268; font-size: 14.5px; }
 .talk-other input { height: 36px; padding: 0 12px; border: 1.5px solid #d7dde7; border-radius: 10px; font: inherit; }
+
+/* 試作 ?stimulus=concern&guide=awaken：事前の質問を、思い出す → 気づく → 決める → 言葉にする → 手元に置く の順に */
+#prepForm[data-talk-phase="state"] .talk-awaken { display: none; }
+#prepForm[data-talk-phase="talk"] .participant-scales, #prepForm[data-talk-phase="talk"] .prep-lead, #prepForm[data-talk-phase="talk"] .talk-cookwrap { display: none; }
+.talk-cookwrap { width: min(780px, 100%); }
+.talk-cookwrap .talk-item { margin: 0; }
+.talk-rank { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 22px; align-items: start; }
+.talk-rank .talk-item.hidden { display: none; }
+#prepForm[data-talk-phase="talk"] .talk-section { margin-top: 0; }
+#prepForm[data-talk-phase="talk"] .talk-section h2 { display: none; }
+.talk-awaken .talk-lead { font-size: 15px; margin-bottom: 6px; }
+.talk-step { margin: 0 0 8px; color: #364258; font-weight: 700; font-size: 15px; line-height: 1.6; }
+.talk-awaken .talk-item legend { font-size: 15px; line-height: 1.6; margin-bottom: 6px; }
+.talk-awaken .talk-pickmany span { flex-direction: column; align-items: flex-start; justify-content: center; gap: 1px; min-height: 54px; padding: 5px 12px; text-align: left; font-size: 15px; font-weight: 700; }
+.talk-awaken .talk-pickmany span small { font-size: 12.5px; font-weight: 400; color: #667085; line-height: 1.35; }
+.talk-awaken .talk-pickmany input:checked + span small { color: #3f5f96; }
+.talk-words { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 22px; }
+.talk-words.hidden { display: none; }
+.talk-words label { display: grid; gap: 4px; margin: 0 0 8px; color: #465268; font-size: 14.5px; }
+.talk-words .talk-step { grid-column: 1 / -1; margin-bottom: 2px; }
+.talk-keep { margin-top: 8px; padding: 9px 18px; border-left: 4px solid var(--blue); border-radius: 10px; background: var(--blue-soft); }
+.talk-keep.hidden { display: none; }
+.talk-keep-line { margin: 0 0 4px; color: #1f3b6e; font-weight: 800; font-size: 16px; line-height: 1.6; }
+.talk-keep-note { margin: 0; color: #465268; font-size: 14px; }
+.guide-remind { display: block; margin-top: 5px; color: #294f8c; font-weight: 700; }
+.guide-remind:empty { display: none; }
