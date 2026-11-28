@@ -89,23 +89,18 @@ def parse_talk(text: str, questions: list[dict[str, Any]]) -> dict[str, str]:
     return out
 
 
-CONCERN_QUESTIONS = [
-    {"name": "prep", "question": "誰かと食事をするとき、準備はどう進めたいですか。",
-     "options": [("before", "来る前に、全部済ませておく"), ("half", "途中まで作り、最後は目の前で仕上げる"), ("together", "来てから、一緒に作る")]},
-    {"name": "serve", "question": "できた料理は、どう出したいですか。",
-     "options": [("fresh", "できたてを、一品ずつ出す"), ("atonce", "全部そろえてから、一度に出す"), ("watch", "相手の食べる様子を見ながら出す")]},
-    {"name": "share", "question": "料理は、どう並べたいですか。",
-     "options": [("platter", "大皿に盛って、それぞれ取る"), ("each", "一人分ずつ盛りつける"), ("pot", "鍋や鉄板で、作りながら食べる")]},
-    {"name": "tidy", "question": "食べ終わったあとの片付けは、どうしたいですか。",
-     "options": [("alone", "相手は座ったまま、自分で片付ける"), ("later", "そのままにして、話を続ける"), ("side", "相手と並んで、一緒に片付ける")]},
-    {"name": "top", "question": "この中で、自分なりのこだわりがいちばん強いのはどれですか。",
-     "options": [("prep", "準備の進め方"), ("serve", "料理の出し方"), ("share", "料理の並べ方"), ("tidy", "食後の片付け")]},
-    {"name": "second", "question": "その次にこだわりがあるのはどれですか。",
-     "options": [("prep", "準備の進め方"), ("serve", "料理の出し方"), ("share", "料理の並べ方"), ("tidy", "食後の片付け")]},
-]
-CONCERN_TALK_INSTRUCTIONS = """あなたは、ある調査の参加者の役を演じます。下に書かれた人物本人として、六つの質問に答えます。
-出力は二行にする。一行目：質問1〜6の番号を、順にカンマで区切ったもの（例：2,3,1,3,4,1）。質問5と質問6には別の番号を選ぶ。
-二行目：質問5で選んだこだわりについてのひとこと（40字以内。特に無ければ「なし」）。説明は付けない。"""
+CONCERN_CHIPS = [("prep", "準備の進め方"), ("serve", "料理の出し方"), ("share", "料理の並べ方"), ("tidy", "食後の片付け"),
+                 ("light", "部屋の明るさ"), ("sound", "食事中の音"), ("seat", "座る位置"), ("drink", "飲み物の出し方"), ("ware", "使う器"),
+                 ("after", "食後の過ごし方"), ("other", "その他（自分で書く）"), ("none", "特にない")]
+CONCERN_TALK_INSTRUCTIONS = """あなたは、ある調査の参加者の役を演じます。下に書かれた人物本人として、画面の質問に答えます。
+その人物に本当に「自分なりのやり方」があるものだけを選ぶ（多く選びすぎない）。
+いちばんのこだわりが選択肢に無い事柄なら、「その他」を選んで自分の言葉で書く。こだわりが特に無い人物は「特にない」だけを選ぶ。
+出力は五行にする。説明は付けない。
+一行目：選んだ番号をカンマで区切ったもの（例：2,6）
+二行目：その中で、こだわりがいちばん強いものの番号
+三行目：その次の番号（一つしか選んでいなければ 0）
+四行目：いちばんのこだわりを、どんなふうにしたいか（40字以内。「特にない」を選んだら「なし」）
+五行目：「その他」を選んだ場合だけ、「何について｜どうしたい」（何について＝12字以内、どうしたい＝30字以内）。選んでいなければ「なし」"""
 
 
 def build_concern_talk_payload(body: dict[str, Any], model: str) -> dict[str, Any]:
@@ -114,8 +109,8 @@ def build_concern_talk_payload(body: dict[str, Any], model: str) -> dict[str, An
     text = (
         f"【人物】\n性格：{persona.get('character', '')}\n"
         f"この夕食で望んでいること・ふだんの様子（本人だけが知っている）：{persona.get('needs', '')}\n\n"
-        + "\n\n".join(f"【質問{i + 1}】{q['question']}\n" + "\n".join(f"{j + 1}. {label}" for j, (_, label) in enumerate(q["options"]))
-                        for i, q in enumerate(CONCERN_QUESTIONS))
+        "【質問】誰かと家で食事をするとき、「ここは自分なりのやり方がある」と思うものを選んでください（いくつでも）。\n"
+        + "\n".join(f"{i + 1}. {label}" for i, (_, label) in enumerate(CONCERN_CHIPS))
     )
     return {"model": model, "instructions": CONCERN_TALK_INSTRUCTIONS, "input": text, "reasoning": {"effort": "low"},
             "text": {"verbosity": "low"}, "max_output_tokens": 400, "store": False}
@@ -124,18 +119,29 @@ def build_concern_talk_payload(body: dict[str, Any], model: str) -> dict[str, An
 def parse_concern_talk(text: str) -> dict[str, Any]:
     import re
     lines = [x.strip() for x in (text or "").strip().splitlines() if x.strip()]
-    nums = [int(n) for n in re.findall(r"\d+", lines[0] if lines else "")]
-    if len(nums) < len(CONCERN_QUESTIONS):
+    if len(lines) < 3:
         raise ValueError(f"答えを読み取れませんでした：{(text or '')[:60]}")
-    out: dict[str, Any] = {"labels": {}}
-    for q, n in zip(CONCERN_QUESTIONS, nums):
-        if not 1 <= n <= len(q["options"]):
-            raise ValueError(f"答えを読み取れませんでした：{(text or '')[:60]}")
-        out[q["name"]], out["labels"][q["name"]] = q["options"][n - 1]
-    if out["top"] == out["second"]:
-        out["second"], out["labels"]["second"] = next(o for o in CONCERN_QUESTIONS[5]["options"] if o[0] != out["top"])
-    note = lines[1] if len(lines) > 1 else ""
-    out["note"] = "" if note in {"なし", "なし。"} else note[:60]
+    ids = [k for k, _ in CONCERN_CHIPS]
+    labels = dict(CONCERN_CHIPS)
+
+    def pick(line: str) -> list[str]:
+        return [ids[int(n) - 1] for n in re.findall(r"\d+", line) if 1 <= int(n) <= len(ids)]
+
+    picked = list(dict.fromkeys(pick(lines[0])))
+    if not picked or picked == ["none"]:
+        return {"picked": [], "top": "none", "second": None, "note": "", "labels": {"top": "特にない", "second": ""}}
+    picked = [k for k in picked if k != "none"]
+    top = next((k for k in pick(lines[1]) if k in picked), picked[0])
+    second = next((k for k in pick(lines[2]) if k in picked and k != top), None)
+    if second is None and len(picked) >= 2:
+        second = next(k for k in picked if k != top)
+    out: dict[str, Any] = {"picked": picked, "top": top, "second": second, "note": "" if len(lines) < 4 or lines[3].startswith("なし") else lines[3][:40]}
+    if "other" in picked:
+        raw = lines[4] if len(lines) > 4 else ""
+        what, _, how = raw.partition("｜") if "｜" in raw else raw.partition("|")
+        out["other"] = {"what": what.strip()[:12], "how": how.strip()[:30]}
+        labels = dict(labels, other=out["other"]["what"] or "その他")
+    out["labels"] = {"top": labels[top], "second": labels[second] if second else ""}
     return out
 
 

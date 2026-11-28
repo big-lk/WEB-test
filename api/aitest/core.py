@@ -2144,7 +2144,7 @@ SMALLTALK_OPPOSITE = {"before": "together", "together": "before", "dishes": "tim
 SMALLTALK_NEGATION_RE = re.compile(r"ではな|じゃな|違い|違う|違っ|ちがう|逆|やめ|いらな|要らな|しなくて|したくな|決めていな|決めてな|決めないで|決めつけ"
                                    r"|私が決め|自分で決め|私の言葉では|嫌|困る|望んでいな|望んでな")
 # 話題の語と同じ文の中でだけ使う、弱い打ち消し（「準備を一緒にする形にはせず」）。これだけでは「自分の側へ訂正」にはしない
-SMALLTALK_WEAK_NEGATION_RE = re.compile(r"にはせず|はせず|しない|ません|(?:て|で|は|も|とは)ない")
+SMALLTALK_WEAK_NEGATION_RE = re.compile(r"にはせず|はせず|ずに|しない|ません|(?:て|で|は|も|とは)ない|[かさたまらわがばけせてめれえ]ない")
 EVENT_IDS = ("event-t3", "event-t4")
 
 
@@ -2237,67 +2237,186 @@ def apply_smalltalk_states(turn: int, criteria: list[dict[str, Any]], talk: dict
 
 
 # ---------------------------------------------------------------- 試作（2026-11-28 夜）：その人のこだわりを、一般的なやり方で扱う
-# stimulusRule="concern"：対話の前の雑談で、食事の進め方についての 4 つの話題（準備・出し方・並べ方・片付け）に答えてもらい、
-# 最後に「こだわりがいちばん強いもの（top）」「その次（second）」を選んでもらう。
-# 第3回：top の話題を、どの人にも同じ「一般的なやり方」（効率・見栄え・標準の手順）で扱う。
+# stimulusRule="concern"：対話の前の雑談で、「ここは自分なりのやり方がある」と思う話題を選んでもらい、
+# こだわりがいちばん強いもの（top）とその次（second）を決めてもらう。
+# 第3回：top の話題を、どの人にも同じ「一般的なやり方」（効率・見栄え・標準の形）で扱う。
 # 第4回：「こうした夕食では多くの方が大切にするもの」を優先して、second の話題を後回しにする。
 # 逆の決定ではなく、「通り一遍に扱われて、分かってもらえていない」という食い違いを作るのがねらい。
-# 登録する文は話題ごとに 1 つ（第3回 4 文、第4回 4 文）。参加者がどの選択肢を選んだかは使わない（どれを選んでも同じ文）。
-# 答えはサーバーの中だけで使う：二つの AI には渡さず、右側にも出さない。訂正されたあとのカードにも、事前の答えは使わない。
+#
+# 話題は増やせる目録（CONCERN_TOPICS）。同じ種類であることだけを条件にする：
+#   家での夕食の一部であること／正解がなく、その人の主観の判断が入りやすいこと／計画の中で AI が代わりに決めうること／
+#   「〈何を〉どうするか」と言えること。
+# 話題を一つ足すには、ここに一行書くだけでよい（label・form・preferred・words）。
+# 目録に無いこだわり（other）は、参加者に「何について／どうしたい」の二つの枠で書いてもらい、分類の AI が
+#   (1) 目録の話題に類比できればその話題として、(2) できなくても同じ種類であれば、その種類（family）の登録済みの形と
+#   参加者の言葉（名詞）を組み合わせて扱う。(3) どちらでもなければ対象外（従来の刺激を使い、meta に残す）。
+# こだわりが「特にない」人も対象外（使用者の方針、11/28）。
+# 答えはサーバーの中だけで使う：対話AI・分析AI には渡さず、右側にも出さない。訂正後のカードにも事前の答えは使わない。
 # 質問と文面は候補で、正式に使う前に使用者の確認が要る。
-CONCERN_TOPICS: dict[str, dict[str, Any]] = {
-    "prep": {"label": "夕食の準備", "short": "準備", "form": "段取りを決めて手際よく進める",
-             "preferred": "見栄えよく整った食卓にすること", "limit": "夕食の準備には手をかけずに済ませます",
-             "words": ["準備", "仕上げ", "支度", "用意", "段取り", "手際", "下ごしらえ", "作ってお", "整えてお"],
-             "withdrawn": "夕食の準備をどう進めるかは、まだ決めていません。"},
-    "serve": {"label": "料理の出し方", "short": "出し方", "form": "前菜から順に、決まった間隔で出す",
-              "preferred": "見栄えよく整った食卓にすること", "limit": "料理の出し方には手をかけずに済ませます",
-              "words": ["出し方", "出す", "出して", "出し", "運ぶ", "運ん", "間隔", "前菜", "順に", "できたて", "熱いうち", "冷め", "冷ま", "ペース"],
-              "withdrawn": "料理をどう出すかは、まだ決めていません。"},
-    "share": {"label": "料理の並べ方", "short": "並べ方", "form": "彩りと見栄えを基準に配置する",
-              "preferred": "手早く食べ始められること", "limit": "料理の並べ方には手をかけずに済ませます",
-              "words": ["並べ方", "並べ", "配置", "彩り", "見栄え", "大皿", "取り分け", "盛りつけ", "盛り付け", "盛って", "鍋", "鉄板", "囲"],
-              "withdrawn": "料理をどう並べるかは、まだ決めていません。"},
-    "tidy": {"label": "食後の片付け", "short": "片付け", "form": "洗い物が少なくなるよう、使う食器を絞る",
-             "preferred": "見栄えよく整った食卓にすること", "limit": "食後の片付けには手をかけずに済ませます",
-             "words": ["片付け", "片づけ", "洗い物", "洗う", "洗っ", "食器", "皿洗い", "後片"],
-             "withdrawn": "食後の片付けをどうするかは、まだ決めていません。"},
+CONCERN_PREFERRED = {"looks": "見栄えよく整った食卓にすること", "quick": "手早く食べ始められること", "dishes": "料理の品数をそろえること"}
+CONCERN_FAMILIES: dict[str, dict[str, str]] = {
+    # 目録に無い話題に使う、種類ごとの「一般的なやり方」
+    "process": {"name": "進め方", "form": "手順を決めて、手際よく進める", "preferred": "looks"},
+    "atmosphere": {"name": "場の雰囲気", "form": "くせのない、標準的なものにそろえる", "preferred": "quick"},
 }
+CONCERN_TOPICS: dict[str, dict[str, Any]] = {
+    # ---- 進め方
+    "prep": {"family": "process", "label": "夕食の準備", "short": "準備", "form": "段取りを決めて、手際よく進める", "preferred": "looks",
+             "words": ["準備", "仕上げ", "支度", "用意", "段取り", "手際", "下ごしらえ", "作ってお", "整えてお"]},
+    "serve": {"family": "process", "label": "料理の出し方", "short": "出し方", "form": "作りやすい順に、手早く出す", "preferred": "dishes",
+              "words": ["出し方", "出す", "出して", "出し", "運ぶ", "運ん", "順に", "手早く", "できたて", "熱いうち", "冷め", "冷ま", "ペース"]},
+    "share": {"family": "process", "label": "料理の並べ方", "short": "並べ方", "form": "彩りと見栄えを基準に配置する", "preferred": "quick",
+              "words": ["並べ方", "並べ", "配置", "彩り", "見栄え", "大皿", "取り分け", "盛りつけ", "盛り付け", "盛って", "鍋", "鉄板", "囲"]},
+    "tidy": {"family": "process", "label": "食後の片付け", "short": "片付け", "form": "洗い物が少なくなるよう、使う食器を絞る", "preferred": "looks",
+             "words": ["片付け", "片づけ", "洗い物", "洗う", "洗っ", "皿洗い", "後片"]},
+    # ---- 場の雰囲気
+    "light": {"family": "atmosphere", "label": "部屋の明るさ", "short": "明るさ", "form": "料理がよく見えるよう、全体を明るくする", "preferred": "quick",
+              "words": ["明るさ", "明るく", "明かり", "灯り", "照明", "電気", "ライト", "スタンド", "暗く", "暗め", "蛍光灯"]},
+    "sound": {"family": "atmosphere", "label": "食事中の音", "short": "音", "form": "定番のBGMを小さく流す", "preferred": "dishes",
+              "words": ["音", "BGM", "ＢＧＭ", "テレビ", "ラジオ", "静か", "静け", "無音"]},
+    "seat": {"family": "atmosphere", "label": "座る位置", "short": "席", "form": "向かい合わせに席を決める", "preferred": "looks",
+             "words": ["座る", "座り", "座って", "席", "向かい", "隣", "並んで", "横に", "床", "こたつ", "ソファ"]},
+    "drink": {"family": "atmosphere", "label": "飲み物の出し方", "short": "飲み物", "form": "食事の最初に、まとめて用意しておく", "preferred": "quick",
+              "words": ["飲み物", "お茶", "茶", "酒", "ビール", "ワイン", "炭酸", "急須", "淹れ", "注ぐ", "注い", "乾杯", "湯のみ"]},
+    "ware": {"family": "atmosphere", "label": "使う器", "short": "器", "form": "同じ形の食器でそろえる", "preferred": "dishes",
+             "words": ["器", "食器", "茶碗", "皿", "箸", "グラス", "湯のみ", "お椀"]},
+    "after": {"family": "atmosphere", "label": "食後の過ごし方", "short": "食後", "form": "デザートを出して、きりのよいところで締める", "preferred": "looks",
+              "words": ["食後", "デザート", "締め", "お開き", "だらだら", "そのまま話", "余韻"]},
+}
+CONCERN_MAP_SCHEMA = {
+    "type": "object", "additionalProperties": False,
+    "properties": {"match": {"type": "string", "enum": list(CONCERN_TOPICS) + ["family_process", "family_atmosphere", "none"]},
+                   "label": {"type": "string"}},
+    "required": ["match", "label"],
+}
+CONCERN_MAP_INSTRUCTIONS = (
+    "参加者が、誰かと家で夕食をとるときに「自分なりのやり方がある」と書いたこだわりを、決まった分類に当てはめる。JSON だけを返す。\n"
+    "match：\n"
+    + "".join(f"- {k}：{v['label']}（{'進め方' if v['family'] == 'process' else '場の雰囲気'}）\n" for k, v in CONCERN_TOPICS.items())
+    + "- family_process：上のどれにも当たらないが、夕食の進め方（誰が・いつ・どの順に・どう進めるか）についてのこだわり\n"
+    "- family_atmosphere：上のどれにも当たらないが、その場の雰囲気やしつらえ（匂い、温度、置くもの、持ち込むもの、過ごし方）についてのこだわり\n"
+    "- none：夕食の進め方や場の雰囲気のこだわりではない（献立そのもの、健康・体質・アレルギー、日程、予算、相手の気持ちそのもの、意味が読み取れない）\n"
+    "書かれた内容が上の話題と同じ事柄であれば、言い方が違っていてもその話題を選ぶ"
+    "（例：食後にほうじ茶を淹れる → drink、テレビを消して静かにする → sound、こたつで並んで座る → seat）。\n"
+    "label：そのこだわりが何についてのものかを表す名詞句（4〜12字。例：部屋の匂い、食卓に置くもの）。参加者の言葉に近い表現にする。"
+    "人名・地名・健康に関する語は入れない。日本語のみ。"
+)
 
 
-def concern_answers(body: Any) -> dict[str, str] | None:
-    """stimulusRule="concern" と smallTalk（{"top": 話題, "second": 別の話題}）を読む。"""
+def concern_topic_spec(key: str) -> dict[str, Any]:
+    t = CONCERN_TOPICS[key]
+    return {"id": key, "family": t["family"], "label": t["label"], "short": t["short"], "form": t["form"],
+            "preferred": CONCERN_PREFERRED[t["preferred"]], "words": list(t["words"])}
+
+
+def concern_family_spec(family: str, label: str) -> dict[str, Any]:
+    """目録に無い話題：種類（family）の登録済みの形と、参加者の言葉（名詞）を組み合わせる。"""
+    f = CONCERN_FAMILIES[family]
+    label = re.sub(r"[\s「」『』。、，,.!！?？]", "", label)[:12]
+    words = [label] + [w for w in re.findall(r"[一-龥ァ-ヶー]{2,}", label)]
+    return {"id": f"other_{family}", "family": family, "label": label, "short": label[:6], "form": f["form"],
+            "preferred": CONCERN_PREFERRED[f["preferred"]], "words": list(dict.fromkeys(words))}
+
+
+def map_other_concern(what: str, how: str, model: str | None = None) -> dict[str, str]:
+    """「その他」に書かれたこだわりを、目録の話題か、種類（family）か、対象外に分類する。失敗したら対象外にする。"""
+    payload = {
+        "model": model or ANALYSIS_MODEL, "instructions": CONCERN_MAP_INSTRUCTIONS,
+        "input": f"何について：{what}\nどうしたい：{how}",
+        "reasoning": {"effort": "low"},
+        "text": {"verbosity": "low", "format": {"type": "json_schema", "name": "concern_map", "strict": True, "schema": CONCERN_MAP_SCHEMA}},
+        "max_output_tokens": 600, "store": False,
+    }
+    for _ in range(2):
+        try:
+            text, _, _latency = call_model(payload)
+            value = json.loads(text)
+            match, label = str(value.get("match", "")), str(value.get("label", "")).strip()
+            if match in CONCERN_TOPICS or match == "none":
+                return {"match": match, "label": label[:12]}
+            if match in {"family_process", "family_atmosphere"} and 2 <= len(label) <= 14 and re.search(r"[぀-ヿ一-龥]", label):
+                return {"match": match, "label": label[:12]}
+        except Exception:  # noqa: BLE001
+            continue
+    return {"match": "none", "label": ""}
+
+
+def concern_spec_from_map(mapped: dict[str, str]) -> dict[str, Any] | None:
+    match = mapped.get("match", "none")
+    if match in CONCERN_TOPICS:
+        return concern_topic_spec(match)
+    if match in {"family_process", "family_atmosphere"} and mapped.get("label"):
+        return concern_family_spec(match.removeprefix("family_"), mapped["label"])
+    return None
+
+
+def concern_answers(body: Any, model: str | None = None) -> dict[str, Any] | None:
+    """stimulusRule="concern" と smallTalk を読む。
+    smallTalk = {"top": 話題 | "other" | "none", "second": 話題 | "other" | なし,
+                 "other": {"what": …, "how": …}（top か second が other のとき）, "map": 前の回に返した分類（あれば再利用）}
+    戻り値：{"target": True, "top": spec, "second": spec, "map": 分類} ／ 対象外なら {"target": False, "reason": …}。"""
     if not isinstance(body, dict) or body.get("stimulusRule") != "concern":
         return None
     raw = body.get("smallTalk")
-    if not (isinstance(raw, dict) and raw.get("top") in CONCERN_TOPICS and raw.get("second") in CONCERN_TOPICS and raw["top"] != raw["second"]):
+    if not isinstance(raw, dict):
         raise ExperimentError("P06_INVALID_CONCERN", "はじめの質問に答えてください。", status=400)
-    return {"top": raw["top"], "second": raw["second"]}
+    top, second = raw.get("top"), raw.get("second") or None
+    if top == "none":
+        return {"target": False, "reason": "no_concern"}
+    valid = set(CONCERN_TOPICS) | {"other"}
+    if top not in valid or (second is not None and second not in valid) or (second == top):
+        raise ExperimentError("P06_INVALID_CONCERN", "はじめの質問に答えてください。", status=400)
+    mapped: dict[str, str] | None = None
+    if "other" in {top, second}:
+        given = raw.get("map")
+        if isinstance(given, dict) and (given.get("match") in CONCERN_TOPICS or given.get("match") in {"family_process", "family_atmosphere", "none"}):
+            mapped = {"match": str(given["match"]), "label": str(given.get("label", ""))[:12]}
+        else:
+            other = raw.get("other") if isinstance(raw.get("other"), dict) else {}
+            what, how = str(other.get("what", "")).strip()[:20], str(other.get("how", "")).strip()[:60]
+            if len(what) < 2 or contains_obvious_personal_info(what + how):
+                mapped = {"match": "none", "label": ""}
+            else:
+                mapped = map_other_concern(what, how, model)
+
+    def spec_of(key: str | None) -> dict[str, Any] | None:
+        if key is None:
+            return None
+        return concern_spec_from_map(mapped or {}) if key == "other" else concern_topic_spec(key)
+
+    top_spec, second_spec = spec_of(top), spec_of(second)
+    if top_spec is None and second_spec is not None:      # いちばんのこだわりが対象外で、次のものが使える：次のものを top にする
+        top_spec, second_spec = second_spec, None
+    if top_spec is None:
+        return {"target": False, "reason": "other_not_mappable", "map": mapped}
+    if second_spec is not None and second_spec["id"] == top_spec["id"] and second_spec["label"] == top_spec["label"]:
+        second_spec = None                                  # 類比の結果、同じ話題になった
+    return {"target": True, "top": top_spec, "second": second_spec or top_spec, "single": second_spec is None, "map": mapped}
 
 
-def concern_parts(turn: int, concern: dict[str, str]) -> dict[str, str]:
+def concern_parts(turn: int, concern: dict[str, Any]) -> dict[str, str]:
     if turn == 3:
-        t = CONCERN_TOPICS[concern["top"]]
+        t = concern["top"]
         return {"phrase": t["label"], "generic": t["form"] + "こと", "quoted": ""}
-    t = CONCERN_TOPICS[concern["second"]]
-    return {"preferred": t["preferred"], "action": t["limit"]}
+    t = concern["second"]
+    return {"preferred": t["preferred"], "action": f"{t['label']}のことは後回しにします"}
 
 
-def concern_sentence(turn: int, concern: dict[str, str]) -> str:
+def concern_sentence(turn: int, concern: dict[str, Any]) -> str:
     """回答に入れる登録文。「一般的なやり方」「多くの方が」と、通り一遍の扱いであることが文面から分かるようにする。"""
     if turn == 3:
-        t = CONCERN_TOPICS[concern["top"]]
+        t = concern["top"]
         return f"{t['label']}は、一般的なやり方に合わせて、{t['form']}形で整えます。"
-    t = CONCERN_TOPICS[concern["second"]]
-    return f"こうした夕食では{t['preferred']}を大切にする方が多いので、今回もそれを優先して、{t['limit']}。"
+    t = concern["second"]
+    return f"こうした夕食では{t['preferred']}を大切にする方が多いので、今回もそれを優先して、{t['label']}のことは後回しにします。"
 
 
-def concern_event_texts(concern: dict[str, str]) -> dict[str, tuple[str, str]]:
-    top, second = CONCERN_TOPICS[concern["top"]], CONCERN_TOPICS[concern["second"]]
+def concern_event_texts(concern: dict[str, Any]) -> dict[str, tuple[str, str]]:
+    top, second = concern["top"], concern["second"]
     last = top["form"].split("、")[-1]
     return {
         "event-t3": (f"{top['short']}＝{last}"[:20], f"{top['label']}を、一般的なやり方に合わせて、{top['form']}こととして扱う。"),
-        "event-t4": (generic_event_title(4, {"preferred": second["preferred"]}), f"{second['preferred']}を優先し、{second['limit']}。"),
+        "event-t4": (generic_event_title(4, {"preferred": second["preferred"]}), f"{second['preferred']}を優先し、{second['label']}のことは後回しにします。"),
     }
 
 
@@ -2306,10 +2425,10 @@ def concern_event_texts(concern: dict[str, str]) -> dict[str, tuple[str, str]]:
 CONCERN_COMPARATIVE_RE = re.compile(r"(?<!いつも)(?<!普段)(?<!ふだん)(?<!何)(?<!前)より(?:も)?[^。！？\n]*?(?:大事|大切|優先|したい|がいい|でいい|を選ぶ)")
 
 
-def concern_state(topic_key: str, texts: list[str], priority: bool = False) -> str:
+def concern_state(spec: dict[str, Any], texts: list[str], priority: bool = False) -> str:
     """刺激のあとの入力で、参加者がその話題の決め方を打ち消したか（touched）、触れていないか（untouched）。
-    priority=True（第4回の刺激）では「優先」「一般」などの語も話題の語として数える。"""
-    words = list(CONCERN_TOPICS[topic_key]["words"]) + (["優先", "見栄え", "手をかけ", "多くの方", "一般"] if priority else ["一般的", "決まった", "標準"])
+    priority=True（第4回の刺激）では「優先」「後回し」などの語も話題の語として数える。"""
+    words = list(spec["words"]) + (["優先", "後回し", "見栄え", "品数", "手早く", "多くの方", "一般"] if priority else ["一般的", "標準"])
     for sentence in re.split(r"[。！？!?\n]+", "\n".join(texts)):
         if any(w in sentence for w in words) and (SMALLTALK_NEGATION_RE.search(sentence) or SMALLTALK_WEAK_NEGATION_RE.search(sentence)
                                                   or CONCERN_COMPARATIVE_RE.search(sentence)):
@@ -2317,7 +2436,7 @@ def concern_state(topic_key: str, texts: list[str], priority: bool = False) -> s
     return "untouched"
 
 
-def apply_concern_states(turn: int, criteria: list[dict[str, Any]], concern: dict[str, str], states: dict[str, str],
+def apply_concern_states(turn: int, criteria: list[dict[str, Any]], concern: dict[str, Any], states: dict[str, str],
                          event_texts: dict[str, tuple[str, str]], repairs: list[str]) -> None:
     """刺激を出した回より後の、刺激のカード。untouched＝登録済みの刺激の文面のまま。
     touched＝分析AI の読み取り（参加者が対話に書いたこと）に任せ、刺激の文面が残っていたら「まだ決めていません」に置き換える。
@@ -2329,14 +2448,14 @@ def apply_concern_states(turn: int, criteria: list[dict[str, Any]], concern: dic
         if card is None:
             continue
         state = states.get(key, "untouched")
-        topic = CONCERN_TOPICS[concern[key]]
+        spec = concern[key]
         if state == "untouched":
             card["title"], card["meaning"] = event_texts[event_id]
             card["source"] = "AI_INFERENCE"
             card["priority"] = "中心" if event_id == "event-t4" else "維持"
         else:
             if text_similarity(str(card.get("meaning", "")), event_texts[event_id][1]) >= 0.6:
-                card["title"], card["meaning"] = topic["label"], topic["withdrawn"]
+                card["title"], card["meaning"] = spec["label"], f"{spec['label']}をどうするかは、まだ決めていません。"
                 card["source"] = "USER_TURN"
             card["priority"] = "維持" if card.get("priority") == "中心" else card.get("priority", "維持")
         repairs.append(f"concern_state:{event_id}={state}")
@@ -2625,7 +2744,9 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     # 試作：事前の雑談で聞いた判断と逆の形で刺激を出す（答えはここだけで使い、対話AI・分析AI には渡さない）
     talk = smalltalk_answers(body) if experiment_variant in GENERIC_VARIANTS else None
     # 試作：その人のこだわり（事前の雑談で選んだ話題）を、一般的なやり方で扱う
-    concern = concern_answers(body) if experiment_variant in GENERIC_VARIANTS else None
+    concern_info = concern_answers(body, analysis_model) if experiment_variant in GENERIC_VARIANTS else None
+    # 対象外（こだわりが特にない／書かれたこだわりを分類できない）のときは、従来の刺激を使う。そのことは meta に残す
+    concern = concern_info if (concern_info and concern_info.get("target")) else None
     fixed_rule = bool(pre_values or talk or concern)
     # lengthMode="target"（試験用の番号だけ）：gpt-6-luna の実際の出力は、verbosity=low のとき第1回 150〜210字・第5回 113〜145字で、
     # 指定の目安（220〜360字、140〜230字）の下限に届かない。詳しさを一段上げ、目安の下限の約 9 割を最低字数にして比べる。
@@ -2841,7 +2962,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
            if pre_values else "")
         + ("夕食の準備をいつ・誰とするか、品数と一緒に過ごす時間のどちらを取るかは、今回の強制文がある回を除いて、こちらで決めない"
            "（参加者が書いたことは、そのまま受け取ってよい）。\n" if talk else "")
-        + ("夕食の準備、料理の出し方と並べ方、食後の片付けの進め方は、今回の強制文がある回を除いて、こちらで決めない"
+        + ("夕食の進め方（準備、出し方、並べ方、片付け）と場のしつらえ（明るさ、音、席、飲み物、器、食後の過ごし方）は、今回の強制文がある回を除いて、こちらで決めない"
            "（参加者が書いたことは、そのまま受け取ってよい）。\n" if concern else "")
         + f"対話:\n{transcript_text(history, user_text)}"
     )
@@ -3289,7 +3410,12 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
             "eventTarget": dict(event_target, analysisFallback=analysis_fallback) if event_target else None,
             "genericStimulus": generic_info,
             "stimulusRule": "prechoice" if pre_values else "smalltalk" if talk else "concern" if concern else "default",
-            "smallTalk": talk or concern, "smallTalkStates": talk_states or None,
+            "smallTalk": talk or ({"top": concern["top"]["id"], "topLabel": concern["top"]["label"], "second": concern["second"]["id"],
+                                   "secondLabel": concern["second"]["label"], "single": concern["single"]} if concern else None),
+            "concernTarget": concern_info.get("target") if concern_info else None,
+            "concernReason": concern_info.get("reason") if concern_info else None,
+            "concernMap": concern_info.get("map") if concern_info else None,
+            "smallTalkStates": talk_states or None,
             "prechoice": [v["id"] for v in pre_values] if pre_values else None,
             "eventCardMode": card_mode,
             "panelLock": panel_lock,

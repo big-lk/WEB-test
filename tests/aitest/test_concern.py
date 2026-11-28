@@ -54,8 +54,8 @@ def prev_of(out):
     return [{k: c[k] for k in ("id", "title", "meaning", "priority")} for c in out["analysis"]["criteria"]]
 
 
-S3 = "料理の出し方は、一般的なやり方に合わせて、前菜から順に、決まった間隔で出す形で整えます。"
-S4 = "こうした夕食では見栄えよく整った食卓にすることを大切にする方が多いので、今回もそれを優先して、食後の片付けには手をかけずに済ませます。"
+S3 = "料理の出し方は、一般的なやり方に合わせて、作りやすい順に、手早く出す形で整えます。"
+S4 = "こうした夕食では見栄えよく整った食卓にすることを大切にする方が多いので、今回もそれを優先して、食後の片付けのことは後回しにします。"
 
 out, d, a = run(3, rule=None)
 check("no stimulusRule: the old rule is used", out["meta"]["stimulusRule"] == "default")
@@ -75,27 +75,34 @@ check("the sentence does not depend on the dialogue; turn 3 does not scale with 
       long_in["meta"]["requiredControlSentence"] == S3 and long_in["meta"]["bodyMin"] == 270)
 
 # 登録文：話題ごとに 1 つ、長さがそろっている
-t3 = [core.concern_sentence(3, {"top": k, "second": "x"}) for k in core.CONCERN_TOPICS]
-t4 = [core.concern_sentence(4, {"top": "x", "second": k}) for k in core.CONCERN_TOPICS]
-check("registered sentences: 4 + 4, lengths within 8 characters of each other",
-      len(set(t3)) == 4 and len(set(t4)) == 4 and max(map(len, t3)) - min(map(len, t3)) <= 8 and max(map(len, t4)) - min(map(len, t4)) <= 8,
+specs = [core.concern_topic_spec(k) for k in core.CONCERN_TOPICS]
+t3 = [core.concern_sentence(3, {"top": sp, "second": sp}) for sp in specs]
+t4 = [core.concern_sentence(4, {"top": sp, "second": sp}) for sp in specs]
+check("the catalogue: one registered sentence per topic for each turn, lengths within 15 characters, titles of at most 20 characters",
+      len(set(t3)) == len(specs) and len(set(t4)) == len(specs) and max(map(len, t3)) - min(map(len, t3)) <= 15
+      and max(map(len, t4)) - min(map(len, t4)) <= 15
+      and all(len(core.concern_event_texts({"top": sp, "second": sp})[e][0]) <= 20 for sp in specs for e in ("event-t3", "event-t4")),
       str([len(x) for x in t3 + t4]))
+check("every topic belongs to a registered family and names a registered 'what most people value'",
+      all(v["family"] in core.CONCERN_FAMILIES and v["preferred"] in core.CONCERN_PREFERRED for v in core.CONCERN_TOPICS.values()))
+used = [v["preferred"] for v in core.CONCERN_TOPICS.values()]
+check("turn 4 does not use the same 'what most people value' for everyone", max(used.count(k) for k in set(used)) <= len(used) // 2, str(used))
 
 # カード
 ids3 = [c["id"] for c in out3["analysis"]["criteria"]]
 check("turn 3: the event card is card 3 with the registered text", ids3[2] == "event-t3"
-      and cards(out3)["event-t3"]["meaning"] == "料理の出し方を、一般的なやり方に合わせて、前菜から順に、決まった間隔で出すこととして扱う。",
+      and cards(out3)["event-t3"]["meaning"] == "料理の出し方を、一般的なやり方に合わせて、作りやすい順に、手早く出すこととして扱う。",
       json.dumps(out3["analysis"]["criteria"][2], ensure_ascii=False))
 an4 = json.loads(base.ANALYSIS); an4["criteria"][2]["id"] = "event-t3"
 out4, _, _ = run(4, prev=prev_of(out3), analysis=json.dumps(an4, ensure_ascii=False))
 check("turn 4: card 2 = this turn's event (marked), card 3 = turn 3's event (unchanged while untouched)",
       [c["id"] for c in out4["analysis"]["criteria"]][1:] == ["event-t4", "event-t3"] and cards(out4)["event-t4"]["priority"] == "中心"
-      and cards(out4)["event-t4"]["meaning"] == "見栄えよく整った食卓にすることを優先し、食後の片付けには手をかけずに済ませます。"
+      and cards(out4)["event-t4"]["meaning"] == "見栄えよく整った食卓にすることを優先し、食後の片付けのことは後回しにします。"
       and cards(out4)["event-t3"]["meaning"].startswith("料理の出し方を、一般的なやり方に合わせて"))
 stale = json.loads(json.dumps(an4)); stale["criteria"][2].update({"title": "料理の出し方について", "meaning": cards(out3)["event-t3"]["meaning"]})
-tou4, _, _ = run(4, prev=prev_of(out3), analysis=json.dumps(stale, ensure_ascii=False), user="決まった間隔で出すのは違います。祖母の箸の進み方を見てから次を出したいです。")
+tou4, _, _ = run(4, prev=prev_of(out3), analysis=json.dumps(stale, ensure_ascii=False), user="手早く出すのは違います。祖母の箸の進み方を見てから次を出したいです。")
 check("turn 4, the participant rejects it: the event text does not stay, and the pre-answer is not shown",
-      tou4["meta"]["smallTalkStates"]["top"] == "touched" and cards(tou4)["event-t3"]["meaning"] == "料理をどう出すかは、まだ決めていません。",
+      tou4["meta"]["smallTalkStates"]["top"] == "touched" and cards(tou4)["event-t3"]["meaning"] == "料理の出し方をどうするかは、まだ決めていません。",
       cards(tou4)["event-t3"]["meaning"])
 an5 = json.loads(base.ANALYSIS); an5["criteria"][2]["id"] = "event-t3"; an5["criteria"][1]["id"] = "event-t4"
 un5, _, _ = run(5, prev=prev_of(out4), analysis=json.dumps(an5, ensure_ascii=False), user="食べて飲んで、あとはゆっくり話したい。")
@@ -105,9 +112,14 @@ to5, _, _ = run(5, prev=prev_of(out4), analysis=json.dumps(an5, ensure_ascii=Fal
 check("turn 5, rejected: card 2 loses the mark and follows what was written in the dialogue",
       to5["meta"]["smallTalkStates"]["second"] == "touched" and cards(to5)["event-t4"]["priority"] != "中心")
 
-S = core.concern_state
+S = lambda topic, texts, priority=False: core.concern_state(core.concern_topic_spec(topic), texts, priority=priority)
 for topic, text, pr, want in [
-    ("serve", "決まった間隔で出すのは違います。", False, "touched"),
+    ("serve", "手早く出すのは違います。", False, "touched"),
+    ("light", "全体を明るくするのではなく、スタンドの灯りだけにしたいです。", False, "touched"),
+    ("sound", "テレビはつけずに静かに食べたいです。", False, "touched"),
+    ("sound", "静かに食べられるとうれしいです。", False, "untouched"),
+    ("seat", "こたつで並んで座りたいです。", False, "untouched"),
+    ("drink", "お茶のことを後回しにするのは嫌です。", True, "touched"),
     ("serve", "祖母がゆっくり食べられるといいです。", False, "untouched"),
     ("serve", "できたてを出したいです。", False, "untouched"),
     ("tidy", "片付けに手をかけないのは嫌です。", True, "touched"),
@@ -122,7 +134,46 @@ for topic, text, pr, want in [
 ]:
     check(f"state: {text[:18]}… -> {want}", S(topic, [text], priority=pr) == want, S(topic, [text], priority=pr))
 
-for bad in ({"top": "serve"}, {"top": "serve", "second": "serve"}, {"top": "x", "second": "tidy"}):
+# こだわりが一つだけ：第4回も同じ話題を後回しにする
+one3, _, _ = run(3, talk={"top": "light"})
+one4, _, _ = run(4, talk={"top": "light"})
+check("only one concern: turn 3 handles it the general way, turn 4 puts the same topic aside",
+      one3["meta"]["requiredControlSentence"].startswith("部屋の明るさは、一般的なやり方に合わせて")
+      and one4["meta"]["requiredControlSentence"].endswith("部屋の明るさのことは後回しにします。") and one4["meta"]["smallTalk"]["single"] is True)
+
+# 対象外：こだわりが特にない人は、従来の刺激になり、そのことが meta に残る
+no3, _, _ = run(3, talk={"top": "none"})
+check("'nothing in particular': not a target; the old stimulus is used and the reason is recorded",
+      no3["meta"]["stimulusRule"] == "default" and no3["meta"]["concernTarget"] is False and no3["meta"]["concernReason"] == "no_concern"
+      and no3["meta"]["genericStimulus"]["method"] == "registered_candidates")
+
+# その他：分類の結果（map）で決まる。目録の話題に類比できればその話題の登録文、種類だけ分かればその種類の形＋参加者の名詞
+ana3, _, _ = run(3, talk={"top": "other", "second": "tidy", "other": {"what": "食後のお茶", "how": "急須でほうじ茶を淹れて出したい"}, "map": {"match": "drink", "label": "食後のお茶"}})
+check("other, analogous to a catalogue topic: that topic's registered sentence is used",
+      ana3["meta"]["requiredControlSentence"] == "飲み物の出し方は、一般的なやり方に合わせて、食事の最初に、まとめて用意しておく形で整えます。"
+      and ana3["meta"]["concernMap"]["match"] == "drink")
+fam3, _, _ = run(3, talk={"top": "other", "other": {"what": "部屋の匂い", "how": "焼き魚の匂いを残したくない"}, "map": {"match": "family_atmosphere", "label": "部屋の匂い"}})
+check("other, same kind but not in the catalogue: the family's registered form with the participant's noun",
+      fam3["meta"]["requiredControlSentence"] == "部屋の匂いは、一般的なやり方に合わせて、くせのない、標準的なものにそろえる形で整えます。"
+      and fam3["meta"]["smallTalk"]["top"] == "other_atmosphere")
+out_of, _, _ = run(3, talk={"top": "other", "other": {"what": "日にち", "how": "水曜にしたい"}, "map": {"match": "none", "label": ""}})
+check("other, not of this kind: not a target", out_of["meta"]["concernTarget"] is False and out_of["meta"]["concernReason"] == "other_not_mappable"
+      and out_of["meta"]["stimulusRule"] == "default")
+second_only, _, _ = run(3, talk={"top": "other", "second": "seat", "other": {"what": "日にち", "how": "水曜にしたい"}, "map": {"match": "none", "label": ""}})
+check("other cannot be used but a second concern can: the second one becomes the target",
+      second_only["meta"]["concernTarget"] is True and second_only["meta"]["smallTalk"]["top"] == "seat")
+calls = []
+orig = core.map_other_concern
+core.map_other_concern = lambda what, how, model=None: (calls.append((what, how)), {"match": "sound", "label": "部屋の静けさ"})[1]
+m1, _, _ = run(1, talk={"top": "other", "other": {"what": "部屋の静けさ", "how": "テレビも音楽もつけない"}})
+m2, _, _ = run(3, talk={"top": "other", "other": {"what": "部屋の静けさ", "how": "テレビも音楽もつけない"}, "map": m1["meta"]["concernMap"]})
+core.map_other_concern = orig
+check("the classification is made once and reused when the screen sends it back", len(calls) == 1 and m1["meta"]["concernMap"]["match"] == "sound"
+      and m2["meta"]["requiredControlSentence"].startswith("食事中の音は、"), str(calls))
+pi, _, _ = run(1, talk={"top": "other", "other": {"what": "電話 090-1234-5678", "how": "かける"}})
+check("other containing personal information is not classified and is not a target", pi["meta"]["concernTarget"] is False)
+
+for bad in ({"second": "serve"}, {"top": "serve", "second": "serve"}, {"top": "x", "second": "tidy"}):
     try:
         run(1, talk=bad)
         check(f"invalid answers {bad} are rejected", False)
