@@ -2350,13 +2350,22 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     body_min = 0
     if open_style and input_level == "normal":
         base_body = {1: 250, 2: 250, 3: 270, 4: 270, 5: 170, 6: 210}[turn]
-        body_cap = {1: 560, 2: 560, 3: 560, 4: 560, 5: 440, 6: 520}[turn]
+        # 上限：1920×1080 の画面で、回答が対話欄（高さ約 645px）に収まるのは 720 字ほどまで。本文 500 字＋依頼文で約 690 字。
+        body_cap = {1: 500, 2: 500, 3: 500, 4: 500, 5: 440, 6: 500}[turn]
         body_min = min(max(base_body, int(input_chars * 2.2)), body_cap)
         visible_length_target = f"{body_min + 70}〜{body_min + 190}字"
         default_max = 480 if turn in {1, 2} else 430 if turn in {3, 4} else 280 if turn == 5 else 360
-        max_extra = max(max_extra, body_min + 190 + 80 - default_max)
+        max_extra = max(max_extra, body_min + 190 + 40 - default_max)
+        # 字数だけを伝えても、モデルは下限に届かなかった（実際の出力：下限 312 字に対して本文 245〜270 字）。
+        # 文の数で形を決め（入力の一文ごとに二文）、長い入力では verbosity を上げ、下限の 85% に届かなければやり直す。
+        input_sentences = max(1, len([x for x in re.split(r"[。！？!?\n]+", user_text) if x.strip()]))
+        # やり直しの対象にするのは、入力が長くて下限が基準より上がったときだけ（短い入力の回は、これまでどおり長さではやり直さない）
+        if body_min > base_body and (min_chars is None or min_chars < int(body_min * 0.85) + 60):
+            min_chars = int(body_min * 0.85) + 60
         proportional_directive = (
-            f"今回の入力は{input_chars}字。本文（末尾の依頼文を除いた部分）は{body_min}字以上にする。段落は2〜3つに分けてよい。\n"
+            f"今回の入力は{input_sentences}文・{input_chars}字。本文（末尾の依頼文を除いた部分）は{body_min}字以上にする。段落は2〜3つに分けてよい。\n"
+            f"本文の形：冒頭に受け止めの一文を置き、そのあと、入力の一文ごとに、それに対応する具体化を二文ずつ書く"
+            f"（受け止めとは別に、合計{2 * input_sentences}文以上）。\n"
             "入力に書かれた要素（相手の人柄、場面、習慣、希望、避けたいこと、条件）を一つずつ拾い、要素ごとに応じる。"
             "いくつかの要素を一文に要約して済ませない。要素を一つも落とさない。\n"
             "応じ方：参加者の文を言い直すのではなく、その要素が当日の夕食のどの場面で、どういう形になるかを具体的に書く"
@@ -2428,7 +2437,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         "instructions": DIALOGUE_INSTRUCTIONS_OPEN if open_style else DIALOGUE_INSTRUCTIONS,
         "input": dialogue_input,
         "reasoning": {"effort": "medium" if turn in {3, 4} else "low"},
-        "text": {"verbosity": "medium" if (length_mode == "target" or open_style) else "low"},
+        "text": {"verbosity": "high" if (open_style and body_min >= 300) else "medium" if (length_mode == "target" or open_style) else "low"},
         # More reasoning headroom on the two event turns avoids paying for
         # several incomplete retries; the visible length remains validator-bound.
         "max_output_tokens": (3000 if turn == 3 else 3200 if turn == 4 else 1400) + (800 if open_style else 0),

@@ -85,13 +85,20 @@ check("open: body minimum and the 'ならでは' request are in the input", "は
 long_user = "父は無口で、ほめられると新聞に目を落とす人です。晩酌は日本酒を一合だけと決めています。母が亡くなってからは、二人で食卓を囲むのは月に一度になりました。" * 2
 out_l, d_l, _ = run(long_user, REPLY, dialogueStyle="open")
 n = out_l["meta"]["inputChars"]
-check("open: a long input raises the body minimum in proportion", n > 120 and out_l["meta"]["bodyMin"] == min(int(n * 2.2), 560)
+check("open: a long input raises the body minimum in proportion", n > 120 and out_l["meta"]["bodyMin"] == min(int(n * 2.2), 500)
       and f"は{out_l['meta']['bodyMin']}字以上" in d_l["input"] and "要素ごとに応じる" in d_l["input"], str((n, out_l["meta"]["bodyMin"])))
-very_long = "ほっとして笑って帰れる夜にしたいのですね。" + PAD * 11 + CLOSE_NARADE
-check("open: with a 300-character input, an 800-character reply is accepted; with a short input it is too long",
+very_long = "ほっとして笑って帰れる夜にしたいのですね。" + PAD * 9 + "卓の上は広く空けておき、取り皿は手前に重ねて置きます。" + CLOSE_NARADE
+check("open: with a 300-character input, a 710-character reply is accepted; with a short input it is too long",
       run(long_user * 2, very_long, dialogueStyle="open")[0]["meta"]["validationStatus"] == "passed"
       and "R03_TOO_LONG" in json.dumps(run(USER, very_long, dialogueStyle="open")[0]["meta"]["dialogueAttempts"]), str(len(very_long)))
 check("default: no proportional directive", "要素ごとに応じる" not in run(long_user, REPLY)[1]["input"])
+sentences = len([x for x in long_user.split("。") if x.strip()])
+check("open, long input: the directive counts the input's sentences and asks for two per sentence; verbosity is high",
+      f"今回の入力は{sentences}文" in d_l["input"] and f"合計{2 * sentences}文以上" in d_l["input"] and d_l["text"]["verbosity"] == "high", d_l["input"][-420:-300])
+check("open, long input: a reply far below the body minimum is asked to be rewritten (and still accepted in the end)",
+      "R02_TOO_SHORT" in json.dumps(out_l["meta"]["dialogueAttempts"]) and out_l["dialogue"], json.dumps(out_l["meta"]["dialogueAttempts"], ensure_ascii=False)[:160])
+check("open, ordinary input: length alone never triggers a rewrite", "R02_TOO_SHORT" not in json.dumps(run(USER, REPLY, dialogueStyle="open")[0]["meta"]["dialogueAttempts"])
+      and run(USER, REPLY, dialogueStyle="open")[1]["text"]["verbosity"] == "medium")
 check("open: a closing with 'ならでは' passes without a quote", out["meta"]["closingFallback"] is False and out["dialogue"].endswith(CLOSE_NARADE), out["dialogue"][-60:])
 check("open: meta records the style and the input level", out["meta"]["dialogueStyle"] == "open" and out["meta"]["inputLevel"] == "normal" and out["meta"]["inputChars"] > 30)
 check("v7: selectable for a test id; analysis payload uses it", a["instructions"] == core.ANALYSIS_PROMPTS["v7"] and out["meta"]["analysisPrompt"] == "v7")
