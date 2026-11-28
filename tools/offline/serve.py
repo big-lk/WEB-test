@@ -70,6 +70,14 @@ class OfflineHandler(core.Handler):
                 body = json.loads(self.rfile.read(size).decode("utf-8"))
                 if not str(body.get("sessionId", "")).upper().startswith("SIMTEST-"):
                     raise ValueError("模擬参加者は SIMTEST- で始まる番号でだけ使えます。")
+                if int(body.get("turn", 1)) == 0 and body.get("kind") == "concern":   # 試作 concern：対話の前の雑談
+                    text, _raw, latency = core.call_model(sim_user.build_concern_talk_payload(body, core.DIALOGUE_MODEL))
+                    self.send_json(200, {"talk": sim_user.parse_concern_talk(text), "latencyMs": latency})
+                    return
+                if int(body.get("turn", 1)) == 7:   # 対話のあとの感想（模擬）
+                    text, _raw, latency = core.call_model(sim_user.build_probe_payload(body, core.DIALOGUE_MODEL))
+                    self.send_json(200, {"probe": sim_user.parse_probe(text), "latencyMs": latency})
+                    return
                 if int(body.get("turn", 1)) == 0 and body.get("kind") == "smalltalk":   # 試作 smalltalk：対話の前の雑談の、鍵になる二問
                     body["questions"] = [
                         {"name": "prep", "question": "誰かを食事に招くとき、準備はどうしたいですか。",

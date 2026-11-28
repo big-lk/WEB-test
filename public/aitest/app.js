@@ -74,6 +74,73 @@ const SMALLTALK_QUESTIONS = [
   ["keep", "準備の時間が足りなくなったら、どちらを取りますか。", [["dishes", "品数や見た目をそろえる"], ["time", "相手と一緒にいる時間をとる"]]],
   ["taste", "味つけはどちらに近いですか。", [["recipe", "レシピどおりに量る"], ["byeye", "目分量で決める"]]]
 ];
+// 試作（2026-11-28 夜）：?stimulus=concern。その人のこだわりを先に聞いておき、後で AI がそれを一般的なやり方で扱う。
+// 質問はどれも同じ形（食事の進め方についての 4 つの話題、各 3 択）。最後に「こだわりがいちばん強いもの」「その次」を選んでもらう。
+// サーバーへ送るのは話題の二つだけ（stimulusRule: "concern", smallTalk: {top, second}）。どの選択肢を選んだかと、ひとことは記録するだけ。
+// 答えは右側にも対話にも出さない。指定が無ければ画面も送信内容も従来どおり。文言は候補。
+const CONCERN = QUERY.get("stimulus") === "concern";
+const CONCERN_TOPIC_LABELS = [["prep", "準備の進め方"], ["serve", "料理の出し方"], ["share", "料理の並べ方"], ["tidy", "食後の片付け"]];
+const CONCERN_QUESTIONS = [
+  ["cook", "ふだん、料理はどのくらいしますか。", [["daily", "ほぼ毎日"], ["weekly", "週に数回"], ["rarely", "あまりしない"]]],
+  ["prep", "誰かと食事をするとき、準備はどう進めたいですか。", [["before", "来る前に、全部済ませておく"], ["half", "途中まで作り、最後は目の前で仕上げる"], ["together", "来てから、一緒に作る"]]],
+  ["serve", "できた料理は、どう出したいですか。", [["fresh", "できたてを、一品ずつ出す"], ["atonce", "全部そろえてから、一度に出す"], ["watch", "相手の食べる様子を見ながら出す"]]],
+  ["share", "料理は、どう並べたいですか。", [["platter", "大皿に盛って、それぞれ取る"], ["each", "一人分ずつ盛りつける"], ["pot", "鍋や鉄板で、作りながら食べる"]]],
+  ["tidy", "食べ終わったあとの片付けは、どうしたいですか。", [["alone", "相手は座ったまま、自分で片付ける"], ["later", "そのままにして、話を続ける"], ["side", "相手と並んで、一緒に片付ける"]]],
+  ["top", "この中で、自分なりのこだわりがいちばん強いのはどれですか。", CONCERN_TOPIC_LABELS],
+  ["second", "その次にこだわりがあるのはどれですか。", CONCERN_TOPIC_LABELS]
+];
+function setupConcernTalk(form) {
+  if (!CONCERN || form.querySelector(".talk-section")) return;
+  const section = document.createElement("section");
+  section.className = "prep-section talk-section talk-wide";
+  const head = document.createElement("h2");
+  head.textContent = "ふだんの食事について";
+  const lead = document.createElement("p");
+  lead.className = "talk-lead";
+  lead.textContent = "対話の前に、少しだけ教えてください。正解はありません。近いものを選んでください。";
+  const grid = document.createElement("div");
+  grid.className = "talk-grid";
+  section.append(head, lead, grid);
+  CONCERN_QUESTIONS.forEach(([name, question, options]) => {
+    const box = document.createElement("fieldset");
+    box.className = "scenario-picker talk-item" + (name === "top" || name === "second" ? " talk-pick" : "");
+    box.style.gridTemplateColumns = `repeat(${options.length}, minmax(0, 1fr))`;
+    const legend = document.createElement("legend");
+    legend.textContent = question;
+    box.append(legend);
+    options.forEach(([value, label]) => {
+      const row = document.createElement("label");
+      const input = document.createElement("input");
+      input.type = "radio"; input.name = `talk_${name}`; input.value = value;
+      const span = document.createElement("span");
+      span.textContent = label;
+      row.append(input, span);
+      box.append(row);
+    });
+    grid.append(box);
+  });
+  const noteRow = document.createElement("label");
+  noteRow.className = "talk-note";
+  const noteText = document.createElement("span");
+  noteText.textContent = "そのこだわりについて、ひとことあれば書いてください（任意）。";
+  const note = document.createElement("input");
+  note.type = "text"; note.name = "talk_note"; note.maxLength = 60; note.autocomplete = "off";
+  noteRow.append(noteText, note);
+  section.append(noteRow);
+  form.querySelector(".participant-scales").after(section);
+}
+function readConcernTalk(form) {
+  if (!CONCERN) return null;
+  const out = {};
+  for (const [name] of CONCERN_QUESTIONS) {
+    const picked = form.querySelector(`input[name="talk_${name}"]:checked`);
+    if (!picked) return undefined;
+    out[name] = picked.value;
+  }
+  if (out.top === out.second) return "same";
+  out.note = (form.querySelector('input[name="talk_note"]')?.value || "").trim();
+  return out;
+}
 function setupSmallTalk(form) {
   if (!SMALLTALK || form.querySelector(".talk-section")) return;
   const section = document.createElement("section");
@@ -790,6 +857,7 @@ async function submitTurn() {
         ...(DIALOGUE_STYLE === "open" ? { dialogueStyle: "open" } : {}),
         ...(PRECHOICE && Array.isArray(session.pretaskAnchor?.values) ? { stimulusRule: "prechoice" } : {}),
         ...(SMALLTALK && session.smallTalk ? { stimulusRule: "smalltalk", smallTalk: { prep: session.smallTalk.prep, keep: session.smallTalk.keep } } : {}),
+        ...(CONCERN && session.smallTalk ? { stimulusRule: "concern", smallTalk: { top: session.smallTalk.top, second: session.smallTalk.second } } : {}),
         // 分析AI の指示文の版。サーバーは試験用の参加者番号のときだけ受け付ける（正式な番号では環境変数 EXPERIMENT_ANALYSIS_PROMPT で決まる）。
         // flow2 は v7（title は項目名、meaning は AI の受け取り方）を前提にしているので、試験用の番号では v7 を送る。?prompt=v1〜v7 で切り替えられる。
         ...(/^v[1-9]$/.test(QUERY.get("prompt") || "") ? { analysisPrompt: QUERY.get("prompt") } : FLOW2 ? { analysisPrompt: "v7" } : {}),
@@ -1103,11 +1171,18 @@ els.prepForm.querySelectorAll('input[type="range"]').forEach((input) => {
   input.addEventListener("input", () => { if (output) output.textContent = input.value; });
 });
 setupSmallTalk(els.prepForm);
+setupConcernTalk(els.prepForm);
 els.prepForm.addEventListener("submit", (event) => {
   event.preventDefault();
-  const talk = readSmallTalk(els.prepForm);
+  const talk = CONCERN ? readConcernTalk(els.prepForm) : readSmallTalk(els.prepForm);
   if (talk === undefined) { showToast("ふだんの食事についての質問に、すべて答えてください。"); return; }
-  if (talk) { session.smallTalk = talk; logEvent("smalltalk_recorded", { ...talk }); }
+  if (talk === "same") { showToast("「いちばん」と「その次」には、別のものを選んでください。"); return; }
+  if (talk) {
+    session.smallTalk = talk;
+    // ひとこと（自由記述）はログの本文には入れず、長さだけ残す（内容は session.smallTalk にある）
+    const { note, ...choices } = talk;
+    logEvent("smalltalk_recorded", { ...choices, ...(note === undefined ? {} : { noteLength: note.length }) });
+  }
   const data = new FormData(els.prepForm);
   session.pretest = {
     completedAt: isoNow(),

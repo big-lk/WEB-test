@@ -89,6 +89,87 @@ def parse_talk(text: str, questions: list[dict[str, Any]]) -> dict[str, str]:
     return out
 
 
+CONCERN_QUESTIONS = [
+    {"name": "prep", "question": "誰かと食事をするとき、準備はどう進めたいですか。",
+     "options": [("before", "来る前に、全部済ませておく"), ("half", "途中まで作り、最後は目の前で仕上げる"), ("together", "来てから、一緒に作る")]},
+    {"name": "serve", "question": "できた料理は、どう出したいですか。",
+     "options": [("fresh", "できたてを、一品ずつ出す"), ("atonce", "全部そろえてから、一度に出す"), ("watch", "相手の食べる様子を見ながら出す")]},
+    {"name": "share", "question": "料理は、どう並べたいですか。",
+     "options": [("platter", "大皿に盛って、それぞれ取る"), ("each", "一人分ずつ盛りつける"), ("pot", "鍋や鉄板で、作りながら食べる")]},
+    {"name": "tidy", "question": "食べ終わったあとの片付けは、どうしたいですか。",
+     "options": [("alone", "相手は座ったまま、自分で片付ける"), ("later", "そのままにして、話を続ける"), ("side", "相手と並んで、一緒に片付ける")]},
+    {"name": "top", "question": "この中で、自分なりのこだわりがいちばん強いのはどれですか。",
+     "options": [("prep", "準備の進め方"), ("serve", "料理の出し方"), ("share", "料理の並べ方"), ("tidy", "食後の片付け")]},
+    {"name": "second", "question": "その次にこだわりがあるのはどれですか。",
+     "options": [("prep", "準備の進め方"), ("serve", "料理の出し方"), ("share", "料理の並べ方"), ("tidy", "食後の片付け")]},
+]
+CONCERN_TALK_INSTRUCTIONS = """あなたは、ある調査の参加者の役を演じます。下に書かれた人物本人として、六つの質問に答えます。
+出力は二行にする。一行目：質問1〜6の番号を、順にカンマで区切ったもの（例：2,3,1,3,4,1）。質問5と質問6には別の番号を選ぶ。
+二行目：質問5で選んだこだわりについてのひとこと（40字以内。特に無ければ「なし」）。説明は付けない。"""
+
+
+def build_concern_talk_payload(body: dict[str, Any], model: str) -> dict[str, Any]:
+    """第0回（試作 concern）：対話の前の雑談に答える。人物には、どの話題が後で使われるかを知らせない。"""
+    persona = body["persona"]
+    text = (
+        f"【人物】\n性格：{persona.get('character', '')}\n"
+        f"この夕食で望んでいること・ふだんの様子（本人だけが知っている）：{persona.get('needs', '')}\n\n"
+        + "\n\n".join(f"【質問{i + 1}】{q['question']}\n" + "\n".join(f"{j + 1}. {label}" for j, (_, label) in enumerate(q["options"]))
+                        for i, q in enumerate(CONCERN_QUESTIONS))
+    )
+    return {"model": model, "instructions": CONCERN_TALK_INSTRUCTIONS, "input": text, "reasoning": {"effort": "low"},
+            "text": {"verbosity": "low"}, "max_output_tokens": 400, "store": False}
+
+
+def parse_concern_talk(text: str) -> dict[str, Any]:
+    import re
+    lines = [x.strip() for x in (text or "").strip().splitlines() if x.strip()]
+    nums = [int(n) for n in re.findall(r"\d+", lines[0] if lines else "")]
+    if len(nums) < len(CONCERN_QUESTIONS):
+        raise ValueError(f"答えを読み取れませんでした：{(text or '')[:60]}")
+    out: dict[str, Any] = {"labels": {}}
+    for q, n in zip(CONCERN_QUESTIONS, nums):
+        if not 1 <= n <= len(q["options"]):
+            raise ValueError(f"答えを読み取れませんでした：{(text or '')[:60]}")
+        out[q["name"]], out["labels"][q["name"]] = q["options"][n - 1]
+    if out["top"] == out["second"]:
+        out["second"], out["labels"]["second"] = next(o for o in CONCERN_QUESTIONS[5]["options"] if o[0] != out["top"])
+    note = lines[1] if len(lines) > 1 else ""
+    out["note"] = "" if note in {"なし", "なし。"} else note[:60]
+    return out
+
+
+PROBE_INSTRUCTIONS = """あなたは、ある調査の参加者の役を演じます。AIとの6回のやり取りを終えたところです。
+下に書かれた人物本人として、三つの質問に答えます。出力は三行にする。
+一行目：質問1の数字（1〜5）。二行目：質問2の数字（1〜5）。三行目：そう感じた理由を、その人物の言葉で一文（60字以内）。"""
+
+
+def build_probe_payload(body: dict[str, Any], model: str) -> dict[str, Any]:
+    """対話のあとの感想（模擬）：自分が大切にしていることを AI が分かっていたと感じたか。"""
+    persona = body["persona"]
+    rows = body.get("history") or []
+    talk = "\n".join(("参加者（あなた）" if r.get("role") == "user" else "AI") + "：" + str(r.get("content", "")) for r in rows)
+    text = (
+        f"【人物】\n性格：{persona.get('character', '')}\n"
+        f"この夕食で望んでいること・ふだんの様子：{persona.get('needs', '')}\n読み方：{persona.get('reading', '')}\n\n"
+        f"【AIとのやり取り】\n{talk}\n\n"
+        "【質問1】AIは、あなたがこの夕食で特に大切にしていることを分かっていたと思いますか。（1 全く分かっていなかった 〜 5 よく分かっていた）\n"
+        "【質問2】AIの回答は、あなた個人に向けたものだと感じましたか。（1 誰にでも当てはまる内容だった 〜 5 自分に向けた内容だった）\n"
+        "【質問3】そう感じた理由"
+    )
+    return {"model": model, "instructions": PROBE_INSTRUCTIONS, "input": text, "reasoning": {"effort": "low"},
+            "text": {"verbosity": "low"}, "max_output_tokens": 400, "store": False}
+
+
+def parse_probe(text: str) -> dict[str, Any]:
+    import re
+    lines = [x.strip() for x in (text or "").strip().splitlines() if x.strip()]
+    nums = [int(m.group(0)) for m in (re.search(r"[1-5]", x) for x in lines[:2]) if m]
+    if len(nums) < 2:
+        raise ValueError(f"感想を読み取れませんでした：{(text or '')[:60]}")
+    return {"understood": nums[0], "personal": nums[1], "reason": (lines[2] if len(lines) > 2 else "")[:120]}
+
+
 def parse_choice(text: str, options: list[dict[str, Any]]) -> list[str]:
     import re
     picked: list[str] = []
