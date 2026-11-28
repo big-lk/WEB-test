@@ -2604,9 +2604,11 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
                                                if experiment_variant in UNRANKED_VARIANTS and turn in {5, 6} else (None, "", ""))
     gen_rel_untouched = bool(gen_rel_card) and not any(generic_relation_touched(t, gen_preferred, gen_action)
                                                        for t in later_user_texts)
-    if gen_rel_untouched and pre_values and any(k in t for t in later_user_texts for k in pre_values[1]["keys"]):
-        # 試作（prechoice）：縮められた Y の言葉に参加者が触れていれば「触れた」とし、右側の優先の表示を機械的に残さない
-        gen_rel_untouched = False
+    if pre_values and gen_rel_card:
+        # 試作（prechoice）：「触れた」の判定を、Y の言葉（keys）か「優先」が入力に出てきたかどうかだけで決める。
+        # 従来の判定は具体策の語（片付け、写真など）が一つでも出れば「触れた」になるので、訂正していない人でも
+        # 右側の優先の表示が消えることがあった（実際の出力：「食べて飲んで片付ける」で消えた）。
+        gen_rel_untouched = not any("優先" in t or any(k in t for k in pre_values[1]["keys"]) for t in later_user_texts)
 
     final_relation_inserted: list[str] = []
 

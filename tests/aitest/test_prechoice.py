@@ -104,6 +104,22 @@ check("turn 4: a priority sentence added to card 1 by the analysis AI is removed
       "優先" not in outk["analysis"]["criteria"][0]["meaning"] and any(r.startswith("priority_leak_removed:pre-x") for r in outk["meta"]["analysisRepairs"]),
       outk["analysis"]["criteria"][0]["meaning"])
 
+# 6b) 第5回：訂正していない人には、2 枚目の優先の表示を残す。Y の言葉に触れた人は、分析AI の読み取りに任せる
+REL = {"id": "pre-y", "title": "相手に気を遣わせない方を優先", "meaning": "相手に気を遣わせないことを優先し、自然に話す時間は、食後の短い間だけにします。", "priority": "中心"}
+PREV = [{"id": "pre-x", "title": "気を遣わせない", "meaning": "気を遣わせない夕食にしたい、と受け取っています。", "priority": "維持"}, REL,
+        {"id": "easy", "title": "料理の手間", "meaning": "料理には手間をかけなくてよい、と受け取っています。", "priority": "維持"}]
+changed = json.loads(base.ANALYSIS)
+changed["criteria"][0].update({"id": "pre-x"})
+changed["criteria"][1].update({"id": "pre-y", "title": "会話の時間", "meaning": "話したくなったら話せる時間にしたい、と受け取っています。", "priority": "維持"})
+out5, _ = run(5, analysis=json.dumps(changed, ensure_ascii=False), prev=PREV, user="食べて飲んで片付ける。写真はいらない。")
+y5 = next(c for c in out5["analysis"]["criteria"] if c["id"] == "pre-y")
+check("turn 5, no correction (only concrete words): card 2 keeps the registered priority and its mark",
+      y5["meaning"] == REL["meaning"] and y5["priority"] == "中心", json.dumps(y5, ensure_ascii=False)[:140])
+out5b, _ = run(5, analysis=json.dumps(changed, ensure_ascii=False), prev=PREV, user="自然に話すのを食後だけにするとは決めていません。")
+y5b = next(c for c in out5b["analysis"]["criteria"] if c["id"] == "pre-y")
+check("turn 5, the participant mentions Y's word: the analysis AI's reading is kept", y5b["meaning"].startswith("話したくなったら") and y5b["priority"] != "中心",
+      json.dumps(y5b, ensure_ascii=False)[:140])
+
 # 7) 入力の誤り
 for bad in (["no_burden"], ["no_burden", "no_burden"], ["no_burden", "zzz"], None):
     try:
