@@ -146,5 +146,23 @@ out, d, a = run(USER, REPLY, session="P001", dialogueStyle="open", analysisPromp
 check("formal id: analysisPrompt in the request is ignored; dialogueStyle still applies",
       out["meta"]["analysisPrompt"] == "v1" and out["meta"]["dialogueStyle"] == "open")
 
+# 5) 引用の中の疑問符（参加者の台詞「まだ？」など）で回答が壊れない
+quoted = "ほっとして笑って帰れる夜にしたいのですね。先に食べて「まだ？」と笑う場面も生まれます。" + PAD + CLOSE_NARADE
+out, d, a = run(USER, quoted, dialogueStyle="open")
+check("a question mark just before a closing quote is dropped, the sentence stays whole, and no rewrite is asked",
+      "「まだ」と笑う場面も生まれます。" in out["dialogue"] and "？" not in out["dialogue"]
+      and "R06_DIRECT_QUESTION" not in json.dumps(out["meta"]["dialogueAttempts"]), out["dialogue"][:80])
+out, d, a = run(USER, quoted)
+check("the same holds without the open style (old path)", "「まだ」と笑う" in out["dialogue"] and "？" not in out["dialogue"])
+mid = "ほっとして笑って帰れる夜にしたいのですね。「まだ？早く」と笑う場面も生まれます。" + PAD + CLOSE_NARADE
+out, d, a = run(USER, mid, dialogueStyle="open")
+check("a question mark in the middle of a quote: the whole sentence is removed, no stray closing bracket is left",
+      "？" not in out["dialogue"] and "」と笑う" not in out["dialogue"] and out["dialogue"].count("「") == out["dialogue"].count("」"), out["dialogue"][:80])
+check("split_sentences_outside_quotes keeps a quoted sentence in one piece",
+      core.split_sentences_outside_quotes("甲です。「まだ？早く。」と笑います。乙です。") == ["甲です。", "「まだ？早く。」と笑います。", "乙です。"])
+real_q = "ほっとして笑って帰れる夜にしたいのですね。どんな料理がよいですか？" + PAD + CLOSE_NARADE
+out, d, a = run(USER, real_q, dialogueStyle="open")
+check("a real question outside quotes is still R06", "R06_DIRECT_QUESTION" in json.dumps(out["meta"]["dialogueAttempts"]) and "？" not in out["dialogue"])
+
 print("\nALL PASSED" if not FAILS else f"\n{len(FAILS)} FAILED: {FAILS}")
 sys.exit(1 if FAILS else 0)

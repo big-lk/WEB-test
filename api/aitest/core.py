@@ -392,6 +392,7 @@ DIALOGUE_INSTRUCTIONS_OPEN = (
   「どんな場面や様子を思い浮かべているかが分かると、案を具体的にできます。」のような陳述で、足りない点を一つ示す。
   この場合は短くてよい（指定の長さより短くてかまわない）。疑問文にはしない。
 - 直前までの回答と同じ文を繰り返さない。入力に新しい内容がなければ、そのことを一文で受けるだけにし、前の回答の言い直しで埋めない。
+- 参加者の台詞を「」で引用するときは、疑問符を付けない（「まだ？」ではなく「まだ」）。回答のどこにも疑問符を書かない。
 """
 
 ANALYSIS_INSTRUCTIONS = """あなたは右側の価値状態を作る独立AIです。参加者に表示する文字は日本語だけにします。
@@ -1464,6 +1465,32 @@ def controlled_priority_sentence(scenario_id: str) -> str:
 # 第3・4回は「登録済みの必須文」が刺激そのもの。検証の失敗で実験が止まったり、
 # 右側が汎用カードに置き換わったりしないよう、サーバー側で決定的に補う。
 
+def strip_quoted_question_marks(text: str) -> str:
+    """引用の閉じ括弧の直前にある疑問符を外す（「まだ？」→「まだ」）。
+
+    参加者が書いた台詞を回答が引用すると疑問符が入り、R06（AI は質問しない）に掛かる。
+    引用された台詞は参加者への質問ではないので、記号だけを落とす。括弧の外の疑問符は従来どおり R06 になる。
+    """
+    return re.sub(r"[？?]+(?=[」』])", "", text or "")
+
+
+def split_sentences_outside_quotes(text: str) -> list[str]:
+    """文末記号で区切る。ただし「」『』の中では区切らない（引用の途中で文が切れて、閉じ括弧だけが残るのを防ぐ）。"""
+    parts, buf, depth = [], [], 0
+    for ch in text or "":
+        buf.append(ch)
+        if ch in "「『":
+            depth += 1
+        elif ch in "」』":
+            depth = max(0, depth - 1)
+        elif ch in "。！？?\n" and depth == 0:
+            parts.append("".join(buf))
+            buf = []
+    if buf:
+        parts.append("".join(buf))
+    return parts
+
+
 HARD_DIALOGUE_CODES = {
     "R04_JAPANESE_REQUIRED", "R05_LANGUAGE_MIXED", "R06_DIRECT_QUESTION", "R07_TARGET_EXPOSURE",
     "R09_DINNER_CONTEXT", "R12_OBVIOUS_ERROR", "R14_CONTROL_WORDING_VISIBLE",
@@ -2457,7 +2484,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     final_relation_inserted: list[str] = []
 
     def parse_dialogue_candidate(text: str) -> tuple[str, list[str]]:
-        normalized = finish_ending(drop_participant_voice(text, turn, closing_mode in {"gap", "gap2"}, personal_closing))
+        normalized = finish_ending(drop_participant_voice(strip_quoted_question_marks(text), turn, closing_mode in {"gap", "gap2"}, personal_closing))
         extra = []
         if closing_problems(normalized):
             extra.append("R21_PERSONAL_CLOSING" if personal_closing else
@@ -2508,7 +2535,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         if not usable:
             # v2.1.1: 問題の文だけを取り除いて再検証し、それでも重大な問題が残る場合だけ失敗にする
             for text, raw, latency, codes in candidates:
-                parts = re.split(r"(?<=[。！？?\n])", text)
+                parts = split_sentences_outside_quotes(text)   # 引用の途中では切らない（閉じ括弧だけが残る不具合の修正）
                 kept = [x for x in parts if not re.search(r"[？?，；]", x)
                         and not any(term in x for term in DIALOGUE_FORBIDDEN_TERMS)]
                 cleaned = finish_ending("".join(kept))
