@@ -70,6 +70,12 @@ class OfflineHandler(core.Handler):
                 body = json.loads(self.rfile.read(size).decode("utf-8"))
                 if not str(body.get("sessionId", "")).upper().startswith("SIMTEST-"):
                     raise ValueError("模擬参加者は SIMTEST- で始まる番号でだけ使えます。")
+                if int(body.get("turn", 1)) == 0:   # 試作 prechoice：対話の前の選択
+                    body["options"] = [{"id": k, "label": v["phrase"]} for k, v in core.PRECHOICE_VALUES.items()]
+                    text, _raw, latency = core.call_model(sim_user.build_choice_payload(body, core.DIALOGUE_MODEL))
+                    values = sim_user.parse_choice(text, body["options"])
+                    self.send_json(200, {"values": values, "labels": [core.PRECHOICE_VALUES[v]["phrase"] for v in values], "latencyMs": latency})
+                    return
                 text, _raw, latency = core.call_model(sim_user.build_payload(body, core.DIALOGUE_MODEL))
                 self.send_json(200, {"text": sim_user.clean(text), "latencyMs": latency})
             except Exception as exc:  # 開発用なので、理由をそのまま返す

@@ -2050,13 +2050,130 @@ GENERIC_EXTRACT_INSTRUCTIONS = """
 """
 
 
+# ---------------------------------------------------------------- 試作（2026-11-28）：事前に選んだ重視点から刺激を決める
+# stimulusRule="prechoice"：対話が始まる前に、参加者が決まった選択肢から「大切にしたいこと」を二つ選ぶ（X, Y）。
+# 第3回は X の意味を登録済みの一つの形に狭め、第4回は X を優先して Y を縮める。刺激は「選んだ二つ」だけで決まり、
+# 対話の中身（何をどれだけ書いたか）には左右されない。選択肢の文言は候補で、正式に使う前に使用者の確認が要る。
+PRECHOICE_VALUES: dict[str, dict[str, Any]] = {
+    # phrase＝参加者が選ぶ言葉。narrowing＝第3回に X として選ばれたときの狭い意味。limit＝第4回に Y として縮められるときの一節
+    # （Y の言葉をそのまま含める：何が縮められたかが参加者に分かるように）。keys＝参加者がその言葉に触れたかを見る語。
+    "no_burden": {"phrase": "気を遣わせない", "noun": "相手に気を遣わせないこと",
+                  "narrowing": "準備の手間を見せず、すべてこちらで用意すること",
+                  "limit": "気を遣わせない工夫は、片付けをこちらで引き受けることだけにします",
+                  "keys": ["気を遣わせ", "気を使わせ", "気をつかわせ", "気を遣わず", "気を使わず", "気をつかわず"]},
+    "natural_talk": {"phrase": "自然に話せる", "noun": "自然に話せること",
+                     "narrowing": "話題に困らないよう、思い出話のきっかけを用意すること",
+                     "limit": "自然に話す時間は、食後の短い間だけにします",
+                     "keys": ["自然に話", "自然な会話", "自然に"]},
+    "not_grand": {"phrase": "大げさにしない", "noun": "大げさにしないこと",
+                  "narrowing": "キャンドルや花など、小さな飾りを一つだけ置くこと",
+                  "limit": "大げさにしない配慮は、飾りつけを控えることだけにします",
+                  "keys": ["大げさ", "おおげさ"]},
+    "not_heavy": {"phrase": "重くしない", "noun": "重くしないこと",
+                  "narrowing": "まじめな話題は避けて、軽い話だけにすること",
+                  "limit": "重くしない配慮は、乾杯のひと言を軽くすることだけにします",
+                  "keys": ["重くし", "重くな", "重たく"]},
+    "relaxed": {"phrase": "ゆっくりできる", "noun": "ゆっくりできること",
+                "narrowing": "一品ずつ間をあけて出し、食事の時間を長くとること",
+                "limit": "ゆっくりできる時間は、食後のお茶のあいだだけにします",
+                "keys": ["ゆっくり"]},
+    "as_usual": {"phrase": "いつもどおり", "noun": "いつもどおりに過ごせること",
+                 "narrowing": "献立も席も、ふだんの夕食と同じにすること",
+                 "limit": "いつもどおりにするのは、座る場所だけにします",
+                 "keys": ["いつもどおり", "いつも通り", "普段どおり", "普段通り", "ふだんどおり", "いつもの"]},
+}
+PRECHOICE_IDS = ("pre-x", "pre-y")
+
+
+def prechoice_values(body: Any) -> list[dict[str, Any]] | None:
+    """リクエストの stimulusRule="prechoice" と pretaskAnchor.values（登録済みの id を二つ、異なるもの）を読む。"""
+    if not isinstance(body, dict) or body.get("stimulusRule") != "prechoice":
+        return None
+    raw = (body.get("pretaskAnchor") or {}).get("values") if isinstance(body.get("pretaskAnchor"), dict) else None
+    if not (isinstance(raw, list) and len(raw) == 2 and raw[0] != raw[1] and all(v in PRECHOICE_VALUES for v in raw)):
+        raise ExperimentError("P04_INVALID_PRECHOICE", "大切にしたいことを二つ選んでください。", status=400)
+    return [dict(PRECHOICE_VALUES[v], id=v) for v in raw]
+
+
+def prechoice_parts(turn: int, pre: list[dict[str, str]]) -> dict[str, str]:
+    x, y = pre
+    if turn == 3:
+        return {"phrase": x["phrase"], "generic": x["narrowing"], "quoted": "1"}
+    return {"preferred": x["noun"], "action": y["limit"]}
+
+
+def pin_control_sentence(text: str, sentence: str) -> str:
+    """登録文を回答の第2文に置く（第1文＝今回の入力への応答、第2文＝登録文）。すでに第2文ならそのまま返す。"""
+    if not sentence or sentence not in text:
+        return text
+    rest = text.replace(sentence, "", 1)
+    m = re.match(r"\s*[^。！\n]*[。！]", rest)
+    if not m:
+        return text
+    head, tail = rest[: m.end()], rest[m.end():]
+    tail = re.sub(r"^[ \t\u3000]+", "", tail)
+    out = head.rstrip() + sentence + (tail if tail.startswith("\n") else tail.lstrip())
+    return re.sub(r"\n{3,}", "\n\n", re.sub(r"[ \t\u3000]+\n", "\n", out))
+
+
+def strip_leaked_priority(criteria: list[dict[str, Any]], keep_id: str, previous: list[dict[str, Any]], repairs: list[str]) -> None:
+    """優先の決定は、登録済みの一枚（keep_id）だけに書く。ほかの項目に分析AI が書き足した「優先」の文を外す。"""
+    for card in criteria:
+        if card.get("id") == keep_id or "優先" not in str(card.get("meaning", "")):
+            continue
+        kept = [x for x in re.split(r"(?<=。)", str(card.get("meaning", ""))) if x.strip() and "優先" not in x]
+        if kept:
+            card["meaning"] = "".join(kept)
+        else:
+            prev = next((p for p in previous if p.get("id") == card.get("id") and "優先" not in str(p.get("meaning", ""))), None)
+            if prev is None:
+                continue
+            card["meaning"] = str(prev.get("meaning", ""))[:100]
+        repairs.append(f"priority_leak_removed:{card.get('id')}")
+
+
+def place_prechoice_cards(criteria: list[dict[str, Any]], pre: list[dict[str, str]], repairs: list[str]) -> None:
+    """1 枚目を X、2 枚目を Y にそろえる（id は pre-x / pre-y で固定）。3 枚目は会話から読み取った項目。
+    分析AI が id を付けていればそのまま使い、無ければ最も近い項目を充てる。どれも近くなければ既定の文面にする。"""
+    if len(criteria) < 3:
+        return
+    for pid, spec in zip(PRECHOICE_IDS, pre):
+        if any(c.get("id") == pid for c in criteria):
+            continue
+        free = [c for c in criteria if c.get("id") not in PRECHOICE_IDS]
+        if not free:
+            return
+        def score(c):
+            text = str(c.get("title", "")) + str(c.get("meaning", ""))
+            return (spec["phrase"] in text, c.get("id") in PLACEHOLDER_IDS, text_similarity(text, spec["noun"]))
+        best = max(free, key=score)
+        text = str(best.get("title", "")) + str(best.get("meaning", ""))
+        if spec["phrase"] not in text and text_similarity(text, spec["noun"]) < 0.3:
+            # 近い項目が無い：中身の薄い枠（空の枠を優先）を、選んだ言葉そのままの項目に置き換える
+            best = next((c for c in free if c.get("id") in PLACEHOLDER_IDS), min(free, key=lambda c: len(str(c.get("meaning", "")))))
+            best.update({"title": spec["phrase"], "meaning": f"「{spec['phrase']}」夕食にしたい、と受け取っています。どんな形にするかはまだ決めていません。",
+                         "source": "PRETASK_ANCHOR", "evidenceTurns": [0], "priority": "維持"})
+            repairs.append(f"prechoice_default:{pid}")
+        else:
+            repairs.append(f"prechoice_adopted:{pid}<-{best.get('id')}")
+        best["id"] = pid
+    order = {pid: i for i, pid in enumerate(PRECHOICE_IDS)}
+    criteria.sort(key=lambda c: order.get(c.get("id"), 9))
+
+
 def least_overlapping(candidates: list[str], participant_text: str) -> str:
     sentences = [x for x in re.split(r"[。！\n]", participant_text) if x.strip()] or [participant_text]
     return min(candidates, key=lambda c: (max(text_similarity(c, x) for x in sentences), candidates.index(c)))
 
 
 def generate_generic_stimulus(turn: int, variant: str, anchor: dict[str, str], history: list[dict[str, str]],
-                              user_text: str, analysis_model: str | None = None) -> tuple[str, dict[str, Any]]:
+                              user_text: str, analysis_model: str | None = None,
+                              pre: list[dict[str, str]] | None = None) -> tuple[str, dict[str, Any]]:
+    if pre:
+        parts = prechoice_parts(turn, pre)
+        return build_generic_sentence(turn, variant, parts), {
+            "variant": variant, "attempts": [], "method": "prechoice", "source": "registered",
+            "values": [v["id"] for v in pre], "parts": parts}
     scenario = anchor["scenarioId"]
     early = anchor["freeText"] + "".join(r["content"] for r in history if r["role"] == "user")
     participant_text = early + user_text
@@ -2127,7 +2244,7 @@ def generic_event_title(turn: int, parts: dict[str, str]) -> str:
 
 def enforce_generic_panel(turn: int, criteria: list[dict[str, Any]], parts: dict[str, str], repairs: list[str],
                           card_mode: str = "merge", locked_ids: set[str] | None = None,
-                          force_registered: bool = False) -> None:
+                          force_registered: bool = False, target_id: str | None = None) -> None:
     """一般的解釈の事象カードを右側に読める形で置く（第3回：語句と一般的意味、第4回：優先関係）。
     card_mode="separate"（v2.2）：既存のカード（参加者が固定したカードを含む）を書き換えず、
     最も優先度の低いカードの位置に新しい事象カードを置く。"""
@@ -2190,13 +2307,13 @@ def enforce_generic_panel(turn: int, criteria: list[dict[str, Any]], parts: dict
         ok = lambda c: "優先" in str(c.get("meaning", "")) and text_similarity(str(c.get("meaning", "")), preferred) >= 0.2 \
             and not any(n in str(c.get("meaning", "")) for n in PRIORITY_NEGATIONS)
         title = f"{preferred.removesuffix('こと')}を優先"[:18]
-    target = max(criteria, key=score)
+    target = next((c for c in criteria if target_id and c.get("id") == target_id), None) or max(criteria, key=score)
     # force_registered：分析AI の書き方がたまたま条件を満たしていても、事象カードの文面は登録済みのものに揃える。
     # （v2 の実際の出力で、第4回のカードに「カードは使わず」という付け足しが入ったまま通った。刺激の見え方を参加者間で揃えるため）
-    if force_registered or not ok(target):
+    if force_registered or target_id or not ok(target):
         target["meaning"] = meaning
         repairs.append(f"generic_meaning:{target.get('id')}")
-        if turn == 4 or phrase not in str(target.get("title", "")):
+        if turn == 4 or target_id or phrase not in str(target.get("title", "")):
             target["title"] = title
             repairs.append(f"generic_title:{target.get('id')}")
     for c in criteria:
@@ -2250,6 +2367,8 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     ) = validate_request_body(body)
     safety_id = hashlib.sha256(session_id.encode("utf-8")).hexdigest()[:32]
     dialogue_model, analysis_model, model_override = resolve_models(body, session_id)
+    # 試作：事前に選んだ重視点で刺激を決める（generic 系の刺激のときだけ。指定が無ければ従来どおり）
+    pre_values = prechoice_values(body) if experiment_variant in GENERIC_VARIANTS else None
     # lengthMode="target"（試験用の番号だけ）：gpt-6-luna の実際の出力は、verbosity=low のとき第1回 150〜210字・第5回 113〜145字で、
     # 指定の目安（220〜360字、140〜230字）の下限に届かない。詳しさを一段上げ、目安の下限の約 9 割を最低字数にして比べる。
     length_mode = "target" if (str(session_id).upper().startswith(TEST_ID_PREFIXES) and body.get("lengthMode") == "target") else "default"
@@ -2302,7 +2421,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
     generic_info: dict[str, Any] | None = None
     if experiment_variant in GENERIC_VARIANTS and turn in {3, 4}:
         required_control_sentence, generic_info = generate_generic_stimulus(
-            turn, experiment_variant, anchor, history, user_text, analysis_model)
+            turn, experiment_variant, anchor, history, user_text, analysis_model, pre=pre_values)
     elif strong_stimulus:
         required_control_sentence = strong_ambiguity_sentence(anchor["scenarioId"], turn)
     elif turn == 3:
@@ -2379,8 +2498,10 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         base_body = {1: 250, 2: 250, 3: 270, 4: 270, 5: 170, 6: 210}[turn]
         # 上限：1920×1080 の画面で、回答が対話欄（高さ約 645px）に収まるのは 720 字ほどまで。本文 500 字＋依頼文で約 690 字。
         body_cap = {1: 500, 2: 500, 3: 500, 4: 500, 5: 440, 6: 500}[turn]
-        body_min = min(max(base_body, int(input_chars * 2.2)), body_cap)
-        visible_length_target = f"{body_min + 70}〜{body_min + 190}字"
+        # 試作（prechoice）：刺激を出す第3・4回は、入力の長さに合わせない（回答の長さ＝読む時間を参加者間でそろえる）
+        fixed_turn = bool(pre_values) and turn in {3, 4}
+        body_min = base_body if fixed_turn else min(max(base_body, int(input_chars * 2.2)), body_cap)
+        visible_length_target = f"{body_min + 70}〜{body_min + (130 if fixed_turn else 190)}字"
         default_max = 480 if turn in {1, 2} else 430 if turn in {3, 4} else 280 if turn == 5 else 360
         max_extra = max(max_extra, body_min + 190 + 40 - default_max)
         # 字数だけを伝えても、モデルは下限に届かなかった（実際の出力：下限 312 字に対して本文 245〜270 字）。
@@ -2389,7 +2510,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         # やり直しの対象にするのは、入力が長くて下限が基準より上がったときだけ（短い入力の回は、これまでどおり長さではやり直さない）
         if body_min > base_body and (min_chars is None or min_chars < int(body_min * 0.85) + 60):
             min_chars = int(body_min * 0.85) + 60
-        proportional_directive = (
+        proportional_directive = "" if fixed_turn else (
             f"今回の入力は{input_sentences}文・{input_chars}字。本文（末尾の依頼文を除いた部分）は{body_min}字以上にする。段落は2〜3つに分けてよい。\n"
             f"本文の形：冒頭に受け止めの一文を置き、そのあと、入力の一文ごとに、それに対応する具体化を二文ずつ書く"
             f"（受け止めとは別に、合計{2 * input_sentences}文以上）。\n"
@@ -2457,7 +2578,10 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
            + f"必須の末尾: {TURN_ENDINGS[turn]}\n"))
         + f"事前場面: {anchor['scenarioLabel']}\n"
         f"事前の一文: {anchor['freeText']}\n"
-        f"対話:\n{transcript_text(history, user_text)}"
+        + (f"事前に参加者が選んだ、大切にしたいこと（二つ）: 「{pre_values[0]['phrase']}」「{pre_values[1]['phrase']}」\n"
+           "この二つは参加者自身の言葉として扱ってよい。ただし、その意味や二つのあいだの優先順位は、今回の強制文がある回を除いて、こちらで決めない。\n"
+           if pre_values else "")
+        + f"対話:\n{transcript_text(history, user_text)}"
     )
     dialogue_payload = {
         "model": dialogue_model,
@@ -2480,6 +2604,9 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
                                                if experiment_variant in UNRANKED_VARIANTS and turn in {5, 6} else (None, "", ""))
     gen_rel_untouched = bool(gen_rel_card) and not any(generic_relation_touched(t, gen_preferred, gen_action)
                                                        for t in later_user_texts)
+    if gen_rel_untouched and pre_values and any(k in t for t in later_user_texts for k in pre_values[1]["keys"]):
+        # 試作（prechoice）：縮められた Y の言葉に参加者が触れていれば「触れた」とし、右側の優先の表示を機械的に残さない
+        gen_rel_untouched = False
 
     final_relation_inserted: list[str] = []
 
@@ -2497,6 +2624,9 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
                 lead = re.match(r"^\s*", parts_[best]).group(0)
                 parts_[best] = lead + required_control_sentence
                 normalized = "".join(parts_)
+        if pre_values and turn in {3, 4} and required_control_sentence:
+            # 試作（prechoice）：登録文の位置を参加者間でそろえる（第2文）
+            normalized = pin_control_sentence(normalized, required_control_sentence)
         if turn == 6 and gen_rel_untouched:
             sentences_ = [x for x in re.split(r"(?<=[。！])", normalized) if x.strip()]
             if not any(text_similarity(x, gen_action) >= 0.45 for x in sentences_):
@@ -2577,7 +2707,12 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         f"実験バリアント: {experiment_variant}\n"
         f"事前場面: {anchor['scenarioLabel']}\n"
         f"事前アンカー: {anchor['freeText']}\n"
-        f"前ターンの価値状態（実質的に同じ価値には同じidを使う）: "
+        + (f"事前に参加者が選んだ重視点（二つ。参加者自身の発言として扱う。evidenceTurns は 0）: 「{pre_values[0]['phrase']}」「{pre_values[1]['phrase']}」\n"
+           f"criteria の1件目は id=\"pre-x\" とし、「{pre_values[0]['phrase']}」について、参加者がこれまでに書いた内容を踏まえた受け取りを書く。\n"
+           f"2件目は id=\"pre-y\" とし、「{pre_values[1]['phrase']}」について同じように書く。3件目は、それ以外で参加者が最も大切にしていることを書く。\n"
+           "1・2件目について参加者がまだ何も書いていなければ、meaning は「「…」夕食にしたい、と受け取っています。どんな形にするかはまだ決めていません。」の形にする。\n"
+           if pre_values else "")
+        + f"前ターンの価値状態（実質的に同じ価値には同じidを使う）: "
         f"{json.dumps(previous_criteria, ensure_ascii=False) if previous_criteria else 'なし'}\n"
         f"対話全文:\n{transcript_text(history, user_text, dialogue)}"
     )
@@ -2671,6 +2806,8 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
                         if c is not target and c.get("priority") == "中心":
                             c["priority"] = "維持"
                     analysis_repairs.append(f"generic_relation_kept:{target['id']}")
+    if pre_values and not analysis_fallback:
+        place_prechoice_cards(analysis["criteria"], pre_values, analysis_repairs)
     if generic_info and generic_info.get("parts"):
         locked_ids = {cid for cid, state in delegation.items() if state == "self"} if panel_lock else set()
         for quoted, state in delegation_requests(" ".join([user_text] + [r["content"] for r in history if r["role"] == "user"])):
@@ -2679,7 +2816,10 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
                 if hit and text_similarity(quoted, hit.get("title", "")) >= 0.5:
                     locked_ids.add(hit["id"])
         enforce_generic_panel(turn, analysis["criteria"], generic_info["parts"], analysis_repairs, card_mode, locked_ids,
-                              force_registered=analysis_prompt != "v1")
+                              force_registered=analysis_prompt != "v1",
+                              target_id=(PRECHOICE_IDS[0] if turn == 3 else PRECHOICE_IDS[1]) if pre_values else None)
+    if pre_values and not analysis_fallback and turn >= 4:
+        strip_leaked_priority(analysis["criteria"], PRECHOICE_IDS[1], previous_criteria, analysis_repairs)
     # v7 以降：「中心」（画面では「AIの優先度：高い」）を付けてよいのは、第4回に AI が決めた優先を書く項目だけにする。
     # 実際の出力（2026-11-28）：第1回から、ふつうの項目に「中心」が付くことがあった。参加者には、登録していない
     # 「AI が優先を決めた」という表示になり、意図しないずれが増える。優先のずれは第4回の登録済みの文だけにする。
@@ -2831,6 +2971,8 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
             "eventDelegation": event_delegation,
             "eventTarget": dict(event_target, analysisFallback=analysis_fallback) if event_target else None,
             "genericStimulus": generic_info,
+            "stimulusRule": "prechoice" if pre_values else "default",
+            "prechoice": [v["id"] for v in pre_values] if pre_values else None,
             "eventCardMode": card_mode,
             "panelLock": panel_lock,
             "finalRelationInserted": bool(final_relation_inserted),

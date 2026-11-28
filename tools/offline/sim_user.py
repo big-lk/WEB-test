@@ -35,6 +35,39 @@ INSTRUCTIONS = """あなたは、ある調査の参加者の役を演じます�
 """
 
 
+CHOICE_INSTRUCTIONS = """あなたは、ある調査の参加者の役を演じます。下に書かれた人物本人として、選択肢から二つを選びます。
+出力は、選んだ番号を大切な順にカンマで区切ったものだけにする（例：3,1）。説明は付けない。"""
+
+
+def build_choice_payload(body: dict[str, Any], model: str) -> dict[str, Any]:
+    """第0回（試作 prechoice）：対話の前に、決まった選択肢から「大切にしたいこと」を二つ選ぶ。"""
+    persona = body["persona"]
+    anchor = body.get("pretaskAnchor") or {}
+    options = body.get("options") or []
+    text = (
+        f"【人物】\n性格：{persona.get('character', '')}\n"
+        f"この夕食で望んでいること（本人だけが知っている）：{persona.get('needs', '')}\n"
+        f"AIへの態度：{persona.get('attitude', '')}\n\n"
+        f"【場面】{anchor.get('scenarioLabel', '')}\n【最初に書いた目標】{anchor.get('freeText', '')}\n\n"
+        "【質問】この夕食で大切にしたいことに近いものを、次の中から二つ選んでください。\n"
+        + "\n".join(f"{i + 1}. {o.get('label', '')}" for i, o in enumerate(options))
+    )
+    return {"model": model, "instructions": CHOICE_INSTRUCTIONS, "input": text, "reasoning": {"effort": "low"},
+            "text": {"verbosity": "low"}, "max_output_tokens": 300, "store": False}
+
+
+def parse_choice(text: str, options: list[dict[str, Any]]) -> list[str]:
+    import re
+    picked: list[str] = []
+    for n in re.findall(r"\d+", text or ""):
+        i = int(n) - 1
+        if 0 <= i < len(options) and options[i].get("id") not in picked:
+            picked.append(options[i].get("id"))
+    if len(picked) < 2:
+        raise ValueError(f"選択を読み取れませんでした：{(text or '')[:60]}")
+    return picked[:2]
+
+
 def build_payload(body: dict[str, Any], model: str) -> dict[str, Any]:
     turn = int(body["turn"])
     persona = body["persona"]
@@ -51,8 +84,9 @@ def build_payload(body: dict[str, Any], model: str) -> dict[str, Any]:
         f"AIへの態度：{persona.get('attitude', '')}\n"
         f"読み方：{persona.get('reading', '')}\n\n"
         f"【場面】{anchor.get('scenarioLabel', '')}\n"
-        f"【最初に書いた目標】{anchor.get('freeText', '')}\n\n"
-        f"【これまでの対話】\n{talk}\n\n"
+        f"【最初に書いた目標】{anchor.get('freeText', '')}\n"
+        + (f"【対話の前に自分で選んだ、大切にしたいこと】{'、'.join(body.get('chosenLabels') or [])}\n" if body.get("chosenLabels") else "")
+        + f"\n【これまでの対話】\n{talk}\n\n"
         f"【画面の右側に出ている「AIが読み取ったこと」】\n{cards}\n\n"
         f"【今回（第{turn}回）の案内】{GUIDES[turn]}\n\n"
         "この人物として、今回の入力を書いてください。"

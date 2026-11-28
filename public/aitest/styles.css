@@ -564,3 +564,7 @@ html[data-flow2] .send-confirm button { min-width: 84px; height: 32px; padding: 
 html[data-flow2] .send-confirm .send-confirm-yes { border: 0; background: var(--blue); color: #fff; }
 html[data-flow2] .send-confirm .send-confirm-no { border: 1px solid #cdd6e3; background: #fff; color: #35435a; }
 html[data-flow2] .send-confirm-note { position: absolute; top: 17px; left: 46px; color: #5d6a80; font-size: 13px; font-weight: 700; }
+
+/* 試作 ?stimulus=prechoice：対話の前に「大切にしたいこと」を二つ選ぶ欄（場面カードと同じ見た目、3 列） */
+.value-picker { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 16px; }
+.value-picker span { min-height: 44px; justify-content: center; }

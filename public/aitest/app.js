@@ -56,6 +56,46 @@ const QUERY = new URLSearchParams(location.search);
 //   回答は長めで、入力の具体さに合わせる（サーバーへ dialogueStyle: "open" を送る）。
 // 既定・side・flow の動作と文言は変えない。参加者に見える新しい文言は候補であり、正式に使う前に使用者の確認が必要。
 const FLOW2 = QUERY.get("layout") === "flow2";
+// 試作（2026-11-28）：?stimulus=prechoice。対話の前に「大切にしたいこと」を決まった選択肢から二つ選んでもらい、
+// 第3・4回の刺激をその二つだけで決める（サーバーへ stimulusRule: "prechoice" と pretaskAnchor.values を送る）。
+// 先に選んだものが X（第3回に意味を狭められる）、後に選んだものが Y（第4回に縮められる）。
+// 指定が無ければ画面も送信内容も従来どおり。選択肢と見出しの文言は候補で、正式に使う前に使用者の確認が要る。
+const PRECHOICE = QUERY.get("stimulus") === "prechoice";
+const PRECHOICE_OPTIONS = [["no_burden", "気を遣わせない"], ["natural_talk", "自然に話せる"], ["not_grand", "大げさにしない"],
+  ["not_heavy", "重くしない"], ["relaxed", "ゆっくりできる"], ["as_usual", "いつもどおり"]];
+let prechoicePicked = [];
+function setupPrechoice(form) {
+  if (!PRECHOICE || form.querySelector(".value-picker")) return;
+  const box = document.createElement("fieldset");
+  box.className = "scenario-picker value-picker";
+  const legend = document.createElement("legend");
+  legend.textContent = "3．この夕食で大切にしたいことに近いものを、二つ選ぶ";
+  box.append(legend);
+  PRECHOICE_OPTIONS.forEach(([id, label]) => {
+    const row = document.createElement("label");
+    const input = document.createElement("input");
+    input.type = "checkbox"; input.name = "prechoice"; input.value = id;
+    const span = document.createElement("span");
+    span.textContent = label;
+    row.append(input, span);
+    box.append(row);
+    input.addEventListener("change", () => {
+      if (input.checked) {
+        if (prechoicePicked.length >= 2) { input.checked = false; showToast("選べるのは二つまでです。選び直すときは、選んだものをもう一度押して外してください。"); return; }
+        prechoicePicked.push(id);
+      } else {
+        prechoicePicked = prechoicePicked.filter((x) => x !== id);
+      }
+    });
+  });
+  const text = form.querySelector(".anchor-text");
+  text.after(box);
+}
+function restorePrechoice(form, values) {
+  if (!PRECHOICE || !Array.isArray(values)) return;
+  prechoicePicked = values.filter((v) => PRECHOICE_OPTIONS.some(([id]) => id === v)).slice(0, 2);
+  form.querySelectorAll('input[name="prechoice"]').forEach((el) => { el.checked = prechoicePicked.includes(el.value); });
+}
 const INVITE_RICH = QUERY.get("invite") === "rich" || FLOW2;
 if (INVITE_RICH) {
   document.documentElement.dataset.invite = "rich";
@@ -303,6 +343,7 @@ function prepareInstructions() {
     const radio = els.anchorForm.querySelector(`input[value="${session.pretaskAnchor.scenarioId}"]`);
     if (radio) radio.checked = true;
     els.anchorText.value = session.pretaskAnchor.freeText || "";
+    restorePrechoice(els.anchorForm, session.pretaskAnchor.values);
   }
   updateAnchorState();
   showOnly(els.instructionScreen);
@@ -320,6 +361,11 @@ function readAnchor() {
   if (!scenario) { showToast("場面カードを一つ選んでください。"); return null; }
   if (freeText.length < 4) { showToast("目指したい雰囲気と夕食後の二人の状態を、一文で入力してください。"); els.anchorText.focus(); return null; }
   const label = scenario.closest("label").querySelector("span").textContent;
+  if (PRECHOICE) {
+    if (prechoicePicked.length !== 2) { showToast("大切にしたいことに近いものを、二つ選んでください。"); return null; }
+    const labels = prechoicePicked.map((v) => PRECHOICE_OPTIONS.find(([id]) => id === v)[1]);
+    return { scenarioId: scenario.value, scenarioLabel: label, freeText, values: [...prechoicePicked], valueLabels: labels };
+  }
   return { scenarioId: scenario.value, scenarioLabel: label, freeText };
 }
 
@@ -328,7 +374,8 @@ function startTask(resuming = false) {
     const anchor = readAnchor();
     if (!anchor) return;
     session.pretaskAnchor = anchor;
-    logEvent("pretask_anchor_recorded", { scenarioId: anchor.scenarioId, textLength: anchor.freeText.length });
+    logEvent("pretask_anchor_recorded", { scenarioId: anchor.scenarioId, textLength: anchor.freeText.length,
+      ...(anchor.values ? { values: anchor.values } : {}) });
   }
   session.status = session.status === "complete" ? "complete" : "running";
   if (!session.startedAt) session.startedAt = isoNow();
@@ -690,6 +737,7 @@ async function submitTurn() {
           : (LAYOUT_VARIANT === "flow" || INVITE_RICH ? "personal" : "fixed"),
         ...(INVITE_RICH ? { inviteMode: "rich" } : {}),
         ...(DIALOGUE_STYLE === "open" ? { dialogueStyle: "open" } : {}),
+        ...(PRECHOICE && Array.isArray(session.pretaskAnchor?.values) ? { stimulusRule: "prechoice" } : {}),
         // 分析AI の指示文の版。サーバーは試験用の参加者番号のときだけ受け付ける（正式な番号では環境変数 EXPERIMENT_ANALYSIS_PROMPT で決まる）。
         // flow2 は v7（title は項目名、meaning は AI の受け取り方）を前提にしているので、試験用の番号では v7 を送る。?prompt=v1〜v7 で切り替えられる。
         ...(/^v[1-9]$/.test(QUERY.get("prompt") || "") ? { analysisPrompt: QUERY.get("prompt") } : FLOW2 ? { analysisPrompt: "v7" } : {}),
@@ -865,7 +913,7 @@ function updateCharCount() { els.charCount.textContent = `${els.messageInput.val
 function updateAnchorState() {
   const scenarioSelected = Boolean(els.anchorForm.querySelector('input[name="scenario"]:checked'));
   const textLength = els.anchorText.value.trim().length;
-  const ready = scenarioSelected && textLength >= 4;
+  const ready = scenarioSelected && textLength >= 4 && (!PRECHOICE || prechoicePicked.length === 2);
   els.anchorCharCount.textContent = `${els.anchorText.value.length} / 160`;
   els.startTask.disabled = !ready;
   els.startTaskHint.textContent = ready
@@ -1029,6 +1077,7 @@ els.resumeButton.addEventListener("click", () => {
   else if (session.status === "debrief" || session.status === "finished") { showOnly(els.debriefScreen); }
   else startTask(true);
 });
+setupPrechoice(els.anchorForm);
 els.anchorForm.addEventListener("input", updateAnchorState);
 els.anchorForm.addEventListener("change", updateAnchorState);
 els.startTask.addEventListener("click", () => startTask(false));
