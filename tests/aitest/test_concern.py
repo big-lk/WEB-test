@@ -115,6 +115,10 @@ for topic, text, pr, want in [
     ("tidy", "洗い物は少なくていいです。", False, "untouched"),
     ("tidy", "見栄えを優先するのは違います。", True, "touched"),
     ("prep", "段取りどおりではなく、一緒に作りたい。", False, "touched"),
+    ("tidy", "でも食器を絞ることより、食後に二人で並んで片付けるのが大事です。", False, "touched"),
+    ("tidy", "見栄えより、急がず過ごせることを大切にしたいです。", True, "touched"),
+    ("prep", "いつもより丁寧に準備したいです。", False, "untouched"),
+    ("tidy", "食後は私がすぐ片付ける。", False, "untouched"),
 ]:
     check(f"state: {text[:18]}… -> {want}", S(topic, [text], priority=pr) == want, S(topic, [text], priority=pr))
 

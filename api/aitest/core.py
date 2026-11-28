@@ -2301,12 +2301,18 @@ def concern_event_texts(concern: dict[str, str]) -> dict[str, tuple[str, str]]:
     }
 
 
+# 「〜より、…が大事／…したい」という比べ方での打ち消し（「食器を絞ることより、二人で並んで片付けるのが大事です」）。
+# 「いつもより」「普段より」「何より」「前より」は比べる相手が違うので除く。
+CONCERN_COMPARATIVE_RE = re.compile(r"(?<!いつも)(?<!普段)(?<!ふだん)(?<!何)(?<!前)より(?:も)?[^。！？\n]*?(?:大事|大切|優先|したい|がいい|でいい|を選ぶ)")
+
+
 def concern_state(topic_key: str, texts: list[str], priority: bool = False) -> str:
     """刺激のあとの入力で、参加者がその話題の決め方を打ち消したか（touched）、触れていないか（untouched）。
     priority=True（第4回の刺激）では「優先」「一般」などの語も話題の語として数える。"""
     words = list(CONCERN_TOPICS[topic_key]["words"]) + (["優先", "見栄え", "手をかけ", "多くの方", "一般"] if priority else ["一般的", "決まった", "標準"])
     for sentence in re.split(r"[。！？!?\n]+", "\n".join(texts)):
-        if any(w in sentence for w in words) and (SMALLTALK_NEGATION_RE.search(sentence) or SMALLTALK_WEAK_NEGATION_RE.search(sentence)):
+        if any(w in sentence for w in words) and (SMALLTALK_NEGATION_RE.search(sentence) or SMALLTALK_WEAK_NEGATION_RE.search(sentence)
+                                                  or CONCERN_COMPARATIVE_RE.search(sentence)):
             return "touched"
     return "untouched"
 
