@@ -9,7 +9,7 @@
 - サーバー：`api/aitest/core.py`（オンライン版・OpenAI）、`offline_engine.py` + `offline_corpus.py`（オフライン版・生成AIなし）
 - オフライン版ローカルサーバー：`tools/offline/serve.py` → http://127.0.0.1:8765/aitest/
 - 分析：`tools/aitest_analysis/analyze.py`、視線：`tools/aitest_analysis/eyetools/`
-- テスト：`python tests/aitest/test_offline_engine.py`、`python tests/aitest/test_v17_offline.py`、`python tests/aitest/test_model_switch.py`、`node tests/aitest/example_sentence_test.mjs`、`node tests/aitest/setup_preset_test.mjs`、`python tests/aitest/test_personal_closing.py`、`python tests/aitest/test_open_style.py`
+- テスト：`python tests/aitest/test_offline_engine.py`、`python tests/aitest/test_v17_offline.py`、`python tests/aitest/test_model_switch.py`、`node tests/aitest/example_sentence_test.mjs`、`node tests/aitest/setup_preset_test.mjs`、`python tests/aitest/test_personal_closing.py`、`python tests/aitest/test_open_style.py`、`python tests/aitest/test_prechoice.py`
 - 公開版：https://www.lkdesigner.top/aitest/ （オフライン版で試す：`?engine=offline`）
 - 変更を push するときは `main` と `aitest-v1.7-stability` の両方へ。
 
@@ -156,6 +156,24 @@
 - **参加者に見える新しい文言は候補**。資料 4・5 との対応と、事前の状態を 4 項目から 2 項目にすることは、使用者と指導教員の確認が要る。
 - 検証：`python tests/aitest/test_open_style.py`（偽の応答。組み立てと基準だけ）。
 - 手元で試す：`python tools/offline/serve.py --online` → `http://127.0.0.1:8765/aitest/?layout=flow2&condition=UI_B&variant=generic_unranked`（番号は TEST- で始める）。
+
+## 試作：?stimulus=prechoice（2026-11-28 夜、ブランチ aitest-layout-side。**main には未反映**）
+使用者の考え（11/28）：「ずれの材料は、AI が始まる前に一度だけ入力してもらい（質問の中に隠す）、後は決まった場所でずらす」。
+詳しくはプロジェクト文書「第二実験_試作_事前選択による刺激固定_2026-11-28」。指定しなければ画面もサーバーも従来どおり。
+- 画面（`app.js` の `PRECHOICE`）：場面と目標の一文のあとに「3．この夕食で大切にしたいことに近いものを、二つ選ぶ」（6 つから 2 つ。先に選んだもの＝X、後＝Y）。
+  サーバーへ `stimulusRule: "prechoice"` と `pretaskAnchor.values` を送る。generic 系の刺激のときだけ効く。
+- サーバー（`core.py` の `PRECHOICE_VALUES`）：第3回＝「X」は、<登録済みの狭い意味>として整えます。第4回＝今回は<X>を優先して、<Y を縮める一節>。
+  文は選んだ二つだけで決まる（対話の中身に左右されない）。回答の第2文に置く（`pin_control_sentence`）。第3・4回は入力の長さに合わせない。
+  カードは 1 枚目＝X（id pre-x）、2 枚目＝Y（pre-y）、3 枚目＝会話から。第3回は 1 枚目、第4回は 2 枚目に登録済みの文面。
+  優先の文がほかのカードに書き足されたら外す。第5・6回は、入力に Y の言葉（keys）か「優先」が無ければ 2 枚目をそのまま残す。
+- 実際の出力（gpt-6-luna、模擬参加者 8 名、3 巡・114 回、失敗 0）：同じ選択なら文は同じ（第3回 8/8）、登録文は第2文 16/16、
+  カード位置は第3回 1 枚目 8/8・第4回 2 枚目 8/8（従来の決め方では 1〜3 枚目にばらつく）、第3・4回の回答は 283〜364 字（入力 9〜166 字）、
+  待ち時間（1 セッション、入力 130〜170 字）第3・4回 14.9 / 16.6 秒。狭められる言葉が参加者自身のもの：従来 3/16 → 16/16。
+- **選択肢と 12 の文は候補（強さをそろえていない）。** 事前の質問が一つ増えるのは参加者に見える資料の変更なので、使用者と指導教員の確認が要る。
+- 残っている問題：第5・6回の 2 枚目の書き換えは分析AI の判断による部分がある／会話の内容に使える枠が 1 枚になる／
+  1920×1080 で事前の画面の下の説明（「この一文はどこで使う？」）がスクロールしないと見えない／オフライン版は未対応／人と実験機では未確認。
+- 検証：`python tests/aitest/test_prechoice.py`（偽の応答）。模擬参加者は第0回に選択する（`sim_user.build_choice_payload`）。
+- 手元で試す：`http://127.0.0.1:8765/aitest/?layout=flow2&condition=UI_B&variant=generic_unranked&stimulus=prechoice`
 
 ## 未決事項（使用者と相談中）
 - 正式に使う刺激（推奨：generic_unranked 単一）。例文をそのまま送った場合の H1 の数え方。H1 変更の教授確認。
