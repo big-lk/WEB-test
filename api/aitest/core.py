@@ -2342,6 +2342,28 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
             thin_directive = (
                 f"今回の入力は{input_chars}字と短い。案は一文だけの暫定として示し、今回の入力から読み取れる範囲を超えて広げない。"
                 "何が分かると案を具体的にできるかを、疑問文にせず陳述で一つ示す。\n")
+    # open：回答の量と中身を、入力の量に合わせる（2026-11-28 午後、使用者の指摘：「100 字書いた人に 100 字ほどの回答では、
+    # 言い直しと変わらない」）。実際の出力では、本文の長さは入力に関係なく 150〜290 字で、入力が 100 字前後になると
+    # 本文は入力の約 2 倍、そのうち最大で半分が入力の言い直しだった。
+    # 入力の字数から本文の下限を決め、入力に書かれた要素の一つ一つに、言い直しではなく具体化で応じるよう指示する。
+    proportional_directive = ""
+    body_min = 0
+    if open_style and input_level == "normal":
+        base_body = {1: 250, 2: 250, 3: 270, 4: 270, 5: 170, 6: 210}[turn]
+        body_cap = {1: 560, 2: 560, 3: 560, 4: 560, 5: 440, 6: 520}[turn]
+        body_min = min(max(base_body, int(input_chars * 2.2)), body_cap)
+        visible_length_target = f"{body_min + 70}〜{body_min + 190}字"
+        default_max = 480 if turn in {1, 2} else 430 if turn in {3, 4} else 280 if turn == 5 else 360
+        max_extra = max(max_extra, body_min + 190 + 80 - default_max)
+        proportional_directive = (
+            f"今回の入力は{input_chars}字。本文（末尾の依頼文を除いた部分）は{body_min}字以上にする。段落は2〜3つに分けてよい。\n"
+            "入力に書かれた要素（相手の人柄、場面、習慣、希望、避けたいこと、条件）を一つずつ拾い、要素ごとに応じる。"
+            "いくつかの要素を一文に要約して済ませない。要素を一つも落とさない。\n"
+            "応じ方：参加者の文を言い直すのではなく、その要素が当日の夕食のどの場面で、どういう形になるかを具体的に書く"
+            "（いつ、どこで、何を、どの順で）。参加者が書いたことをほぼ同じ内容で繰り返す文は、冒頭の一文までにする。\n"
+            "要素どうしが同じ場面で両立しにくいときは、どちらを優先するかを決めずに、そのことを陳述で示す。\n"
+            "足してよいのは、書かれた要素を実現するための具体（料理、置くもの、段取り、時間、順番）だけ。"
+            "参加者が書いていない価値、感情、理由、優先順位は足さない。\n")
     turn_directive = ((EMBEDDED_TURN_DIRECTIVES if is_embedded_turn(experiment_variant, turn) else GENERIC_TURN_DIRECTIVES)[turn]
                       if generic_dialogue else TURN_DIRECTIVES[turn]).strip()
     if open_style and turn == 5 and input_level == "normal":
@@ -2362,7 +2384,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
         f"{'今回の強制文（一字も変えず、可視回答に正確に含める）: ' + required_control_sentence if required_control_sentence else ''}\n"
         f"可視回答の長さ: {visible_length_target}、1〜2段落。"
         f"{' 強制文は最新入力への短い応答に続く第2文として、冒頭160字以内に置く。' if required_control_sentence else ''}\n"
-        f"{thin_directive}"
+        f"{thin_directive}{proportional_directive}"
         # 「できるだけ今回の入力から選ぶ」という指定は試して外した：短い入力（「和食がいい」など）から無理に選ぼうとして、
         # 参加者の言葉と一致しない言い換えになり、やり直しが増えた（実際の出力：18 回中 4 回。指定なしでは 0〜1 回）。
         # その代わり、同じ言葉を続けて引用することがある（台本 F で 4 回連続）。これは既知の点として残す。
@@ -2749,6 +2771,7 @@ def run_two_ais(body: dict[str, Any]) -> dict[str, Any]:
             "dialogueStyle": "open" if open_style else "default",
             "inputChars": input_chars,
             "inputLevel": input_level,
+            "bodyMin": body_min,
             "inviteMode": "rich" if invite_rich else "default",
             "dialogueUsage": usage_summary(dialogue_raw),
             "analysisUsage": usage_summary(analysis_raw),

@@ -79,7 +79,19 @@ check("default: a closing without a participant quote is rejected (falls back to
 # 2) open：指示文・長さ・末尾
 out, d, a = run(USER, REPLY, dialogueStyle="open", analysisPrompt="v7")
 check("open: open instructions and medium verbosity", d["instructions"] == core.DIALOGUE_INSTRUCTIONS_OPEN and d["text"]["verbosity"] == "medium")
-check("open: longer length target and the 'ならでは' request are in the input", "320〜460字" in d["input"] and "お二人ならではの" in d["input"] and "二つ三つ" in d["input"])
+check("open: body minimum and the 'ならでは' request are in the input", "は250字以上" in d["input"] and "320〜440字" in d["input"]
+      and "お二人ならではの" in d["input"] and "二つ三つ" in d["input"] and out["meta"]["bodyMin"] == 250, d["input"][:200])
+# 入力が長いほど、本文の下限が上がる（入力の約 2.2 倍、上限あり）
+long_user = "父は無口で、ほめられると新聞に目を落とす人です。晩酌は日本酒を一合だけと決めています。母が亡くなってからは、二人で食卓を囲むのは月に一度になりました。" * 2
+out_l, d_l, _ = run(long_user, REPLY, dialogueStyle="open")
+n = out_l["meta"]["inputChars"]
+check("open: a long input raises the body minimum in proportion", n > 120 and out_l["meta"]["bodyMin"] == min(int(n * 2.2), 560)
+      and f"は{out_l['meta']['bodyMin']}字以上" in d_l["input"] and "要素ごとに応じる" in d_l["input"], str((n, out_l["meta"]["bodyMin"])))
+very_long = "ほっとして笑って帰れる夜にしたいのですね。" + PAD * 11 + CLOSE_NARADE
+check("open: with a 300-character input, an 800-character reply is accepted; with a short input it is too long",
+      run(long_user * 2, very_long, dialogueStyle="open")[0]["meta"]["validationStatus"] == "passed"
+      and "R03_TOO_LONG" in json.dumps(run(USER, very_long, dialogueStyle="open")[0]["meta"]["dialogueAttempts"]), str(len(very_long)))
+check("default: no proportional directive", "要素ごとに応じる" not in run(long_user, REPLY)[1]["input"])
 check("open: a closing with 'ならでは' passes without a quote", out["meta"]["closingFallback"] is False and out["dialogue"].endswith(CLOSE_NARADE), out["dialogue"][-60:])
 check("open: meta records the style and the input level", out["meta"]["dialogueStyle"] == "open" and out["meta"]["inputLevel"] == "normal" and out["meta"]["inputChars"] > 30)
 check("v7: selectable for a test id; analysis payload uses it", a["instructions"] == core.ANALYSIS_PROMPTS["v7"] and out["meta"]["analysisPrompt"] == "v7")

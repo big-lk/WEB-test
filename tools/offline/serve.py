@@ -58,6 +58,25 @@ class OfflineHandler(core.Handler):
             return str(PUBLIC / "aitest" / "index.html")
         return str(target)
 
+    def do_POST(self) -> None:
+        # 模擬参加者（開発用）。--online のときだけ、試験用の番号（SIMTEST-）にだけ応じる。詳しくは sim_user.py。
+        if self.path.split("?", 1)[0] == "/api/aitest/_simuser":
+            import json
+            from tools.offline import sim_user
+            try:
+                if os.environ.get("EXPERIMENT_ENGINE") == "offline":
+                    raise ValueError("模擬参加者は --online のときだけ使えます。")
+                size = int(self.headers.get("Content-Length", "0"))
+                body = json.loads(self.rfile.read(size).decode("utf-8"))
+                if not str(body.get("sessionId", "")).upper().startswith("SIMTEST-"):
+                    raise ValueError("模擬参加者は SIMTEST- で始まる番号でだけ使えます。")
+                text, _raw, latency = core.call_model(sim_user.build_payload(body, core.DIALOGUE_MODEL))
+                self.send_json(200, {"text": sim_user.clean(text), "latencyMs": latency})
+            except Exception as exc:  # 開発用なので、理由をそのまま返す
+                self.send_json(400, {"error": str(exc)[:300]})
+            return
+        super().do_POST()
+
     def do_GET(self) -> None:
         raw = self.path.split("?", 1)[0]
         if raw in ("/", "/aitest"):
@@ -71,7 +90,7 @@ class OfflineHandler(core.Handler):
 def watch_and_restart() -> None:
     """サーバー側のコードが書き換わったら、同じ引数で起動し直す（--open は二度目から外す）。"""
     import threading, time
-    files = sorted((ROOT / "api" / "aitest").glob("*.py")) + [Path(__file__).resolve()]
+    files = sorted((ROOT / "api" / "aitest").glob("*.py")) + [Path(__file__).resolve(), Path(__file__).resolve().with_name("sim_user.py")]
     stamp = lambda: tuple((f.stat().st_mtime_ns, f.stat().st_size) for f in files if f.exists())  # noqa: E731
     first = stamp()
 
